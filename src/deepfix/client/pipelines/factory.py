@@ -76,8 +76,8 @@ class TrainLoggingPipeline(Pipeline):
         self,
         metric_names: List[str],
         checkpoint_artifact_path: str,
-        train_data: Optional[Dataset] = None,
-        test_data: Optional[Dataset] = None,
+        train_data: Optional[BaseDataset] = None,
+        test_data: Optional[BaseDataset] = None,
     ) -> dict:
         self.context = {}
         self.context["checkpoint_artifact_path"] = checkpoint_artifact_path

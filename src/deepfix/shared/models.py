@@ -310,7 +310,7 @@ class TrainingArtifacts(Artifacts):
     metrics_path: Optional[str] = Field(
         default=None, description="Path to the metrics file"
     )
-    metrics_values: Optional[pd.DataFrame] = Field(
+    metrics_values: Optional[Any] = Field(
         default=None, description="Metrics of the artifact"
     )
     params: Optional[Dict[str, Any]] = Field(
@@ -319,7 +319,7 @@ class TrainingArtifacts(Artifacts):
 
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
-        if self.metrics_values is not None:
+        if isinstance(self.metrics_values, pd.DataFrame) and self.metrics_values is not None:
             dumped_dict["metrics_values"] = self.metrics_values.to_dict(orient="list")
         return dumped_dict
 
