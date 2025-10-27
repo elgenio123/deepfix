@@ -189,36 +189,49 @@ class DeepchecksResultHeaders(StrEnum):
     LabelPropertyOutliers = "Label Property Outliers"
     ClassPerformance = "Class Performance"
 
+class DeepchecksConditionResult(BaseModel):
+    status: str = Field(description="Status of the condition")
+    condition: str = Field(description="Condition of the condition")
+    more_info: str = Field(description="More info of the condition")
 
-class DeepchecksParsedResult(BaseModel):
-    header: str = Field(description="Header of the result")
-    json_result: Dict[str, Any] = Field(description="JSON result of the result")
+
+class DeepchecksCheckResult(BaseModel):
+    check: Optional[str] = Field(default=None, description="Name of the check")
+    params: Optional[dict] = Field(default=None, description="Parameters of the check")
+    summary: Optional[str] = Field(default=None, description="Summary of the check")
+    value: Optional[Union[dict, list, str]] = Field(default=None, description="Value of the check")
+    conditions_results: List[DeepchecksConditionResult] = Field(default=[], description="Conditions results of the check")
+    link_in_summary: Optional[str] = Field(default=None, description="Link in summary of the check")
+    display_text: Optional[str] = Field(default=None, description="Display text of the check")
     display_images: Optional[List[str]] = Field(
         default=None,
         description="Display images of the result as base64 encoded strings",
     )
-    display_txt: Optional[str] = Field(
-        default=None, description="Display text of the result"
-    )
+
+    def to_dict(
+        self, exclude: list[str] = []
+    ) -> dict:
+        dumped = self.model_dump()
+        keys_to_remove = set(exclude + [k for k, v in dumped.items() if v is None])
+        for key in keys_to_remove:
+            dumped.pop(key)
+        return dumped
+
+class DeepchecksParsedResult(BaseModel):
+    header: str = Field(description="Header of the result")
+    result: DeepchecksCheckResult = Field(description="Result of the check")    
 
     def to_dict(self, exclude_images: bool = False) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
-        dumped_dict["header"] = dumped_dict["header"]
-        dumped_dict.pop("display_txt")
         if exclude_images:
             dumped_dict.pop("display_images")
         return dumped_dict
 
     @classmethod
     def from_dict(
-        self, d: Union[Dict[str, Any], DictConfig]
+        cls, d: Union[Dict[str, Any], DictConfig]
     ) -> "DeepchecksParsedResult":
-        return DeepchecksParsedResult(
-            header=d["header"],
-            json_result=d["json_result"],
-            display_images=d.get("display_images", None),
-            display_txt=d.get("display_txt", None),
-        )
+        return cls(**d)
 
 
 class Artifacts(BaseModel):

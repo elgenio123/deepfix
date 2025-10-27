@@ -167,12 +167,7 @@ class DatasetIngestionPipeline(Pipeline):
         overwrite: bool = False,
     ):
         sqlite_path = sqlite_path or DefaultPaths.ARTIFACTS_SQLITE_PATH
-        if self.check_if_exists(dataset_name, sqlite_path):
-            if overwrite:
-                do_checks = train_test_validation or data_integrity
-                self.delete_artifact(dataset_name, sqlite_path,checks=do_checks)
-            else:
-                raise ValueError(f"Dataset {dataset_name} already exists in the database.")
+        
         
         if isinstance(data_type, str):
             data_type = DataType(data_type)
@@ -195,6 +190,16 @@ class DatasetIngestionPipeline(Pipeline):
             or DefaultPaths.DATASETS_EXPERIMENT_NAME.value,
             run_name=dataset_name,
         )
+
+        if self.check_if_exists(dataset_name, sqlite_path):
+            if overwrite:
+                do_checks = train_test_validation or data_integrity
+                success = self.delete_artifact(dataset_name, sqlite_path,checks=do_checks,delete_mlflow_run=True)
+                if not success:
+                    raise ValueError(f"Failed to delete existing dataset {dataset_name}")
+            else:
+                raise ValueError(f"Dataset {dataset_name} already exists in the database. Use overwrite=True to overwrite it.")
+        
         cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=sqlite_path)
         steps = [
             LogDatasetMetadata(dataset_name=dataset_name,data_type=data_type, **cfg),
@@ -211,20 +216,26 @@ class DatasetIngestionPipeline(Pipeline):
             )
         super().__init__(steps=steps)
     
-    def delete_artifact(self, dataset_name: str, sqlite_path: str,checks:bool=False,delete_mlflow_run:bool=True) -> None:
+    def delete_artifact(self, dataset_name: str, sqlite_path: str,checks:bool=False,delete_mlflow_run:bool=True) -> bool:
         repo = ArtifactRepository(sqlite_path)
         record = repo.get(dataset_name, ArtifactPath.DATASET.value)
         if record is None:
             return False
-        mlflow_run_id = "" + record.mlflow_run_id
-        success = repo.delete(run_id=dataset_name, artifact_key=ArtifactPath.DATASET.value)
-        if checks:
-            success = success or repo.delete(run_id=mlflow_run_id, artifact_key=ArtifactPath.DEEPCHECKS.value)
+        
         if delete_mlflow_run:
-            try:
-                self.mlflow_manager.delete_run(mlflow_run_id)
-            except Exception as e:
-                LOGGER.error(f"Error deleting MLflow run {mlflow_run_id}: {e}")
+            success = self.mlflow_manager.delete_run(record.mlflow_run_id)
+            if success:
+                LOGGER.info(f"Deleted MLflow run {record.mlflow_run_id}")
+
+        if checks:
+            success = repo.delete(run_id=record.mlflow_run_id, artifact_key=ArtifactPath.DEEPCHECKS.value)
+            if success:
+                LOGGER.info(f"Deleted deepchecks artifacts for run {record.mlflow_run_id}")
+        
+        success =  repo.delete(run_id=dataset_name, artifact_key=ArtifactPath.DATASET.value)
+        if success:
+            LOGGER.info(f"Deleted dataset {dataset_name}")
+
         return success
 
     def check_if_exists(self, dataset_name: str, sqlite_path: str) -> bool:

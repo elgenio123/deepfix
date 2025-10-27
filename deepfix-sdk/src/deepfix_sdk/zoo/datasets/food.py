@@ -1,11 +1,9 @@
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T
-import numpy as np
 from tqdm import tqdm
-from itertools import chain
 from collections import OrderedDict
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Optional
 from pathlib import Path
 import json
 import torch

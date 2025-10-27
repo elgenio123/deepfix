@@ -167,9 +167,14 @@ class MLflowManager:
         else:
             self.client.set_terminated(self.run_id)
     
-    def delete_run(self,run_id:str)->None:
-        self.client.delete_run(run_id=run_id)
-        LOGGER.info(f"Run {run_id} deleted")
+    def delete_run(self,run_id:str)->bool:
+        try:
+            self.client.delete_run(run_id=run_id)
+            LOGGER.info(f"Run {run_id} deleted")
+        except Exception as e:
+            LOGGER.error(f"Error deleting run {run_id}: {e}")
+            return False
+        return True
     
     def get_run_info(self) -> Dict[str, Any]:
         if self.current_run is None:

@@ -5,99 +5,13 @@ This module provides the DeepchecksPromptBuilder for creating prompts
 from DeepchecksArtifacts instances.
 """
 
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any,
 from .base import BasePromptBuilder
 from deepfix_core.models import (
     DeepchecksArtifacts,
-    DeepchecksParsedResult,
     Artifacts,
 )
-from pydantic import BaseModel
-import re
 from omegaconf import OmegaConf
-
-
-class ConditionResult(BaseModel):
-    status: str
-    condition: str
-    more_info: str
-
-
-class Result(BaseModel):
-    check: str
-    params: dict
-    summary: str
-    value: Union[dict, list, str]
-    conditions_results: list[ConditionResult]
-    link_in_summary: Optional[str] = None
-    display_text: Optional[str] = None
-
-    def to_dict(
-        self, exclude: list[str] = ["value", "params", "link_in_summary"]
-    ) -> dict:
-        dumped = self.model_dump()
-        keys_to_remove = set(exclude + [k for k, v in dumped.items() if v is None])
-        for key in keys_to_remove:
-            dumped.pop(key)
-        return dumped
-
-
-class Extractor:
-    def extract_urls_regex(self, text: str) -> list[str]:
-        """
-        Extract URLs using regex pattern matching.
-        """
-        # Comprehensive URL regex pattern
-        url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-        # Find all matches
-        urls = re.findall(url_pattern, text)
-        return urls
-
-    # Remove HTML anchor tags with empty href attributes
-    def remove_anchor_tags(self, text: str) -> str:
-        """
-        Remove any HTML anchor tags (all <a> tags).
-        Handles both regular and self-closing anchor tags.
-        """
-        # Pattern to match any anchor tag with content
-        pattern = r"<a\b[^>]*>.*?</a>"
-        # Remove all anchor tags
-        cleaned_text = re.sub(pattern, "", text, flags=re.IGNORECASE | re.DOTALL)
-        return cleaned_text
-
-    def extract_values(self, result: DeepchecksParsedResult) -> Result:
-        json_result = result.json_result
-        check = json_result.get("check", {})
-        check_name = check.get("name", "")
-        params = check.get("params", {})
-        summary = check.get("summary", "")
-        value = json_result.get("value", {})
-        conditions_results = []
-
-        for cr in json_result.get("conditions_results", []):
-            status = cr.get("Status", {})
-            condition = cr.get("Condition", {})
-            more_info = cr.get("More Info", {})
-            conditions_results.append(
-                ConditionResult(status=status, condition=condition, more_info=more_info)
-            )
-
-        links = self.extract_urls_regex(summary)
-        if len(links) > 0:
-            link_in_summary = " ".join(links)
-            summary = self.remove_anchor_tags(summary).strip()
-        else:
-            link_in_summary = None
-
-        return Result(
-            check=check_name,
-            params=params,
-            summary=summary,
-            value=value,
-            conditions_results=conditions_results,
-            link_in_summary=link_in_summary,
-            display_text=json_result.get("display_text", None),
-        )
 
 
 class DeepchecksPromptBuilder(BasePromptBuilder):
@@ -114,7 +28,6 @@ class DeepchecksPromptBuilder(BasePromptBuilder):
         exclude_fields_from_result: list[str] = ["value", "params", "link_in_summary"],
         exclude_empty_conditions_results: bool = True,
     ) -> str:
-        extractor = Extractor()
 
         """Build structured prompt from DeepchecksArtifacts."""
         prompt_parts = [
@@ -141,18 +54,17 @@ class DeepchecksPromptBuilder(BasePromptBuilder):
         # Add results
         for k, v in artifact.results.items():
             prompt_parts.append(f"\n{k}:")
-            for result in v:
-                extracted_result = extractor.extract_values(result).to_dict(
-                    exclude_fields_from_result
-                )
+            for parsed_result in v:
+                check_result = parsed_result.result
                 if (
-                    len(extracted_result.get("conditions_results", [])) == 0
+                    len(check_result.conditions_results) == 0
                     and exclude_empty_conditions_results
                 ):
                     continue
                 else:
                     prompt_parts.append(
-                        f"- {OmegaConf.to_yaml(extracted_result, resolve=True)}"
+                        f"- {OmegaConf.to_yaml(check_result.to_dict(exclude_fields_from_result), 
+                        resolve=True)}"
                     )
 
         # Add context if provided

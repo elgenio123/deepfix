@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "DeepFix is a copilot designed to provide systematic guidance for machine learning model training, and debugging."
 readme = "README.md"
 requires-python = "~=3.11.0"
-dependencies = ["deepfix-core","deepfix-sdk","deepfix-server"]
+dependencies = [
+    "deepfix-core",
+    "deepfix-sdk",
+    "deepfix-server",
+    "fire>=0.7.1",
+]
 
 [tool.ruff]
 target-version = "py311"

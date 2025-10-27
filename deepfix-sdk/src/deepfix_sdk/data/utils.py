@@ -4,8 +4,8 @@ import torch
 import numpy as np
 from typing import Optional, Union, List, Dict
 from tqdm import tqdm
-
-from ..data import BaseDataset, VisionDataset
+import pandas as pd
+from ..data import BaseDataset, VisionDataset,TabularDataset
 from deepfix_core.models import DataType
 
 
@@ -143,14 +143,37 @@ class VisionDataStatistics(BaseDataStatistics):
 class TabularDataStatistics(BaseDataStatistics):
     def __init__(
         self,
-        train_data: BaseDataset,
-        test_data: Optional[BaseDataset] = None,
+        train_data: TabularDataset,
+        test_data: Optional[TabularDataset] = None,
     ):
+        assert isinstance(train_data, TabularDataset), f"train_data must be an instance of {type(TabularDataset)}, got {type(train_data)}"
         self.train_data = train_data
-        self.test_data = test_data
+
+        if test_data is not None:
+            assert isinstance(test_data, TabularDataset), f"test_data must be an instance of {type(TabularDataset)}, got {type(test_data)}"
+            self.test_data = test_data
+        else:
+            self.test_data = None
 
     def get_statistics(self) -> Dict[str, Union[int, List[float]]]:
-        pass
+        stats = dict(self.get_train_statistics(), **self.get_test_statistics())
+        stats['categorical_features'] = self.train_data.get_categorical_features()
+        stats['numerical_features'] = self.train_data.get_numerical_features()
+        return stats
+
+    def get_train_statistics(self) -> Dict[str, Union[int, List[float]]]:
+        return self._compute_statistics(self.train_data.get_data())
+
+    def get_test_statistics(self) -> Dict[str, Union[int, List[float]]]:
+        return self._compute_statistics(self.test_data.get_data())
+
+    def _compute_statistics(self, dataset: pd.DataFrame) -> Dict[str, List[float]]:
+        stats = dataset.describe().to_dict()
+        number_unique_values = dataset.nunique().to_dict()
+        stats['number_unique_values'] = number_unique_values
+        stats['percentage_unique_values'] = (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
+        return stats
+
 
 
 class NLPDataStatistics(BaseDataStatistics):

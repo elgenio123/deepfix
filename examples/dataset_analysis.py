@@ -1,6 +1,6 @@
-from deepfix.client import DeepFixClient
-from deepfix.client.zoo.datasets.foodwaste import load_train_and_val_datasets
-from deepfix.client.data.datasets import ImageClassificationDataset
+from deepfix_sdk.client import DeepFixClient
+from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
+from deepfix_sdk.data.datasets import ImageClassificationDataset
 
 # Load image datasets
 

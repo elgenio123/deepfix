@@ -22,6 +22,8 @@ class DeepFixClient:
         self.artifacts_loader: Optional[ArtifactLoadingPipeline] = None
         self.timeout = timeout
 
+        self._analyze_endpoint = f"{self.api_url}/v1/analyse"
+
     def diagnose_dataset(self, dataset_name: str) -> APIResponse:
         artifact_config = ArtifactConfig(load_dataset_metadata=True, load_checks=False, load_model_checkpoint=False, load_training=False)
         self.artifacts_loader = ArtifactLoadingPipeline(mlflow_config=self.mlflow_config, 
@@ -31,9 +33,10 @@ class DeepFixClient:
         response = self._send_request(request)
         return response
     
-    def ingest_dataset(self, dataset_name: str,train_data:BaseDataset,
+    def ingest_dataset(self, dataset_name: str,
+                    data_type: Union[str, DataType],
+                    train_data:BaseDataset,
                     test_data:Optional[BaseDataset] = None,
-                    data_type: Union[str, DataType] = DataType.VISION,
                     train_test_validation:bool=True,
                     data_integrity:bool=True,
                     batch_size:int=8,
@@ -64,7 +67,7 @@ class DeepFixClient:
     def _send_request(self, request: APIRequest):
                 
         with Live(Spinner("dots", text="[cyan]Running analysis...[/cyan]", style="cyan"), console=console, refresh_per_second=10):
-            response = requests.post(f"{self.api_url}/v1/analyse", json=request.model_dump(), timeout=self.timeout)
+            response = requests.post(self._analyze_endpoint, json=request.model_dump(), timeout=self.timeout)
                     
             if response.status_code != 200:
                 console.print("[red]✗[/red] Analysis failed", style="bold red")
