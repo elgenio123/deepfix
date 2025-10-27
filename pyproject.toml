@@ -4,45 +4,7 @@ version = "0.1.0"
 description = "DeepFix is a copilot designed to provide systematic guidance for machine learning model training, and debugging."
 readme = "README.md"
 requires-python = "~=3.11.0"
-dependencies = [
-    "anywidget>=0.9.18",
-    "datasets>=4.0.0",
-    "dspy>=3.0.3",
-    "fastapi>=0.117.1",
-    "fire>=0.7.1",
-    "httpx>=0.28.1",
-    "huggingface-hub[hf-xet]>=0.34.4",
-    "kaleido>=1.1.0",
-    "litserve>=0.2.16",
-    "llama-index-retrievers-bm25>=0.6.5",
-    "mlflow>=3.3.2",
-    "notebook>=7.4.5",
-    "numpy>=2.3.4",
-    "omegaconf>=2.3.0",
-    "open-clip-torch",
-    "opencv-python-headless>=4.11.0.86",
-    "pandas>=2.2.3",
-    "pydantic>=2.11.7",
-    "pytest>=8.4.1",
-    "python-dotenv>=1.1.1",
-    "rich>=14.1.0",
-    "seaborn>=0.13.2",
-    "sqlmodel>=0.0.24",
-    "structlog>=25.4.0",
-    "timm>=1.0.19",
-    "torch>=2.0.0",
-    "torchmetrics",
-    "torchvision",
-    "typer>=0.16.1",
-    "uvicorn>=0.37.0",
-    "numba>=0.62.1",
-    "seqeval>=1.2.2",
-    "textblob>=0.19.0",
-    "transformers>=4.57.1",
-    "umap-learn>=0.5.9.post2",
-    "deepchecks[vision]<0.19.0",
-    "albumentations>=2.0.8",
-]
+dependencies = ["deepfix-core","deepfix-sdk","deepfix-server"]
 
 [tool.ruff]
 target-version = "py311"
@@ -51,7 +13,7 @@ lint.select = ["I", "E", "F", "W", "C90"]
 lint.ignore = []
 
 [build-system]
-requires = ["uv_build>=0.7.19,<0.8.0"]
+requires = ["uv_build>=0.9.5,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.ruff.format]
@@ -60,15 +22,14 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.uv.sources]
-deepchecks = { git = "https://github.com/delcaux-labs/deepchecks.git" }
-
 [project.scripts]
 deepfix = "deepfix.cli.main:main"
 
-[project.optional-dependencies]
-training = [
-    "torchmetrics",
-    "lightning>=2.5.4",
+[tool.uv.sources]
+deepfix-core = { workspace = true }
+deepfix-sdk = { workspace = true }
+deepfix-server = { workspace = true }
 
-]
+[tool.uv.workspace]
+members = ["deepfix-core","deepfix-sdk","deepfix-server"]
+

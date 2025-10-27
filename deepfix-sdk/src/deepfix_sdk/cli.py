@@ -1,17 +1,14 @@
-"""CLI commands for DeepFix."""
-
 import subprocess
 import sys
-from typing import Optional
-from dotenv import load_dotenv
-import os
 import typer
 from deepfix_core.models import DefaultPaths
-from deepfix_server.api import run_analyse_artifacts_api
 
-commands_app = typer.Typer()
+app = typer.Typer(
+    name="deepfix-sdk",
+    help="DeepFix SDK",
+    add_completion=False,
+)
 
-@commands_app.command(name="launch-mlflow-server")
 def launch_mlflow_server(
     port: int = typer.Option(5000, help="Port to run MLflow server on"),
     host: str = typer.Option("127.0.0.1", help="Host to bind MLflow server to"),
@@ -50,19 +47,5 @@ def launch_mlflow_server(
         typer.echo(f"❌ Unexpected error: {e}", err=True)
         sys.exit(1)
 
-@commands_app.command(name="launch-deepfix-server")
-def launch_deepfix_server(
-    port: int = typer.Option(8844, help="Port to run DeepFix server on"),
-    host: str = typer.Option("127.0.0.1", help="Host to bind DeepFix server to"),
-    env_file: Optional[str] = typer.Option(None,"-e", "--env-file", help="Environment file to load"),
-) -> None:
-    """Launch DeepFix server."""    
-    
-    if env_file is not None:
-        if not os.path.exists(env_file):
-            typer.echo(f"❌ Environment file {env_file} not found", err=True)
-            sys.exit(1)
-        load_dotenv(env_file)
-    
-    run_analyse_artifacts_api(port=port, host=host)
-        
+def main():
+    app()
