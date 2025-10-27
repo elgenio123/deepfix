@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 from .base import Step
 from ..integrations.deepchecks import get_deepchecks_runner
-from ...shared.models import DeepchecksConfig
+from deepfix_core.models import DeepchecksConfig
 
 
 

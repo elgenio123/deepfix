@@ -6,7 +6,7 @@ from typing import Optional, Union, List, Dict
 from tqdm import tqdm
 
 from ..data import BaseDataset, VisionDataset
-from ...shared.models import DataType
+from deepfix_core.models import DataType
 
 
 def get_data_statistics(data_type: Union[str, DataType], train_data: BaseDataset, test_data: Optional[BaseDataset] = None):

@@ -1,8 +1,8 @@
-from typing import Optional, List, Union
+from typing import Optional, List
 
 from .base import Step
 from ..utils.logging import get_logger
-from ...shared.models import (
+from deepfix_core.models import (
     ArtifactPath,
     DeepchecksArtifacts,
     DatasetArtifacts,

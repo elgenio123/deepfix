@@ -8,7 +8,7 @@ including YAML loading, validation, and default value management.
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
-from ..shared.models import DefaultPaths
+from deepfix_core.models import DefaultPaths
 
 class MLflowConfig(BaseModel):
     """Configuration for MLflow integration."""

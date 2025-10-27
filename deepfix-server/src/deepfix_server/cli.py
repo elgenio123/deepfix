@@ -12,6 +12,11 @@ app = typer.Typer(
     add_completion=False,
 )
 
+@app.command(name="version")
+def version() -> None:
+    """Print the version of the DeepFix Server."""
+    typer.echo(f"DeepFix Server version: 0.1.0")
+
 @app.command(name="launch")
 def launch(
     port: int = typer.Option(8844, help="Port to run DeepFix server on"),

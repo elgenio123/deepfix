@@ -22,7 +22,7 @@ from ..integrations import MLflowManager
 from ..config import DefaultPaths, MLflowConfig, ArtifactConfig
 from ..utils.logging import get_logger
 
-from ...shared.models import ArtifactPath, DeepchecksConfig, DataType
+from deepfix_core.models import ArtifactPath, DeepchecksConfig, DataType
 
 LOGGER = get_logger(__name__)
 

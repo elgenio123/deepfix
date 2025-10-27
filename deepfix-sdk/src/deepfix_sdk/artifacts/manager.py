@@ -12,7 +12,7 @@ from omegaconf import OmegaConf
 
 from .repository import ArtifactRepository, ArtifactRecord, ArtifactStatus
 from .services import ChecksumService
-from ...shared.models import (
+from deepfix_core.models import (
     ArtifactPath,
     DeepchecksArtifacts,
     TrainingArtifacts,

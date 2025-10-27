@@ -11,12 +11,12 @@ except Exception:
 
 # Import DeepchecksConfig without loading the full deepchecks.py module
 try:
-    from deepfix.shared.models import DeepchecksConfig
+    from deepfix_core.models import DeepchecksConfig
 except ImportError:
     # Try alternate import path
     import os
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-    from deepfix.shared.models import DeepchecksConfig
+    from deepfix_core.models import DeepchecksConfig
 
 
 @pytest.fixture

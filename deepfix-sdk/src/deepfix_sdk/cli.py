@@ -9,6 +9,12 @@ app = typer.Typer(
     add_completion=False,
 )
 
+@app.command(name="version")
+def version() -> None:
+    """Print the version of the DeepFix SDK."""
+    typer.echo(f"DeepFix SDK version: 0.1.0")
+
+@app.command(name="launch-mlflow")
 def launch_mlflow_server(
     port: int = typer.Option(5000, help="Port to run MLflow server on"),
     host: str = typer.Option("127.0.0.1", help="Host to bind MLflow server to"),
