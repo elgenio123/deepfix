@@ -24,16 +24,18 @@ WORKDIR /app
 RUN uv venv /opt/venv
 
 # Install dependencies into the venv first (use lock/info from pyproject)
-COPY deepfix-server/pyproject.toml ./
-COPY deepfix-server/README.md ./
+COPY deepfix-server ./deepfix-server
+COPY deepfix-core ./deepfix-core
+#COPY deepfix-sdk ./deepfix-sdk
+COPY pyproject.toml ./
 
 RUN . /opt/venv/bin/activate \
-    && uv pip install -r pyproject.toml
+    && uv pip install -r deepfix-server/pyproject.toml
 
 # Install project into the venv (non-editable)
-COPY deepfix-server/src ./src/
 RUN . /opt/venv/bin/activate \
-    && uv pip install .
+    && uv pip install ./deepfix-server \
+    && uv pip install ./deepfix-core
 
 ###############
 # Runtime stage
@@ -52,7 +54,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 EXPOSE 8844
 
-CMD ["uv", "run", "deepfix-server", "launch","-port", "8844", "-host", "0.0.0.0"]
+CMD ["deepfix-server", "launch","-port", "8844", "-host", "0.0.0.0"]
 
 
 
