@@ -139,7 +139,7 @@ class CheckResultsParser:
             header = result.get_metadata().get("header")
             if header == DeepchecksResultHeaders.HeatmapComparison.value:
                 json_result = json.loads(result.to_json(with_display=False))
-                json_result["value"].pop("diff")
+                json_result.get("value", {'diff': None}).pop("diff")
                 parsed_results[header] = json_result
                 continue
             parsed_results[header] = json.loads(result.to_json(with_display=False))
@@ -487,9 +487,7 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
         return self.suite_model_evaluation.run(
             train_dataset=train_data.dataset,
             test_dataset=test_data.dataset if test_data is not None else None,
-            max_samples=self.config.max_samples,
-            random_state=self.config.random_state,
-        )
+            )
 
     def _check_inputs(
         self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
