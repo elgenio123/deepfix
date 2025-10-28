@@ -216,9 +216,7 @@ class DeepchecksCheckResult(BaseModel):
     check: Optional[str] = Field(default=None, description="Name of the check")
     params: Optional[dict] = Field(default=None, description="Parameters of the check")
     summary: Optional[str] = Field(default=None, description="Summary of the check")
-    value: Optional[Any] = Field(
-        default=None, description="Value of the check"
-    )
+    value: Optional[Any] = Field(default=None, description="Value of the check")
     conditions_results: List[DeepchecksConditionResult] = Field(
         default=[], description="Conditions results of the check"
     )
@@ -239,7 +237,7 @@ class DeepchecksCheckResult(BaseModel):
         """Convert NaN and Infinity values to string representations."""
         if v is None:
             return v
-        
+
         if isinstance(v, float):
             if math.isnan(v):
                 return "NaN"
@@ -249,7 +247,7 @@ class DeepchecksCheckResult(BaseModel):
             return {k: cls.convert_nan_infinity_to_string(val) for k, val in v.items()}
         elif isinstance(v, list):
             return [cls.convert_nan_infinity_to_string(item) for item in v]
-        
+
         return v
 
     def to_dict(self, exclude: list[str] = []) -> dict:

@@ -86,9 +86,10 @@ class DeepFixClient:
             console=console,
             refresh_per_second=10,
         ):
-
             payload = request.model_dump()
-            response = requests.post(self._analyze_endpoint, json=payload, timeout=self.timeout)
+            response = requests.post(
+                self._analyze_endpoint, json=payload, timeout=self.timeout
+            )
 
             if response.status_code != 200:
                 console.print("[red]✗[/red] Analysis failed", style="bold red")

@@ -43,7 +43,11 @@ def detection_collate_without_model(data) -> BatchOutputFormat:
             image = image.permute(1, 2, 0).cpu().numpy()
         images.append(image)
 
-        if detections is None or getattr(detections, "xyxy", None) is None or len(detections.xyxy) == 0:
+        if (
+            detections is None
+            or getattr(detections, "xyxy", None) is None
+            or len(detections.xyxy) == 0
+        ):
             labels.append(torch.zeros((0, 5), dtype=torch.float32))
             continue
 
@@ -120,7 +124,6 @@ class DetectionVisionDataLoader:
         batch_size: int = 8,
         shuffle: bool = True,
     ) -> VisionData:
-    
         assert isinstance(dataset, DetectionDataset), (
             "dataset must be an instance of supervision.dataset.core.DetectionDataset. Received: {}".format(
                 type(dataset)

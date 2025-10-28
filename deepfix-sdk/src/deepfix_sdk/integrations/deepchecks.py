@@ -16,9 +16,9 @@ import traceback
 import re
 import base64
 from deepchecks.vision.suites import (
-    train_test_validation,
-    data_integrity,
-    model_evaluation,
+    train_test_validation as vision_train_test_validation,
+    data_integrity as vision_data_integrity,
+    model_evaluation as vision_model_evaluation,
 )
 from deepchecks.vision import VisionData
 from deepchecks.tabular.suites import (
@@ -30,6 +30,7 @@ from deepchecks.core import SuiteResult, CheckResult, CheckFailure
 from deepchecks.nlp.suites import (
     train_test_validation as nlp_train_test_validation,
     model_evaluation as nlp_model_evaluation,
+    data_integrity as nlp_data_integrity,
 )
 from deepchecks.nlp import TextData
 
@@ -139,7 +140,7 @@ class CheckResultsParser:
             header = result.get_metadata().get("header")
             if header == DeepchecksResultHeaders.HeatmapComparison.value:
                 json_result = json.loads(result.to_json(with_display=False))
-                json_result.get("value", {'diff': None}).pop("diff")
+                json_result.get("value", {"diff": None}).pop("diff")
                 parsed_results[header] = json_result
                 continue
             parsed_results[header] = json.loads(result.to_json(with_display=False))
@@ -190,9 +191,19 @@ class CheckResultsParser:
 
 
 class BaseDeepchecksRunner(ABC):
-    def __init__(self, config: Optional[DeepchecksConfig] = None):
+    def __init__(
+        self,
+        suite_train_test_validation: SuiteResult,
+        suite_data_integrity: SuiteResult,
+        suite_model_evaluation: SuiteResult,
+        config: Optional[DeepchecksConfig] = None,
+    ):
         self.config = config or DeepchecksConfig()
         self.parser = CheckResultsParser()
+        self.suite_train_test_validation = suite_train_test_validation
+        self.suite_data_integrity = suite_data_integrity
+        self.suite_model_evaluation = suite_model_evaluation
+        self.output_dir = Path(self.config.output_dir or "results")
 
     def _save_artifact(self, artifact: DeepchecksArtifacts, dataset_name: str) -> None:
         try:
@@ -208,14 +219,39 @@ class BaseDeepchecksRunner(ABC):
                 "Failed to save results to %s. %s", output_dir, traceback.format_exc()
             )
 
-    @abstractmethod
     def run_suites(
         self,
-        train_data: Union[VisionData, TabularDataset, "TextData"],
+        train_data: VisionData,
         dataset_name: str,
-        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+        test_data: Optional[VisionData] = None,
     ) -> DeepchecksArtifacts:
-        pass
+        output = {}
+        if self.config.train_test_validation:
+            out_train_test_validation = self.run_suite_train_test_validation(
+                train_data, test_data=test_data
+            )
+            output["train_test_validation"] = self.parser.run(out_train_test_validation)
+
+        if self.config.data_integrity:
+            out_data_integrity = self.run_suite_data_integrity(
+                train_data, test_data=test_data
+            )
+            output["data_integrity"] = self.parser.run(out_data_integrity)
+
+        if self.config.model_evaluation:
+            out_model_evaluation = self.run_suite_model_evaluation(
+                train_data, test_data=test_data
+            )
+            output["model_evaluation"] = self.parser.run(out_model_evaluation)
+
+        artifact = DeepchecksArtifacts(
+            dataset_name=dataset_name, results=output, config=self.config
+        )
+
+        if self.config.save_results:
+            self._save_artifact(artifact=artifact, dataset_name=dataset_name)
+
+        return artifact
 
     @abstractmethod
     def run_suite_train_test_validation(
@@ -266,46 +302,12 @@ class DeepchecksRunnerForVision(BaseDeepchecksRunner):
         """
         Initialize Deepchecks runner with configuration.
         """
-        super().__init__(config=config)
-
-        self.suite_train_test_validation = train_test_validation()
-        self.suite_data_integrity = data_integrity()
-        self.suite_model_evaluation = model_evaluation()
-        self.output_dir = Path(self.config.output_dir or "results")
-
-    def run_suites(
-        self,
-        train_data: VisionData,
-        dataset_name: str,
-        test_data: Optional[VisionData] = None,
-    ) -> DeepchecksArtifacts:
-        output = {}
-        if self.config.train_test_validation:
-            out_train_test_validation = self.run_suite_train_test_validation(
-                train_data, test_data=test_data
-            )
-            output["train_test_validation"] = self.parser.run(out_train_test_validation)
-
-        if self.config.data_integrity:
-            out_data_integrity = self.run_suite_data_integrity(
-                train_data, test_data=test_data
-            )
-            output["data_integrity"] = self.parser.run(out_data_integrity)
-
-        if self.config.model_evaluation:
-            out_model_evaluation = self.run_suite_model_evaluation(
-                train_data, test_data=test_data
-            )
-            output["model_evaluation"] = self.parser.run(out_model_evaluation)
-
-        artifact = DeepchecksArtifacts(
-            dataset_name=dataset_name, results=output, config=self.config
+        super().__init__(
+            config=config,
+            suite_train_test_validation=vision_train_test_validation(),
+            suite_data_integrity=vision_data_integrity(),
+            suite_model_evaluation=vision_model_evaluation(),
         )
-
-        if self.config.save_results:
-            self._save_artifact(artifact=artifact, dataset_name=dataset_name)
-
-        return artifact
 
     def run_suite_train_test_validation(
         self, train_data: VisionData, test_data: Optional[VisionData] = None
@@ -365,59 +367,12 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
         """
         Initialize Deepchecks runner with configuration for tabular data.
         """
-        super().__init__(config=config)
-
-        self.suite_train_test_validation = tabular_train_test_validation()
-        self.suite_data_integrity = tabular_data_integrity()
-        self.suite_model_evaluation = tabular_model_evaluation()
-        self.output_dir = Path(self.config.output_dir or "results")
-
-    def run_suites(
-        self,
-        train_data: TabularDataset,
-        dataset_name: str,
-        test_data: Optional[TabularDataset] = None,
-    ) -> DeepchecksArtifacts:
-        """
-        Run all configured Deepchecks suites on tabular data.
-
-        Args:
-            train_data: Training dataset as Deepchecks TabularDataset
-            dataset_name: Name of the dataset for artifact storage
-            test_data: Optional test dataset as Deepchecks TabularDataset
-
-        Returns:
-            DeepchecksArtifacts containing results from all executed suites
-        """
-        self._check_inputs(train_data, test_data)
-
-        output = {}
-        if self.config.train_test_validation:
-            out_train_test_validation = self.run_suite_train_test_validation(
-                train_data, test_data=test_data
-            )
-            output["train_test_validation"] = self.parser.run(out_train_test_validation)
-
-        if self.config.data_integrity:
-            out_data_integrity = self.run_suite_data_integrity(
-                train_data, test_data=test_data
-            )
-            output["data_integrity"] = self.parser.run(out_data_integrity)
-
-        if self.config.model_evaluation:
-            out_model_evaluation = self.run_suite_model_evaluation(
-                train_data, test_data=test_data
-            )
-            output["model_evaluation"] = self.parser.run(out_model_evaluation)
-
-        artifact = DeepchecksArtifacts(
-            dataset_name=dataset_name, results=output, config=self.config
+        super().__init__(
+            config=config,
+            suite_train_test_validation=tabular_train_test_validation(),
+            suite_data_integrity=tabular_data_integrity(),
+            suite_model_evaluation=tabular_model_evaluation(),
         )
-
-        if self.config.save_results:
-            self._save_artifact(artifact=artifact, dataset_name=dataset_name)
-
-        return artifact
 
     def run_suite_train_test_validation(
         self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
@@ -487,7 +442,7 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
         return self.suite_model_evaluation.run(
             train_dataset=train_data.dataset,
             test_dataset=test_data.dataset if test_data is not None else None,
-            )
+        )
 
     def _check_inputs(
         self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
@@ -511,53 +466,15 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         """
         Initialize Deepchecks runner with configuration for NLP text data.
         """
-        super().__init__(config=config)
-
-        self.suite_train_test_validation = nlp_train_test_validation()
-        self.suite_model_evaluation = nlp_model_evaluation()
-        self.output_dir = Path(self.config.output_dir or "results")
-
-    def run_suites(
-        self,
-        train_data: "TextData",
-        dataset_name: str,
-        test_data: Optional["TextData"] = None,
-    ) -> DeepchecksArtifacts:
-        """
-        Run all configured Deepchecks NLP suites on text data.
-
-        Args:
-            train_data: Training dataset as Deepchecks TextData
-            dataset_name: Name of the dataset for artifact storage
-            test_data: Optional test dataset as Deepchecks TextData
-
-        Returns:
-            DeepchecksArtifacts containing results from all executed suites
-        """
-        output = {}
-        if self.config.train_test_validation:
-            out_train_test_validation = self.run_suite_train_test_validation(
-                train_data, test_data=test_data
-            )
-            output["train_test_validation"] = self.parser.run(out_train_test_validation)
-
-        if self.config.model_evaluation:
-            out_model_evaluation = self.run_suite_model_evaluation(
-                train_data, test_data=test_data
-            )
-            output["model_evaluation"] = self.parser.run(out_model_evaluation)
-
-        artifact = DeepchecksArtifacts(
-            dataset_name=dataset_name, results=output, config=self.config
+        super().__init__(
+            config=config,
+            suite_train_test_validation=nlp_train_test_validation(),
+            suite_data_integrity=nlp_data_integrity(),
+            suite_model_evaluation=nlp_model_evaluation(),
         )
 
-        if self.config.save_results:
-            self._save_artifact(artifact=artifact, dataset_name=dataset_name)
-
-        return artifact
-
     def run_suite_train_test_validation(
-        self, train_data: "TextData", test_data: Optional["TextData"] = None
+        self, train_data: TextData, test_data: Optional[TextData] = None
     ) -> SuiteResult:
         """
         Run train-test validation suite on NLP text data.
@@ -580,7 +497,7 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         )
 
     def run_suite_model_evaluation(
-        self, train_data: "TextData", test_data: Optional["TextData"] = None
+        self, train_data: TextData, test_data: Optional[TextData] = None
     ) -> SuiteResult:
         """
         Run model evaluation suite on NLP text data.
@@ -603,7 +520,7 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         )
 
     def run_suite_data_integrity(
-        self, train_data: "TextData", test_data: Optional["TextData"] = None
+        self, train_data: TextData, test_data: Optional[TextData] = None
     ) -> SuiteResult:
         """
         Not implemented for NLP text data.
@@ -614,6 +531,8 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         Raises:
             NotImplementedError: This suite is not available for NLP data
         """
-        raise NotImplementedError(
-            "Data integrity suite is not available for NLP text data"
+        return self.suite_data_integrity.run(
+            train_dataset=train_data,
+            test_dataset=test_data,
+            random_state=self.config.random_state,
         )

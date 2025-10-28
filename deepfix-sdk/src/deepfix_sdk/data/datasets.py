@@ -7,6 +7,7 @@ from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from deepchecks.tabular import Dataset as DeepchecksTabularDataset
 from deepchecks.vision import VisionData
+from deepchecks.nlp import TextData
 from ..utils.logging import get_logger
 from ..data.loader import ClassificationVisionDataLoader, DetectionVisionDataLoader
 
@@ -45,49 +46,69 @@ class ImageClassificationDataset(VisionDataset):
             batch_size=batch_size,
             model=model,
         )
+
     def __getitem__(self, idx):
         image, label = self.dataset[idx]
-        return dict(image=image,label=label)
+        return dict(image=image, label=label)
 
 
 class ObjectDetectionDataset(VisionDataset):
     def __init__(self, dataset_name: str, dataset: DetectionDataset):
         super().__init__(dataset_name=dataset_name, dataset=dataset)
-    
+
     @classmethod
-    def from_coco(cls,dataset_name: str, images_directory_path: str, annotations_path: str,force_masks:bool=False):
-        data = DetectionDataset.from_coco(images_directory_path=images_directory_path, 
-                                          annotations_path=annotations_path,
-                                          force_masks=force_masks)
+    def from_coco(
+        cls,
+        dataset_name: str,
+        images_directory_path: str,
+        annotations_path: str,
+        force_masks: bool = False,
+    ):
+        data = DetectionDataset.from_coco(
+            images_directory_path=images_directory_path,
+            annotations_path=annotations_path,
+            force_masks=force_masks,
+        )
         return cls(dataset_name=dataset_name, dataset=data)
-    
+
     @classmethod
-    def from_yolo(cls,dataset_name: str, images_directory_path: str, data_yaml_path: str, annotations_directory_path: str,is_obb:bool=False,force_masks:bool=False):
-        data = DetectionDataset.from_yolo(images_directory_path=images_directory_path, 
-                                          data_yaml_path=data_yaml_path,
-                                          annotations_directory_path=annotations_directory_path,
-                                          is_obb=is_obb,
-                                          force_masks=force_masks,
-                                          )
+    def from_yolo(
+        cls,
+        dataset_name: str,
+        images_directory_path: str,
+        data_yaml_path: str,
+        annotations_directory_path: str,
+        is_obb: bool = False,
+        force_masks: bool = False,
+    ):
+        data = DetectionDataset.from_yolo(
+            images_directory_path=images_directory_path,
+            data_yaml_path=data_yaml_path,
+            annotations_directory_path=annotations_directory_path,
+            is_obb=is_obb,
+            force_masks=force_masks,
+        )
         return cls(dataset_name=dataset_name, dataset=data)
-    
+
     def get_label_map(self) -> Dict[int, str]:
         labels = list(range(len(self.dataset.classes)))
         return dict(zip(labels, self.dataset.classes))
-    
-    def get_annotations(self,)->Dict[str, Detections]:
+
+    def get_annotations(
+        self,
+    ) -> Dict[str, Detections]:
         return self.dataset.annotations
-    
+
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self, idx)->Dict[str, Union[str,np.ndarray, Detections]]:
-        image_path, image, annotation =  self.dataset[idx]
+    def __getitem__(self, idx) -> Dict[str, Union[str, np.ndarray, Detections]]:
+        image_path, image, annotation = self.dataset[idx]
         return dict(image_path=image_path, image=image, label=annotation)
 
     def __iter__(self):
         return iter(self.dataset)
-    
+
     def to_loader(
         self, batch_size: int = 8, shuffle: bool = False, **kwargs
     ) -> VisionData:
@@ -145,3 +166,15 @@ class TabularDataset(BaseDataset):
 
     def to_loader(self, *args, **kwargs) -> "TabularDataset":
         return self
+
+
+class NLPDataset(BaseDataset):
+    def __init__(self, dataset_name: str, dataset: TextData):
+        self.dataset = dataset
+        self.dataset_name = dataset_name
+
+    def to_loader(self, *args, **kwargs) -> TextData:
+        return self.dataset
+    
+    def __len__(self):
+        return len(self.dataset)
