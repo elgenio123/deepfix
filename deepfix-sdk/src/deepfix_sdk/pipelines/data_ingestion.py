@@ -2,6 +2,7 @@ from typing import Optional, Callable
 from ..data.datasets import BaseDataset
 from .base import Step
 
+
 class DataIngestor(Step):
     def __init__(
         self,
@@ -18,7 +19,6 @@ class DataIngestor(Step):
         test_data: Optional[BaseDataset] = None,
         **kwargs,
     ) -> dict:
-
         if train_data is None:
             train_data = context.get("train_data")
         if test_data is None:
@@ -29,8 +29,10 @@ class DataIngestor(Step):
         train_data = train_data.to_loader(model=self.model, batch_size=self.batch_size)
 
         if test_data is not None:
-            test_data = test_data.to_loader(model=self.model, batch_size=self.batch_size)
-        
+            test_data = test_data.to_loader(
+                model=self.model, batch_size=self.batch_size
+            )
+
         context["train_data"] = train_data
         context["test_data"] = test_data
         return context

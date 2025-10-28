@@ -5,7 +5,6 @@ from ..integrations.deepchecks import get_deepchecks_runner
 from deepfix_core.models import DeepchecksConfig
 
 
-
 class Checks(Step):
     def __init__(
         self, deepchecks_config: DeepchecksConfig, dataset_name: Optional[str] = None
@@ -21,7 +20,9 @@ class Checks(Step):
         **kwargs,
     ) -> dict:
         deepchecks_config = self.deepchecks_config or context.get("deepchecks_config")
-        deepchecks_runner = get_deepchecks_runner(deepchecks_config.data_type, config=deepchecks_config)
+        deepchecks_runner = get_deepchecks_runner(
+            deepchecks_config.data_type, config=deepchecks_config
+        )
         dataset_name = self.dataset_name or context.get("dataset_name")
 
         assert dataset_name is not None, (
@@ -35,6 +36,6 @@ class Checks(Step):
         )
         context["checks_artifacts"] = artifacts
         return context
-    
+
     def get_name(self) -> str:
         return "ml_tests"

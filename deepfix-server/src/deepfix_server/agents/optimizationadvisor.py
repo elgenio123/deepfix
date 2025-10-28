@@ -6,27 +6,38 @@ from .models import AgentResult
 from .signatures import OptimizationRecommendationSignature
 from ..config import LLMConfig
 
+
 class OptimizationAdvisorAgent(Agent):
-    def __init__(self,knowledge_bridge: KnowledgeBridge, llm_config: Optional[LLMConfig] = None,):
+    def __init__(
+        self,
+        knowledge_bridge: KnowledgeBridge,
+        llm_config: Optional[LLMConfig] = None,
+    ):
         super().__init__(config=llm_config)
         self.llm = dspy.ChainOfThought(OptimizationRecommendationSignature)
         self.knowledge_bridge = knowledge_bridge
-    
-    def forward(self,artifacts_analysis:str, optimization_areas:List[str],constraints:Optional[str]=None) -> AgentResult:
+
+    def forward(
+        self,
+        artifacts_analysis: str,
+        optimization_areas: List[str],
+        constraints: Optional[str] = None,
+    ) -> AgentResult:
         """Generate optimization recommendations based on previous agent analyses"""
-        
+
         with self._llm_context():
             response = self.llm(
                 system_prompt=self.system_prompt,
                 artifacts_analysis=artifacts_analysis,
                 optimization_areas=optimization_areas,
-                constraints=constraints
-            )        
-                
+                constraints=constraints,
+            )
+
         return AgentResult(
             agent_name=self.agent_name,
             analysis=response.analysis,
         )
+
     @property
     def system_prompt(self) -> str:
         return """You are an expert ML optimization consultant specializing in providing actionable, evidence-based recommendations to improve machine learning experiments. 
@@ -95,4 +106,3 @@ class OptimizationAdvisorAgent(Agent):
             - Prioritize recommendations by effort vs. impact
             - Include implementation steps and code examples where helpful
             - Cite relevant research or best practices when applicable"""
-

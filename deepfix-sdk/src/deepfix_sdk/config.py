@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from deepfix_core.models import DefaultPaths
 
+
 class MLflowConfig(BaseModel):
     """Configuration for MLflow integration."""
 

@@ -8,34 +8,29 @@ from .signatures import CrossArtifactReasoningSignature
 
 LOGGER = get_logger(__name__)
 
+
 class CrossArtifactReasoningAgent(Agent):
-    def __init__(
-        self,llm_config: Optional[LLMConfig] = None
-    ):
+    def __init__(self, llm_config: Optional[LLMConfig] = None):
         super().__init__(config=llm_config)
         self.llm = dspy.ChainOfThought(CrossArtifactReasoningSignature)
-    
-    def run(
-        self,
-        previous_analyses: Dict[str, AgentResult]
-    ) -> AgentResult:
+
+    def run(self, previous_analyses: Dict[str, AgentResult]) -> AgentResult:
         try:
             return self(previous_analyses)
         except Exception as e:
-            LOGGER.error(f"Error with agent {self.agent_name}:\n {traceback.format_exc()}")
+            LOGGER.error(
+                f"Error with agent {self.agent_name}:\n {traceback.format_exc()}"
+            )
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
-    def forward(
-        self,
-        previous_analyses: Dict[str, AgentResult]
-    ) -> AgentResult:
-
+    def forward(self, previous_analyses: Dict[str, AgentResult]) -> AgentResult:
         LOGGER.info(f"Running cross-artifact reasoning agent...")
-        
+
         assert len(previous_analyses) > 0, "At least one analysis must be provided"
         with self._llm_context():
-            out = self.llm(system_prompt=self.system_prompt,
-            previous_analyses=previous_analyses)
+            out = self.llm(
+                system_prompt=self.system_prompt, previous_analyses=previous_analyses
+            )
         analyzed_artifacts = []
         retrieved_knowledge = []
         for result in previous_analyses.values():
@@ -49,7 +44,7 @@ class CrossArtifactReasoningAgent(Agent):
             analysis=out.analysis,
             analyzed_artifacts=analyzed_artifacts,
             retrieved_knowledge=retrieved_knowledge,
-            additional_outputs={'summary': out.summary}
+            additional_outputs={"summary": out.summary},
         )
 
     @property

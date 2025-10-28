@@ -4,7 +4,7 @@ from deepfix_sdk.data.datasets import ImageClassificationDataset
 
 # Load image datasets
 
-dataset_name="cafetaria-foodwaste-lstroetmann"
+dataset_name = "cafetaria-foodwaste-lstroetmann"
 
 client = DeepFixClient(timeout=120)
 

@@ -152,7 +152,7 @@ class ChecksPipeline(Pipeline):
 class DatasetIngestionPipeline(Pipeline):
     def __init__(
         self,
-        dataset_name: str,        
+        dataset_name: str,
         data_type: Union[str, DataType],
         batch_size: int = 16,
         mlflow_tracking_uri: Optional[str] = None,
@@ -167,8 +167,7 @@ class DatasetIngestionPipeline(Pipeline):
         overwrite: bool = False,
     ):
         sqlite_path = sqlite_path or DefaultPaths.ARTIFACTS_SQLITE_PATH
-        
-        
+
         if isinstance(data_type, str):
             data_type = DataType(data_type)
 
@@ -194,15 +193,21 @@ class DatasetIngestionPipeline(Pipeline):
         if self.check_if_exists(dataset_name, sqlite_path):
             if overwrite:
                 do_checks = train_test_validation or data_integrity
-                success = self.delete_artifact(dataset_name, sqlite_path,checks=do_checks,delete_mlflow_run=True)
+                success = self.delete_artifact(
+                    dataset_name, sqlite_path, checks=do_checks, delete_mlflow_run=True
+                )
                 if not success:
-                    raise ValueError(f"Failed to delete existing dataset {dataset_name}")
+                    raise ValueError(
+                        f"Failed to delete existing dataset {dataset_name}"
+                    )
             else:
-                raise ValueError(f"Dataset {dataset_name} already exists in the database. Use overwrite=True to overwrite it.")
-        
+                raise ValueError(
+                    f"Dataset {dataset_name} already exists in the database. Use overwrite=True to overwrite it."
+                )
+
         cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=sqlite_path)
         steps = [
-            LogDatasetMetadata(dataset_name=dataset_name,data_type=data_type, **cfg),
+            LogDatasetMetadata(dataset_name=dataset_name, data_type=data_type, **cfg),
         ]
         if train_test_validation or data_integrity:
             steps.extend(
@@ -215,24 +220,36 @@ class DatasetIngestionPipeline(Pipeline):
                 ]
             )
         super().__init__(steps=steps)
-    
-    def delete_artifact(self, dataset_name: str, sqlite_path: str,checks:bool=False,delete_mlflow_run:bool=True) -> bool:
+
+    def delete_artifact(
+        self,
+        dataset_name: str,
+        sqlite_path: str,
+        checks: bool = False,
+        delete_mlflow_run: bool = True,
+    ) -> bool:
         repo = ArtifactRepository(sqlite_path)
         record = repo.get(dataset_name, ArtifactPath.DATASET.value)
         if record is None:
             return False
-        
+
         if delete_mlflow_run:
             success = self.mlflow_manager.delete_run(record.mlflow_run_id)
             if success:
                 LOGGER.info(f"Deleted MLflow run {record.mlflow_run_id}")
 
         if checks:
-            success = repo.delete(run_id=record.mlflow_run_id, artifact_key=ArtifactPath.DEEPCHECKS.value)
+            success = repo.delete(
+                run_id=record.mlflow_run_id, artifact_key=ArtifactPath.DEEPCHECKS.value
+            )
             if success:
-                LOGGER.info(f"Deleted deepchecks artifacts for run {record.mlflow_run_id}")
-        
-        success =  repo.delete(run_id=dataset_name, artifact_key=ArtifactPath.DATASET.value)
+                LOGGER.info(
+                    f"Deleted deepchecks artifacts for run {record.mlflow_run_id}"
+                )
+
+        success = repo.delete(
+            run_id=dataset_name, artifact_key=ArtifactPath.DATASET.value
+        )
         if success:
             LOGGER.info(f"Deleted dataset {dataset_name}")
 
@@ -242,7 +259,9 @@ class DatasetIngestionPipeline(Pipeline):
         repo = ArtifactRepository(sqlite_path)
         return repo.get(dataset_name, ArtifactPath.DATASET.value) is not None
 
-    def run(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> dict:
+    def run(
+        self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None
+    ) -> dict:
         self.context = {}
         self.context["test_data"] = test_data
         self.context["train_data"] = train_data
@@ -265,11 +284,11 @@ class ArtifactLoadingPipeline(Pipeline):
                     f"dataset_name must be a string when load_dataset_metadata is True, "
                     f"got {type(dataset_name).__name__}"
                 )
-        
+
         self.dataset_name = dataset_name
         self.mlflow_config = mlflow_config or MLflowConfig()
         self.artifact_config = artifact_config or ArtifactConfig()
-        
+
         self.mlflow_manager = MLflowManager.from_config(self.mlflow_config)
         self.dataset_experiment_name = self.mlflow_config.dataset_experiment_name
 
@@ -279,10 +298,10 @@ class ArtifactLoadingPipeline(Pipeline):
         """Build steps based on configuration. Supports loading multiple artifact types."""
         steps = []
         cfg = dict(
-            mlflow_manager=self.mlflow_manager, 
-            artifact_sqlite_path=self.artifact_config.sqlite_path
+            mlflow_manager=self.mlflow_manager,
+            artifact_sqlite_path=self.artifact_config.sqlite_path,
         )
-        
+
         # Load dataset metadata if configured
         if self.artifact_config.load_dataset_metadata:
             mlflow_manager = MLflowManager(
@@ -296,26 +315,26 @@ class ArtifactLoadingPipeline(Pipeline):
                     mlflow_manager=mlflow_manager,
                 )
             )
-        
+
         # Load deepchecks artifacts if configured
         if self.artifact_config.load_checks:
             steps.append(LoadDeepchecksArtifacts(**cfg))
-        
+
         # Load model checkpoint if configured
         if self.artifact_config.load_model_checkpoint:
             steps.append(LoadModelCheckpoint(**cfg))
-        
+
         # Load training artifacts if configured
         if self.artifact_config.load_training:
             steps.append(LoadTrainingArtifact(**cfg))
-        
+
         # Ensure at least one artifact type is configured to load
         if not steps:
             raise ValueError(
                 "No artifacts to load. Please enable at least one of: "
                 "load_dataset_metadata, load_checks, load_model_checkpoint, load_training"
             )
-        
+
         return steps
 
     def append_steps(self, steps: list[Step]) -> None:
@@ -324,13 +343,13 @@ class ArtifactLoadingPipeline(Pipeline):
 
     def run(self, **kwargs) -> dict:
         """Execute the pipeline, passing context through all steps.
-        
+
         Args:
             **kwargs: Initial context values to pass to steps
-            
+
         Returns:
             dict: Context dictionary with results from each step stored by step name
-            
+
         Raises:
             Exception: Re-raises any exception from a step after logging
         """
@@ -339,13 +358,18 @@ class ArtifactLoadingPipeline(Pipeline):
             try:
                 # Store the result in context using step name as key
                 result = step.run(context=self.context, **kwargs)
-                if hasattr(step, 'name'):
+                if hasattr(step, "name"):
                     self.context[step.name] = result
                 else:
                     # Fallback to class name if name property not available
                     self.context[step.__class__.__name__] = result
             except Exception as e:
-                LOGGER.error("Error running step %s: %s", step.__class__.__name__, e, exc_info=True)
+                LOGGER.error(
+                    "Error running step %s: %s",
+                    step.__class__.__name__,
+                    e,
+                    exc_info=True,
+                )
                 raise
-        
+
         return self.context

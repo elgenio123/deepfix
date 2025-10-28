@@ -4,7 +4,8 @@ import pytest
 # Patch numpy early
 try:
     import numpy as np
-    if not hasattr(np, 'Inf'):
+
+    if not hasattr(np, "Inf"):
         np.Inf = np.inf
 except Exception:
     pass
@@ -15,7 +16,8 @@ try:
 except ImportError:
     # Try alternate import path
     import os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
     from deepfix_core.models import DeepchecksConfig
 
 

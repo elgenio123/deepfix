@@ -1,4 +1,5 @@
 """Entry point for DeepFix CLI when run as a module."""
+
 from .cli import main
 
 

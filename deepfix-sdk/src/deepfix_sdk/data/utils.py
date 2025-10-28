@@ -2,28 +2,47 @@ from abc import ABC, abstractmethod
 from torch.utils.data import Dataset
 import torch
 import numpy as np
-from typing import Optional, Union, List, Dict
+from typing import Optional, Union, List, Dict, Any, Protocol
 from tqdm import tqdm
 import pandas as pd
-from ..data import BaseDataset, VisionDataset,TabularDataset
+from ..data import BaseDataset, VisionDataset, TabularDataset
 from deepfix_core.models import DataType
 
 
-def get_data_statistics(data_type: Union[str, DataType], train_data: BaseDataset, test_data: Optional[BaseDataset] = None):
+def get_data_statistics(
+    data_type: Union[str, DataType],
+    train_data: BaseDataset,
+    test_data: Optional[BaseDataset] = None,
+):
     if data_type == DataType.VISION:
-        return VisionDataStatistics(train_data=train_data, test_data=test_data).get_statistics()
+        return VisionDataStatistics(
+            train_data=train_data, test_data=test_data
+        ).get_statistics()
     elif data_type == DataType.TABULAR:
-        return TabularDataStatistics(train_data=train_data, test_data=test_data).get_statistics()
+        return TabularDataStatistics(
+            train_data=train_data, test_data=test_data
+        ).get_statistics()
     elif data_type == DataType.NLP:
-        return NLPDataStatistics(train_data=train_data, test_data=test_data).get_statistics()
+        return NLPDataStatistics(
+            train_data=train_data, test_data=test_data
+        ).get_statistics()
     else:
         raise ValueError(f"Unsupported data type: {data_type}")
 
-class BaseDataStatistics(ABC):
 
-    @abstractmethod
-    def get_statistics(self) -> Dict[str, Union[int, List[float]]]:
+class BaseDataStatistics(Protocol):
+    def get_statistics(self) -> Dict[str, Any]:
         pass
+    
+    def get_train_statistics(self) -> Dict[str, Any]:
+        pass
+    
+    def get_test_statistics(self) -> Dict[str, Any]:
+        pass
+
+    def _compute_statistics(self, dataset: BaseDataset) -> Dict[str, Any]:
+        pass
+
 
 class VisionDataStatistics(BaseDataStatistics):
     def __init__(
@@ -74,7 +93,9 @@ class VisionDataStatistics(BaseDataStatistics):
         Returns:
             dict: Dictionary containing 'mean' and 'std' for each channel
         """
-        assert isinstance(dataset, VisionDataset), f"dataset must be a PyTorch Dataset. Received: {type(dataset)}"
+        assert isinstance(dataset, VisionDataset), (
+            f"dataset must be a PyTorch Dataset. Received: {type(dataset)}"
+        )
 
         # Initialize accumulators
         num_samples = len(dataset)
@@ -146,34 +167,45 @@ class TabularDataStatistics(BaseDataStatistics):
         train_data: TabularDataset,
         test_data: Optional[TabularDataset] = None,
     ):
-        assert isinstance(train_data, TabularDataset), f"train_data must be an instance of {type(TabularDataset)}, got {type(train_data)}"
+        assert isinstance(train_data, TabularDataset), (
+            f"train_data must be an instance of {type(TabularDataset)}, got {type(train_data)}"
+        )
         self.train_data = train_data
 
         if test_data is not None:
-            assert isinstance(test_data, TabularDataset), f"test_data must be an instance of {type(TabularDataset)}, got {type(test_data)}"
+            assert isinstance(test_data, TabularDataset), (
+                f"test_data must be an instance of {type(TabularDataset)}, got {type(test_data)}"
+            )
             self.test_data = test_data
         else:
             self.test_data = None
 
-    def get_statistics(self) -> Dict[str, Union[int, List[float]]]:
-        stats = dict(self.get_train_statistics(), **self.get_test_statistics())
-        stats['categorical_features'] = self.train_data.get_categorical_features()
-        stats['numerical_features'] = self.train_data.get_numerical_features()
+    def get_statistics(self) -> Dict[str, Any]:
+        stats = self.get_train_statistics()
+        if self.test_data is not None:
+            stats.update(**self.get_test_statistics())
         return stats
 
-    def get_train_statistics(self) -> Dict[str, Union[int, List[float]]]:
-        return self._compute_statistics(self.train_data.get_data())
+    def get_train_statistics(self) -> Dict[str, Any]:
+        stats = self._compute_statistics(self.train_data.get_data())
+        stats["categorical_features"] = self.train_data.get_categorical_features()
+        stats["numerical_features"] = self.train_data.get_numerical_features()
+        return {"train_statistics": stats}
 
-    def get_test_statistics(self) -> Dict[str, Union[int, List[float]]]:
-        return self._compute_statistics(self.test_data.get_data())
+    def get_test_statistics(self) -> Dict[str, Any]:
+        stats = self._compute_statistics(self.test_data.get_data())
+        stats["categorical_features"] = self.test_data.get_categorical_features()
+        stats["numerical_features"] = self.test_data.get_numerical_features()
+        return {"test_statistics": stats}
 
-    def _compute_statistics(self, dataset: pd.DataFrame) -> Dict[str, List[float]]:
+    def _compute_statistics(self, dataset: pd.DataFrame) -> Dict[str, Any]:
         stats = dataset.describe().to_dict()
         number_unique_values = dataset.nunique().to_dict()
-        stats['number_unique_values'] = number_unique_values
-        stats['percentage_unique_values'] = (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
+        stats["number_unique_values"] = number_unique_values
+        stats["percentage_unique_values"] = (
+            (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
+        )
         return stats
-
 
 
 class NLPDataStatistics(BaseDataStatistics):
@@ -185,5 +217,5 @@ class NLPDataStatistics(BaseDataStatistics):
         self.train_data = train_data
         self.test_data = test_data
 
-    def get_statistics(self) -> Dict[str, Union[int, List[float]]]:
+    def get_statistics(self) -> Dict[str, Any]:
         pass

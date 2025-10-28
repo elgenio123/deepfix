@@ -166,8 +166,8 @@ class MLflowManager:
             self.client.set_terminated(self.run_id, status=status)
         else:
             self.client.set_terminated(self.run_id)
-    
-    def delete_run(self,run_id:str)->bool:
+
+    def delete_run(self, run_id: str) -> bool:
         try:
             self.client.delete_run(run_id=run_id)
             LOGGER.info(f"Run {run_id} deleted")
@@ -175,7 +175,7 @@ class MLflowManager:
             LOGGER.error(f"Error deleting run {run_id}: {e}")
             return False
         return True
-    
+
     def get_run_info(self) -> Dict[str, Any]:
         if self.current_run is None:
             raise ValueError("Run not set")

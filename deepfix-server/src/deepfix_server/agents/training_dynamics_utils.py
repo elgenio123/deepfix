@@ -1,6 +1,7 @@
 """
 Training dynamics analysis utilities centered around `TrainingDynamicsAnalyzer`.
 """
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Tuple
@@ -38,7 +39,7 @@ class TrainingDynamicsAnalyzer:
         return s.astype(float).replace([np.inf, -np.inf], np.nan).dropna()
 
     def _smooth(self, s: pd.Series, window: int = 3) -> pd.Series:
-        window = max(1, min(window, max(1, len(s)//3)))
+        window = max(1, min(window, max(1, len(s) // 3)))
         return s.rolling(window=window, min_periods=1, center=False).mean()
 
     def _slope(self, s: pd.Series) -> float:
@@ -52,14 +53,16 @@ class TrainingDynamicsAnalyzer:
             return 0.0
         return float(m)
 
-    def identify_primary_metrics(self, metrics_df: pd.DataFrame) -> Dict[str, pd.Series]:
+    def identify_primary_metrics(
+        self, metrics_df: pd.DataFrame
+    ) -> Dict[str, pd.Series]:
         """Identify primary metrics (loss, accuracy) for analysis."""
         primary_metrics: Dict[str, pd.Series] = {}
-        loss_cols = [col for col in metrics_df.columns if 'loss' in col.lower()]
+        loss_cols = [col for col in metrics_df.columns if "loss" in col.lower()]
         for col in loss_cols[:2]:
             primary_metrics[col] = metrics_df[col]
 
-        acc_cols = [col for col in metrics_df.columns if 'acc' in col.lower()]
+        acc_cols = [col for col in metrics_df.columns if "acc" in col.lower()]
         for col in acc_cols[:2]:
             primary_metrics[col] = metrics_df[col]
 
@@ -74,7 +77,11 @@ class TrainingDynamicsAnalyzer:
         if len(series) < 2:
             return 0.0
 
-        is_loss_metric = 'loss' in str(metric_series.name).lower() if hasattr(metric_series, 'name') else False
+        is_loss_metric = (
+            "loss" in str(metric_series.name).lower()
+            if hasattr(metric_series, "name")
+            else False
+        )
         start_val = series.iloc[0]
         end_val = series.iloc[-1]
         denom = abs(start_val) if abs(start_val) > 1e-8 else 1.0
@@ -107,12 +114,11 @@ class TrainingDynamicsAnalyzer:
         if in_seg:
             segments.append((start, len(mask) - 1))
 
-        return {
-            "total_plateau_epochs": int(mask.sum()),
-            "plateau_periods": segments
-        }
+        return {"total_plateau_epochs": int(mask.sum()), "plateau_periods": segments}
 
-    def assess_trend_quality(self, metric_series: pd.Series, improvement_rate: float) -> Dict[str, Any]:
+    def assess_trend_quality(
+        self, metric_series: pd.Series, improvement_rate: float
+    ) -> Dict[str, Any]:
         """Assess overall trend quality."""
         concerns: List[str] = []
         score = 0.8
@@ -122,15 +128,19 @@ class TrainingDynamicsAnalyzer:
             score -= 0.3
 
         series = self._clean_series(metric_series)
-        cv = series.std() / abs(series.mean()) if series.mean() != 0 else float('inf')
+        cv = series.std() / abs(series.mean()) if series.mean() != 0 else float("inf")
         if cv > self.high_cv_threshold:
             concerns.append("high_volatility")
             score -= 0.2
 
         if len(series) > 10:
-            first_half_mean = series.iloc[:len(series)//2].mean()
-            second_half_mean = series.iloc[len(series)//2:].mean()
-            is_loss = 'loss' in str(metric_series.name).lower() if hasattr(metric_series, 'name') else False
+            first_half_mean = series.iloc[: len(series) // 2].mean()
+            second_half_mean = series.iloc[len(series) // 2 :].mean()
+            is_loss = (
+                "loss" in str(metric_series.name).lower()
+                if hasattr(metric_series, "name")
+                else False
+            )
             if is_loss and second_half_mean > first_half_mean * 1.1:
                 concerns.append("trend_reversal")
                 score -= 0.3
@@ -144,10 +154,7 @@ class TrainingDynamicsAnalyzer:
             concerns.append("unfavorable_trend")
             score -= 0.2
 
-        return {
-            "score": max(0.0, score),
-            "concerns": concerns
-        }
+        return {"score": max(0.0, score), "concerns": concerns}
 
     def assess_trend_severity(self, trend_quality: Dict[str, Any]) -> Severity:
         """Assess severity based on trend quality."""
@@ -163,8 +170,8 @@ class TrainingDynamicsAnalyzer:
     def identify_metric_pairs(self, metrics_df: pd.DataFrame) -> List[Tuple[str, str]]:
         """Identify train-validation metric pairs."""
         pairs: List[Tuple[str, str]] = []
-        train_prefixes = ['train_', 'training_', '']
-        val_prefixes = ['val_', 'validation_', 'valid_']
+        train_prefixes = ["train_", "training_", ""]
+        val_prefixes = ["val_", "validation_", "valid_"]
         for col in metrics_df.columns:
             col_lower = col.lower()
             if any(prefix in col_lower for prefix in val_prefixes):
@@ -172,7 +179,7 @@ class TrainingDynamicsAnalyzer:
             base_name = col_lower
             for train_prefix in train_prefixes:
                 if col_lower.startswith(train_prefix):
-                    base_name = col_lower[len(train_prefix):]
+                    base_name = col_lower[len(train_prefix) :]
                     break
             for val_prefix in val_prefixes:
                 val_name = val_prefix + base_name
@@ -182,7 +189,9 @@ class TrainingDynamicsAnalyzer:
                     break
         return pairs
 
-    def calculate_performance_gap(self, train_series: pd.Series, val_series: pd.Series) -> Dict[str, Any]:
+    def calculate_performance_gap(
+        self, train_series: pd.Series, val_series: pd.Series
+    ) -> Dict[str, Any]:
         """Calculate performance gap between train and validation metrics."""
         if len(train_series) != len(val_series):
             min_len = min(len(train_series), len(val_series))
@@ -202,7 +211,7 @@ class TrainingDynamicsAnalyzer:
             "max_relative_gap": max_gap,
             "divergence_start_epoch": divergence_start,
             "trend_correlation": correlation,
-            "final_gap": gaps.iloc[-1] if len(gaps) > 0 else 0.0
+            "final_gap": gaps.iloc[-1] if len(gaps) > 0 else 0.0,
         }
 
     def assess_overfitting_severity(self, gap_analysis: Dict[str, Any]) -> Severity:
@@ -254,10 +263,12 @@ class TrainingDynamicsAnalyzer:
             return True
         return False
 
-    def extract_gradient_metrics(self, metrics_df: pd.DataFrame) -> Dict[str, pd.Series]:
+    def extract_gradient_metrics(
+        self, metrics_df: pd.DataFrame
+    ) -> Dict[str, pd.Series]:
         """Extract gradient-related metrics from dataframe."""
         gradient_metrics: Dict[str, pd.Series] = {}
-        gradient_patterns = ['grad_norm', 'gradient_norm', 'grad_clip', 'gradient_clip']
+        gradient_patterns = ["grad_norm", "gradient_norm", "grad_clip", "gradient_clip"]
         for col in metrics_df.columns:
             col_lower = col.lower()
             for pattern in gradient_patterns:
@@ -279,7 +290,7 @@ class TrainingDynamicsAnalyzer:
 
     def has_convergence_issues(self, metrics_df: pd.DataFrame) -> bool:
         """Check if training has convergence issues."""
-        loss_cols = [col for col in metrics_df.columns if 'loss' in col.lower()]
+        loss_cols = [col for col in metrics_df.columns if "loss" in col.lower()]
         for loss_col in loss_cols:
             if len(metrics_df[loss_col]) > 5:
                 loss_series = self._clean_series(metrics_df[loss_col])
@@ -334,7 +345,9 @@ class TrainingDynamicsAnalyzer:
 
         # Overfitting across identified pairs
         for train_col, val_col in self.identify_metric_pairs(metrics_df):
-            gap = self.calculate_performance_gap(metrics_df[train_col], metrics_df[val_col])
+            gap = self.calculate_performance_gap(
+                metrics_df[train_col], metrics_df[val_col]
+            )
             sev = self.assess_overfitting_severity(gap)
             summary["overfitting"][f"{train_col}__vs__{val_col}"] = {
                 "gap": gap,
@@ -342,6 +355,3 @@ class TrainingDynamicsAnalyzer:
             }
 
         return summary
-
-
-

@@ -14,10 +14,12 @@ from .dataset_prompt import DatasetPromptBuilder
 from .base import BasePromptBuilder
 from .instructions import get_instructions
 
+
 class PromptBuilderError(Exception):
     """Base exception for PromptBuilder errors."""
 
     pass
+
 
 class PromptBuilder:
     """Main class for orchestrating prompt creation from existing Artifacts Pydantic models."""

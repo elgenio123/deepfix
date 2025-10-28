@@ -28,9 +28,9 @@ from deepchecks.tabular.suites import (
 )
 from deepchecks.core import SuiteResult, CheckResult, CheckFailure
 from deepchecks.nlp.suites import (
-        train_test_validation as nlp_train_test_validation,
-        model_evaluation as nlp_model_evaluation,
-    )
+    train_test_validation as nlp_train_test_validation,
+    model_evaluation as nlp_model_evaluation,
+)
 from deepchecks.nlp import TextData
 
 from ..utils.logging import get_logger
@@ -41,11 +41,12 @@ from deepfix_core.models import (
     DeepchecksArtifacts,
     DeepchecksResultHeaders,
     DeepchecksConfig,
-    DataType
+    DataType,
 )
 from ..data.datasets import TabularDataset
 
 LOGGER = get_logger(__name__)
+
 
 class Extractor:
     def extract_urls_regex(self, text: str) -> list[str]:
@@ -70,7 +71,9 @@ class Extractor:
         cleaned_text = re.sub(pattern, "", text, flags=re.IGNORECASE | re.DOTALL)
         return cleaned_text
 
-    def extract_values(self, json_result: Dict[str, Any], images: Optional[List[str]] = None) -> DeepchecksCheckResult:
+    def extract_values(
+        self, json_result: Dict[str, Any], images: Optional[List[str]] = None
+    ) -> DeepchecksCheckResult:
         check = json_result.get("check", {})
         check_name = check.get("name", None)
         params = check.get("params", None)
@@ -83,7 +86,9 @@ class Extractor:
             condition = cr.get("Condition", {})
             more_info = cr.get("More Info", {})
             conditions_results.append(
-                DeepchecksConditionResult(status=status, condition=condition, more_info=more_info)
+                DeepchecksConditionResult(
+                    status=status, condition=condition, more_info=more_info
+                )
             )
 
         links = self.extract_urls_regex(summary)
@@ -111,21 +116,22 @@ class CheckResultsParser:
 
     def run(self, results: SuiteResult) -> List[DeepchecksParsedResult]:
         parsed_txts = self.parse_txt(results)
-        parsed_displays = self.parse_display(results)        
+        parsed_displays = self.parse_display(results)
         headers = list(parsed_txts.keys()) + list(parsed_displays.keys())
         parsed_results = []
         for header in set(headers):
             display_images = parsed_displays.get(header, {}).get("images", None)
             if display_images is not None:
                 display_images = [
-                    base64.b64encode(i).decode("utf-8")
-                    for i in display_images
+                    base64.b64encode(i).decode("utf-8") for i in display_images
                 ]
-            
-            r = self.extractor.extract_values(json_result=parsed_txts[header], images=display_images)
+
+            r = self.extractor.extract_values(
+                json_result=parsed_txts[header], images=display_images
+            )
             parsed_results.append(DeepchecksParsedResult(header=header, result=r))
 
-        return parsed_results    
+        return parsed_results
 
     def parse_txt(self, results: SuiteResult) -> Dict[str, Dict[str, Any]]:
         parsed_results = {}
@@ -162,7 +168,7 @@ class CheckResultsParser:
         return display_result
 
     def _parse_display(self, result: CheckResult) -> Tuple[Optional[List[bytes]], str]:
-        images = None # self._load_display_as_image(result)
+        images = None  # self._load_display_as_image(result)
         txt = self._parse_display_txt(result)
         return images, txt
 
@@ -184,7 +190,6 @@ class CheckResultsParser:
 
 
 class BaseDeepchecksRunner(ABC):
-
     def __init__(self, config: Optional[DeepchecksConfig] = None):
         self.config = config or DeepchecksConfig()
         self.parser = CheckResultsParser()
@@ -204,23 +209,42 @@ class BaseDeepchecksRunner(ABC):
             )
 
     @abstractmethod
-    def run_suites(self, train_data: Union[VisionData, TabularDataset, 'TextData'], dataset_name: str, test_data: Optional[Union[VisionData, TabularDataset, 'TextData']] = None) -> DeepchecksArtifacts:
+    def run_suites(
+        self,
+        train_data: Union[VisionData, TabularDataset, "TextData"],
+        dataset_name: str,
+        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+    ) -> DeepchecksArtifacts:
         pass
 
     @abstractmethod
-    def run_suite_train_test_validation(self, train_data: Union[VisionData, TabularDataset, 'TextData'], test_data: Optional[Union[VisionData, TabularDataset, 'TextData']] = None) -> SuiteResult:
+    def run_suite_train_test_validation(
+        self,
+        train_data: Union[VisionData, TabularDataset, "TextData"],
+        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+    ) -> SuiteResult:
         pass
 
     @abstractmethod
-    def run_suite_data_integrity(self, train_data: Union[VisionData, TabularDataset, 'TextData'], test_data: Optional[Union[VisionData, TabularDataset, 'TextData']] = None) -> SuiteResult:
+    def run_suite_data_integrity(
+        self,
+        train_data: Union[VisionData, TabularDataset, "TextData"],
+        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+    ) -> SuiteResult:
         pass
 
     @abstractmethod
-    def run_suite_model_evaluation(self, train_data: Union[VisionData, TabularDataset, 'TextData'], test_data: Optional[Union[VisionData, TabularDataset, 'TextData']] = None) -> SuiteResult:
+    def run_suite_model_evaluation(
+        self,
+        train_data: Union[VisionData, TabularDataset, "TextData"],
+        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+    ) -> SuiteResult:
         pass
 
 
-def get_deepchecks_runner(data_type: Union[str, DataType], config: Optional[DeepchecksConfig] = None) -> BaseDeepchecksRunner:
+def get_deepchecks_runner(
+    data_type: Union[str, DataType], config: Optional[DeepchecksConfig] = None
+) -> BaseDeepchecksRunner:
     _type = DataType(data_type) if isinstance(data_type, str) else data_type
     if _type == DataType.VISION:
         return DeepchecksRunnerForVision(config=config)
@@ -318,11 +342,17 @@ class DeepchecksRunnerForVision(BaseDeepchecksRunner):
             max_samples=self.config.max_samples,
             random_state=self.config.random_state,
         )
-    
-    def _check_inputs(self, train_data: VisionData, test_data: Optional[VisionData] = None) -> None:
-        assert isinstance(train_data, VisionData), f"train_data must be an instance of VisionData, got {type(train_data)}"
+
+    def _check_inputs(
+        self, train_data: VisionData, test_data: Optional[VisionData] = None
+    ) -> None:
+        assert isinstance(train_data, VisionData), (
+            f"train_data must be an instance of VisionData, got {type(train_data)}"
+        )
         if test_data is not None:
-            assert isinstance(test_data, VisionData), f"test_data must be an instance of VisionData, got {type(test_data)}"
+            assert isinstance(test_data, VisionData), (
+                f"test_data must be an instance of VisionData, got {type(test_data)}"
+            )
 
 
 class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
@@ -350,17 +380,17 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
     ) -> DeepchecksArtifacts:
         """
         Run all configured Deepchecks suites on tabular data.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TabularDataset
             dataset_name: Name of the dataset for artifact storage
             test_data: Optional test dataset as Deepchecks TabularDataset
-            
+
         Returns:
             DeepchecksArtifacts containing results from all executed suites
         """
         self._check_inputs(train_data, test_data)
-        
+
         output = {}
         if self.config.train_test_validation:
             out_train_test_validation = self.run_suite_train_test_validation(
@@ -394,14 +424,14 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
     ) -> SuiteResult:
         """
         Run train-test validation suite on tabular data.
-        
+
         Validates consistency between training and testing datasets, checking for
         feature drift, label distribution differences, and potential data leakage.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TabularDataset
             test_data: Optional test dataset as Deepchecks TabularDataset
-            
+
         Returns:
             SuiteResult containing validation results
         """
@@ -418,14 +448,14 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
     ) -> SuiteResult:
         """
         Run data integrity suite on tabular data.
-        
+
         Validates the correctness of datasets by checking for issues like duplicates,
         missing values, and inconsistent labels.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TabularDataset
             test_data: Optional test dataset as Deepchecks TabularDataset
-            
+
         Returns:
             SuiteResult containing data integrity check results
         """
@@ -441,14 +471,14 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
     ) -> SuiteResult:
         """
         Run model evaluation suite on tabular data.
-        
+
         Assesses a trained model's performance, examining metrics, comparing to benchmarks,
         and identifying underperforming segments.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TabularDataset
             test_data: Optional test dataset as Deepchecks TabularDataset
-            
+
         Returns:
             SuiteResult containing model evaluation results
         """
@@ -460,11 +490,17 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
             max_samples=self.config.max_samples,
             random_state=self.config.random_state,
         )
-    
-    def _check_inputs(self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None) -> None:
-        assert isinstance(train_data, TabularDataset), f"train_data must be an instance of TabularDataset, got {type(train_data)}"
+
+    def _check_inputs(
+        self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
+    ) -> None:
+        assert isinstance(train_data, TabularDataset), (
+            f"train_data must be an instance of TabularDataset, got {type(train_data)}"
+        )
         if test_data is not None:
-            assert isinstance(test_data, TabularDataset), f"test_data must be an instance of TabularDataset, got {type(test_data)}"
+            assert isinstance(test_data, TabularDataset), (
+                f"test_data must be an instance of TabularDataset, got {type(test_data)}"
+            )
 
 
 class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
@@ -485,18 +521,18 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
 
     def run_suites(
         self,
-        train_data: 'TextData',
+        train_data: "TextData",
         dataset_name: str,
-        test_data: Optional['TextData'] = None,
+        test_data: Optional["TextData"] = None,
     ) -> DeepchecksArtifacts:
         """
         Run all configured Deepchecks NLP suites on text data.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TextData
             dataset_name: Name of the dataset for artifact storage
             test_data: Optional test dataset as Deepchecks TextData
-            
+
         Returns:
             DeepchecksArtifacts containing results from all executed suites
         """
@@ -523,18 +559,18 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         return artifact
 
     def run_suite_train_test_validation(
-        self, train_data: 'TextData', test_data: Optional['TextData'] = None
+        self, train_data: "TextData", test_data: Optional["TextData"] = None
     ) -> SuiteResult:
         """
         Run train-test validation suite on NLP text data.
-        
+
         Validates consistency between training and testing datasets, checking for
         distribution differences, label inconsistencies, and potential data leakage.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TextData
             test_data: Optional test dataset as Deepchecks TextData
-            
+
         Returns:
             SuiteResult containing validation results
         """
@@ -546,18 +582,18 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         )
 
     def run_suite_model_evaluation(
-        self, train_data: 'TextData', test_data: Optional['TextData'] = None
+        self, train_data: "TextData", test_data: Optional["TextData"] = None
     ) -> SuiteResult:
         """
         Run model evaluation suite on NLP text data.
-        
+
         Assesses a trained model's performance on text tasks, examining metrics,
         identifying underperforming segments, and comparing to baseline models.
-        
+
         Args:
             train_data: Training dataset as Deepchecks TextData
             test_data: Optional test dataset as Deepchecks TextData
-            
+
         Returns:
             SuiteResult containing model evaluation results
         """
@@ -569,15 +605,17 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         )
 
     def run_suite_data_integrity(
-        self, train_data: 'TextData', test_data: Optional['TextData'] = None
+        self, train_data: "TextData", test_data: Optional["TextData"] = None
     ) -> SuiteResult:
         """
         Not implemented for NLP text data.
-        
+
         The NLP module does not provide a data_integrity suite.
         Use train_test_validation or model_evaluation instead.
-        
+
         Raises:
             NotImplementedError: This suite is not available for NLP data
         """
-        raise NotImplementedError("Data integrity suite is not available for NLP text data")
+        raise NotImplementedError(
+            "Data integrity suite is not available for NLP text data"
+        )

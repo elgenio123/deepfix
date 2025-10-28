@@ -115,7 +115,11 @@ class LogModelCheckpoint(LogArtifact):
 
 class LogDatasetMetadata(LogArtifact):
     def __init__(
-        self, sqlite_path: str, mlflow_manager: MLflowManager, dataset_name: str, data_type: DataType
+        self,
+        sqlite_path: str,
+        mlflow_manager: MLflowManager,
+        dataset_name: str,
+        data_type: DataType,
     ):
         super().__init__(
             artifact_key=ArtifactPath.DATASET,
@@ -138,8 +142,10 @@ class LogDatasetMetadata(LogArtifact):
         assert isinstance(dataset_name, str), (
             f"dataset_name must be a string, got {type(dataset_name)}"
         )
-        
-        data_statistics = get_data_statistics(data_type=self.data_type, train_data=train_data, test_data=test_data)
+
+        data_statistics = get_data_statistics(
+            data_type=self.data_type, train_data=train_data, test_data=test_data
+        )
         dataset_artifacts = DatasetArtifacts(
             dataset_name=dataset_name, statistics=data_statistics
         )

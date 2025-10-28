@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 
+
 # SQLModel
 class ArtifactStatus(StrEnum):
     REGISTERED = "REGISTERED"
@@ -146,7 +147,9 @@ class ArtifactRepository:
             ).one_or_none()
 
     def delete(self, run_id: str, artifact_key: str) -> bool:
-        assert isinstance(run_id, str) and isinstance(artifact_key, str), f"run_id and artifact_key must be strings. Received {type(run_id)} and {type(artifact_key)}"
+        assert isinstance(run_id, str) and isinstance(artifact_key, str), (
+            f"run_id and artifact_key must be strings. Received {type(run_id)} and {type(artifact_key)}"
+        )
         with self.session() as s:
             rec = s.exec(
                 select(ArtifactRecord).where(

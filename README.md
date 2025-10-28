@@ -50,22 +50,33 @@ uv venv --python 3.11
 uv pip install -e .
 ```
 
-### Basic Usage
+## Basic Usage
 
+### Deploy deepfix server
 ```python
-from deepfix.client import DeepFixClient
-from deepfix.client.zoo.datasets.foodwaste import load_train_and_val_datasets
+uv run  deepfix-server launch -e deepfix-server/.env -port 8844 -host 127.0.0.1
+```
 
-client = DeepFixClient(api_url="http://localhost:8844",timeout=120)
+### Diagnose image classification dataset
+```python
+from deepfix_sdk.client import DeepFixClient
+from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
+from deepfix_sdk.data.datasets import ImageClassificationDataset
 
-# Load image datasets
+client = DeepFixClient(api_url="http://127.0.0.1:8844",timeout=120)
+
+# Load image dataset
+dataset_name="cafetaria-foodwaste"
+
 train_data, val_data = load_train_and_val_datasets(
     image_size=448,
     batch_size=8,
     num_workers=4,
     pin_memory=False,)
+train_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=train_data)
+val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_data)
 
-dataset_name="cafetaria-foodwaste"
+# Ingest dataset
 client.ingest_dataset(dataset_name=dataset_name,
                     train_data=train_data,
                     test_data=val_data,
@@ -75,26 +86,12 @@ client.ingest_dataset(dataset_name=dataset_name,
                     overwrite=False
                     )
 
+# Diagnose dataset
 result = client.diagnose_dataset(dataset_name=dataset_name)
+
+# Visualize results
 print(result.to_text())
 ```
-
-## 🐳 Docker Deployment
-
-DeepFix can be deployed as a containerized service:
-
-```bash
-# Quick start with docker-compose
-docker-compose up -d
-
-# Or using Makefile commands
-make build          # Build the Docker image
-make run            # Run the container
-make logs           # View logs
-make stop           # Stop the container
-```
-
-For production deployment and advanced configuration, see the [Docker Deployment Guide](docs/DOCKER.md).
 
 ## 📝 License
 

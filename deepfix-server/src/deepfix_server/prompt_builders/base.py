@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any
 
 from deepfix_core.models import Artifacts
 
+
 class BasePromptBuilder(ABC):
     """Abstract base class for prompt builders."""
 

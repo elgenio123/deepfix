@@ -5,7 +5,7 @@ This module provides the DeepchecksPromptBuilder for creating prompts
 from DeepchecksArtifacts instances.
 """
 
-from typing import Optional, Dict, Any,
+from typing import Optional, Dict, Any
 from .base import BasePromptBuilder
 from deepfix_core.models import (
     DeepchecksArtifacts,
@@ -28,7 +28,6 @@ class DeepchecksPromptBuilder(BasePromptBuilder):
         exclude_fields_from_result: list[str] = ["value", "params", "link_in_summary"],
         exclude_empty_conditions_results: bool = True,
     ) -> str:
-
         """Build structured prompt from DeepchecksArtifacts."""
         prompt_parts = [
             f"Dataset: {artifact.dataset_name}",
@@ -63,8 +62,7 @@ class DeepchecksPromptBuilder(BasePromptBuilder):
                     continue
                 else:
                     prompt_parts.append(
-                        f"- {OmegaConf.to_yaml(check_result.to_dict(exclude_fields_from_result), 
-                        resolve=True)}"
+                        f"- {OmegaConf.to_yaml(check_result.to_dict(exclude_fields_from_result), resolve=True)}"
                     )
 
         # Add context if provided

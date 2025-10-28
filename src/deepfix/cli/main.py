@@ -11,9 +11,8 @@ app = typer.Typer(
 )
 
 # Register command groups
-app.add_typer(
-    commands_app, help="Commands for DeepFix"
-)
+app.add_typer(commands_app, help="Commands for DeepFix")
+
 
 def main() -> None:
     """Entry point for the CLI application."""

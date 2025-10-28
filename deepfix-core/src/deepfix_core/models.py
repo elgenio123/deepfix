@@ -1,23 +1,26 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
+from pandas.core.indexes.multi import AnyAll
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any, Union
 from enum import StrEnum
 import os
+import math
 from omegaconf import DictConfig
 import pandas as pd
 import yaml
 from omegaconf import OmegaConf
 from platformdirs import (
-                user_data_dir,
-                user_cache_dir,
-                user_log_dir,
-            )
+    user_data_dir,
+    user_cache_dir,
+    user_log_dir,
+)
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 from io import StringIO
+
 
 # Defaults
 def _get_base_dirs() -> Dict[str, Path]:
@@ -54,36 +57,43 @@ def _get_base_dirs() -> Dict[str, Path]:
         "log": log_dir,
     }
 
+
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
     mlruns_dir = data_dir / "deepfix_mlflow"
     mlruns_dir.mkdir(parents=True, exist_ok=True)
     # Use an OS-correct file:// URI (e.g., file:///C:/... on Windows)
     return mlruns_dir.resolve().as_uri()
 
+
 def _default_mlflow_downloads_dir(data_dir: Path) -> str:
     downloads = data_dir / "mlflow_downloads"
     downloads.mkdir(parents=True, exist_ok=True)
     return str(downloads)
+
 
 def _default_mlflow_artifact_root(data_dir: Path) -> str:
     artifact_root = data_dir / "mlflow_artifacts"
     artifact_root.mkdir(parents=True, exist_ok=True)
     return str(artifact_root)
 
+
 def _default_sqlite_path(data_dir: Path) -> str:
     sqlite_path = data_dir / "tmp" / "artifacts.db"
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     return str(sqlite_path)
+
 
 def _default_output_dir(data_dir: Path) -> str:
     out = data_dir / "advisor_output"
     out.mkdir(parents=True, exist_ok=True)
     return str(out)
 
+
 def _default_knowledge_base_dir(data_dir: Path) -> str:
     knowledge_base_dir = data_dir / "knowledge_base"
     knowledge_base_dir.mkdir(parents=True, exist_ok=True)
     return str(knowledge_base_dir)
+
 
 def _default_knowledge_base_indices_dir(data_dir: Path) -> str:
     p = _default_knowledge_base_dir(data_dir)
@@ -91,11 +101,13 @@ def _default_knowledge_base_indices_dir(data_dir: Path) -> str:
     knowledge_base_indices_dir.mkdir(parents=True, exist_ok=True)
     return str(knowledge_base_indices_dir)
 
+
 def _default_knowledge_base_documents_dir(data_dir: Path) -> str:
     p = _default_knowledge_base_dir(data_dir)
     knowledge_base_documents_dir = Path(p) / "documents"
     knowledge_base_documents_dir.mkdir(parents=True, exist_ok=True)
     return str(knowledge_base_documents_dir)
+
 
 _BASE_DIRS = _get_base_dirs()
 
@@ -114,7 +126,9 @@ class DefaultPaths(StrEnum):
 
     KNOWLEDGE_BASE_DIR = _default_knowledge_base_dir(_BASE_DIRS["data"])
     KNOWLEDGE_BASE_INDICES_DIR = _default_knowledge_base_indices_dir(_BASE_DIRS["data"])
-    KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(_BASE_DIRS["data"])
+    KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(
+        _BASE_DIRS["data"]
+    )
 
 
 # MLTest configs
@@ -122,6 +136,7 @@ class DataType(StrEnum):
     VISION = "vision"
     TABULAR = "tabular"
     NLP = "nlp"
+
 
 class DeepchecksConfig(BaseModel):
     train_test_validation: bool = Field(
@@ -144,7 +159,9 @@ class DeepchecksConfig(BaseModel):
         default=None, description="Output directory to save the results"
     )
     batch_size: int = Field(default=16, description="Batch size to use for the suites")
-    data_type: DataType = Field(default=DataType.VISION, description="Type of data to run the suites on")
+    data_type: DataType = Field(
+        default=DataType.VISION, description="Type of data to run the suites on"
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
@@ -173,7 +190,6 @@ class ArtifactPath(StrEnum):
     DATASET = "dataset"
 
 
-
 ## Deepchecks
 class DeepchecksResultHeaders(StrEnum):
     # Train-Test Validation
@@ -189,6 +205,7 @@ class DeepchecksResultHeaders(StrEnum):
     LabelPropertyOutliers = "Label Property Outliers"
     ClassPerformance = "Class Performance"
 
+
 class DeepchecksConditionResult(BaseModel):
     status: str = Field(description="Status of the condition")
     condition: str = Field(description="Condition of the condition")
@@ -199,27 +216,53 @@ class DeepchecksCheckResult(BaseModel):
     check: Optional[str] = Field(default=None, description="Name of the check")
     params: Optional[dict] = Field(default=None, description="Parameters of the check")
     summary: Optional[str] = Field(default=None, description="Summary of the check")
-    value: Optional[Union[dict, list, str]] = Field(default=None, description="Value of the check")
-    conditions_results: List[DeepchecksConditionResult] = Field(default=[], description="Conditions results of the check")
-    link_in_summary: Optional[str] = Field(default=None, description="Link in summary of the check")
-    display_text: Optional[str] = Field(default=None, description="Display text of the check")
+    value: Optional[Any] = Field(
+        default=None, description="Value of the check"
+    )
+    conditions_results: List[DeepchecksConditionResult] = Field(
+        default=[], description="Conditions results of the check"
+    )
+    link_in_summary: Optional[str] = Field(
+        default=None, description="Link in summary of the check"
+    )
+    display_text: Optional[str] = Field(
+        default=None, description="Display text of the check"
+    )
     display_images: Optional[List[str]] = Field(
         default=None,
         description="Display images of the result as base64 encoded strings",
     )
 
-    def to_dict(
-        self, exclude: list[str] = []
-    ) -> dict:
+    @field_validator("value", mode="before")
+    @classmethod
+    def convert_nan_infinity_to_string(cls, v):
+        """Convert NaN and Infinity values to string representations."""
+        if v is None:
+            return v
+        
+        if isinstance(v, float):
+            if math.isnan(v):
+                return "NaN"
+            elif math.isinf(v):
+                return "Infinity" if v > 0 else "-Infinity"
+        elif isinstance(v, dict):
+            return {k: cls.convert_nan_infinity_to_string(val) for k, val in v.items()}
+        elif isinstance(v, list):
+            return [cls.convert_nan_infinity_to_string(item) for item in v]
+        
+        return v
+
+    def to_dict(self, exclude: list[str] = []) -> dict:
         dumped = self.model_dump()
         keys_to_remove = set(exclude + [k for k, v in dumped.items() if v is None])
         for key in keys_to_remove:
             dumped.pop(key)
         return dumped
 
+
 class DeepchecksParsedResult(BaseModel):
     header: str = Field(description="Header of the result")
-    result: DeepchecksCheckResult = Field(description="Result of the check")    
+    result: DeepchecksCheckResult = Field(description="Result of the check")
 
     def to_dict(self, exclude_images: bool = False) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
@@ -235,7 +278,6 @@ class DeepchecksParsedResult(BaseModel):
 
 
 class Artifacts(BaseModel):
-    
     def to_dict(self) -> Dict[str, Any]:
         raise NotImplementedError("to_dict method to be implemented in the subclass")
 
@@ -336,7 +378,10 @@ class TrainingArtifacts(Artifacts):
 
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
-        if isinstance(self.metrics_values, pd.DataFrame) and self.metrics_values is not None:
+        if (
+            isinstance(self.metrics_values, pd.DataFrame)
+            and self.metrics_values is not None
+        ):
             dumped_dict["metrics_values"] = self.metrics_values.to_dict(orient="list")
         return dumped_dict
 
@@ -377,7 +422,6 @@ class DatasetArtifacts(Artifacts):
         return cls(dataset_name=d["dataset_name"], statistics=d["statistics"])
 
 
-
 # ============================================================================
 # Analysis data Models
 # ============================================================================
@@ -386,35 +430,60 @@ class Severity(StrEnum):
     MEDIUM = "medium"
     HIGH = "high"
 
+
 class AnalyzerTypes(StrEnum):
     TRAINING = "training"
     DEEPCHECKS = "deepchecks"
     DATASET = "dataset"
     MODEL_CHECKPOINT = "model_checkpoint"
-    
+
+
 class Finding(BaseModel):
-    description: str = Field(default=...,description="Short Description of the finding")
-    evidence: str = Field(default=...,description="Evidence of the finding")
-    severity: Severity = Field(default=...,description="Severity of the finding")
-    confidence: float = Field(ge=0.0, le=1.0,description="Confidence in the finding and severity")
+    description: str = Field(
+        default=..., description="Short Description of the finding"
+    )
+    evidence: str = Field(default=..., description="Evidence of the finding")
+    severity: Severity = Field(default=..., description="Severity of the finding")
+    confidence: float = Field(
+        ge=0.0, le=1.0, description="Confidence in the finding and severity"
+    )
+
 
 class Recommendation(BaseModel):
-    action: str =  Field(default=...,description="Action to take to address the finding")
-    rationale: str =  Field(default=...,description="Rationale for the recommendation")
-    #priority: Severity = Field(default=...,description="Priority of the recommendation")
-    confidence: float = Field(ge=0.0, le=1.0,description="Confidence in the recommendation")
+    action: str = Field(
+        default=..., description="Action to take to address the finding"
+    )
+    rationale: str = Field(default=..., description="Rationale for the recommendation")
+    # priority: Severity = Field(default=...,description="Priority of the recommendation")
+    confidence: float = Field(
+        ge=0.0, le=1.0, description="Confidence in the recommendation"
+    )
+
 
 class Analysis(BaseModel):
-    findings: Finding = Field(default=...,description="Finding of the analysis")
-    recommendations: Recommendation = Field(default=...,description="Recommendation based on the findings")
+    findings: Finding = Field(default=..., description="Finding of the analysis")
+    recommendations: Recommendation = Field(
+        default=..., description="Recommendation based on the findings"
+    )
+
 
 class AgentResult(BaseModel):
     agent_name: str
-    analysis: List[Analysis] = Field(default=[],description="List of Analysis elements")
-    analyzed_artifacts: Optional[List[str]] = Field(default=None,description="List of artifacts analyzed by the agent")
-    retrieved_knowledge: Optional[List[str]] = Field(default=None,description="External knowledge relevant to the analysis")
-    additional_outputs: Dict[str, Any] = Field(default={},description="Additional outputs from the agent")
-    error_message: Optional[str] = Field(default=None,description="Error message if the agent failed")
+    analysis: List[Analysis] = Field(
+        default=[], description="List of Analysis elements"
+    )
+    analyzed_artifacts: Optional[List[str]] = Field(
+        default=None, description="List of artifacts analyzed by the agent"
+    )
+    retrieved_knowledge: Optional[List[str]] = Field(
+        default=None, description="External knowledge relevant to the analysis"
+    )
+    additional_outputs: Dict[str, Any] = Field(
+        default={}, description="Additional outputs from the agent"
+    )
+    error_message: Optional[str] = Field(
+        default=None, description="Error message if the agent failed"
+    )
 
     def to_dataframe(self) -> pd.DataFrame:
         rows = []
@@ -422,75 +491,88 @@ class AgentResult(BaseModel):
             # Extract findings and recommendations from the Analysis object
             findings = analysis.findings
             recommendations = analysis.recommendations
-            
+
             # Create a row combining findings and recommendations
             row = {
-                'agent_name': self.agent_name,
-                'analyzed_artifacts': ', '.join(self.analyzed_artifacts) if self.analyzed_artifacts else '',
-                'retrieved_knowledge': ', '.join(self.retrieved_knowledge) if self.retrieved_knowledge else '',
-                'summary': self.additional_outputs.get('summary', ''),
-                'finding_description': findings.description,
-                'finding_evidence': findings.evidence,
-                'error_message': self.error_message,
-                'finding_severity': findings.severity.value,
-                'finding_confidence': findings.confidence,
-                'recommendation_action': recommendations.action,
-                'recommendation_rationale': recommendations.rationale,
+                "agent_name": self.agent_name,
+                "analyzed_artifacts": ", ".join(self.analyzed_artifacts)
+                if self.analyzed_artifacts
+                else "",
+                "retrieved_knowledge": ", ".join(self.retrieved_knowledge)
+                if self.retrieved_knowledge
+                else "",
+                "summary": self.additional_outputs.get("summary", ""),
+                "finding_description": findings.description,
+                "finding_evidence": findings.evidence,
+                "error_message": self.error_message,
+                "finding_severity": findings.severity.value,
+                "finding_confidence": findings.confidence,
+                "recommendation_action": recommendations.action,
+                "recommendation_rationale": recommendations.rationale,
                 #'recommendation_priority': recommendations.priority.value,
-                'recommendation_confidence': recommendations.confidence
+                "recommendation_confidence": recommendations.confidence,
             }
             rows.append(row)
-        
+
         return pd.DataFrame(rows)
+
 
 # API Models
 class APIResponse(BaseModel):
-    agent_results: Dict[str, AgentResult] = Field(default={},description="Results of the agents")
-    summary: Optional[str] = Field(default=None,description="Summary of the analysis")
-    additional_outputs: Dict[str, Any] = Field(default={},description="Additional outputs from the agents")
-    error_messages: Optional[Dict[str, Optional[str]]] = Field(default=None,description="Error messages if the agents failed")
+    agent_results: Dict[str, AgentResult] = Field(
+        default={}, description="Results of the agents"
+    )
+    summary: Optional[str] = Field(default=None, description="Summary of the analysis")
+    additional_outputs: Dict[str, Any] = Field(
+        default={}, description="Additional outputs from the agents"
+    )
+    error_messages: Optional[Dict[str, Optional[str]]] = Field(
+        default=None, description="Error messages if the agents failed"
+    )
 
     def get_results_as_dataframe(self) -> pd.DataFrame:
-        dfs = [result.to_dataframe() for result in self.agent_results.values()]                
+        dfs = [result.to_dataframe() for result in self.agent_results.values()]
         return pd.concat(dfs).reset_index(drop=True)
 
     def get_results_as_text(self) -> str:
         df = self.get_results_as_dataframe()
-        summary = "="*80
+        summary = "=" * 80
         summary += "\nSUMMARY STATISTICS"
-        summary += ("\n" + "="*80)
+        summary += "\n" + "=" * 80
 
-        summary += (f"\nTotal findings: {len(df)}")
-        summary += (f"\nAgents involved: {df['agent_name'].unique().tolist()}")
-        summary += ("\nSeverity distribution:")
+        summary += f"\nTotal findings: {len(df)}"
+        summary += f"\nAgents involved: {df['agent_name'].unique().tolist()}"
+        summary += "\nSeverity distribution:"
         summary += f"\n{df['finding_severity'].value_counts().to_dict()}"
 
-        summary += (f"\nPriority distribution:")
-        #summary += f"\n{df['recommendation_priority'].value_counts().to_dict()}"
-        
-        for severity in df['finding_severity'].unique():
-            summary += ("\n" + "="*80)
-            summary += (f"\n{severity.upper()} SEVERITY ISSUES")
-            summary += ("\n" + "="*80)
+        summary += f"\nPriority distribution:"
+        # summary += f"\n{df['recommendation_priority'].value_counts().to_dict()}"
 
-            df_severity = df[df['finding_severity'] == severity]
+        for severity in df["finding_severity"].unique():
+            summary += "\n" + "=" * 80
+            summary += f"\n{severity.upper()} SEVERITY ISSUES"
+            summary += "\n" + "=" * 80
+
+            df_severity = df[df["finding_severity"] == severity]
             for i, (_, row) in enumerate(df_severity.iterrows()):
-                summary += (f"\n{i+1}. [{row['agent_name']}] {row['finding_description']}")
-                summary += (f"\n   Evidence: {row['finding_evidence']}")
-                summary += (f"\n   Action: {row['recommendation_action']}")
-                summary += (f"\n   Rationale: {row['recommendation_rationale']}")
+                summary += (
+                    f"\n{i + 1}. [{row['agent_name']}] {row['finding_description']}"
+                )
+                summary += f"\n   Evidence: {row['finding_evidence']}"
+                summary += f"\n   Action: {row['recommendation_action']}"
+                summary += f"\n   Rationale: {row['recommendation_rationale']}"
 
-        summary += ("\n" + "="*80)
-        summary += ("\nAGENT-SPECIFIC ANALYSIS")
-        summary += ("\n" + "="*80)
+        summary += "\n" + "=" * 80
+        summary += "\nAGENT-SPECIFIC ANALYSIS"
+        summary += "\n" + "=" * 80
 
-        for agent in df['agent_name'].unique():
-            agent_df = df[df['agent_name'] == agent]
-            summary += (f"\n{agent}:")
-            summary += (f"\n  - Findings: {len(agent_df)}")
-            summary += (f"\n  - Artifacts analyzed: {agent_df['analyzed_artifacts'].iloc[0] if not agent_df.empty else 'None'}")
-            if agent_df['summary'].iloc[0]:
-                summary += (f"\n  - Summary: {agent_df['summary'].iloc[0]}")
+        for agent in df["agent_name"].unique():
+            agent_df = df[df["agent_name"] == agent]
+            summary += f"\n{agent}:"
+            summary += f"\n  - Findings: {len(agent_df)}"
+            summary += f"\n  - Artifacts analyzed: {agent_df['analyzed_artifacts'].iloc[0] if not agent_df.empty else 'None'}"
+            if agent_df["summary"].iloc[0]:
+                summary += f"\n  - Summary: {agent_df['summary'].iloc[0]}"
 
         return summary
 
@@ -499,133 +581,180 @@ class APIResponse(BaseModel):
         # Create a string buffer to capture Rich output
         buffer = StringIO()
         console = Console(file=buffer, width=120, force_terminal=True)
-        
+
         df = self.get_results_as_dataframe()
-        
+
         # Header Panel
-        header_text = Text("DEEPFIX ANALYSIS RESULT", style="bold blue", justify="center")
+        header_text = Text(
+            "DEEPFIX ANALYSIS RESULT", style="bold blue", justify="center"
+        )
         console.print(Panel(header_text, style="bold blue"))
         console.print()
-        
+
         # Context Information (if available)
-        if self.additional_outputs.get('optimization_areas') or self.additional_outputs.get('constraints'):
+        if self.additional_outputs.get(
+            "optimization_areas"
+        ) or self.additional_outputs.get("constraints"):
             context_table = Table(show_header=False, box=None, padding=(0, 2))
             context_table.add_column("Label", style="blue bold")
             context_table.add_column("Value", style="black")
-            
-            if self.additional_outputs.get('optimization_areas'):
-                context_table.add_row("Optimization Areas", str(self.additional_outputs['optimization_areas']))
-            if self.additional_outputs.get('constraints'):
-                context_table.add_row("Constraints", str(self.additional_outputs['constraints']))
-            
-            console.print(Panel(context_table, title="[bold blue]Context[/bold blue]", border_style="blue"))
+
+            if self.additional_outputs.get("optimization_areas"):
+                context_table.add_row(
+                    "Optimization Areas",
+                    str(self.additional_outputs["optimization_areas"]),
+                )
+            if self.additional_outputs.get("constraints"):
+                context_table.add_row(
+                    "Constraints", str(self.additional_outputs["constraints"])
+                )
+
+            console.print(
+                Panel(
+                    context_table,
+                    title="[bold blue]Context[/bold blue]",
+                    border_style="blue",
+                )
+            )
             console.print()
-        
+
         # Summary Panel
         if self.summary:
             summary_text = Text(self.summary, style="black")
-            console.print(Panel(summary_text, title="[bold green]Summary[/bold green]", border_style="green"))
+            console.print(
+                Panel(
+                    summary_text,
+                    title="[bold green]Summary[/bold green]",
+                    border_style="green",
+                )
+            )
             console.print()
-        
+
         # Summary Statistics Table
         stats_table = self._summary_table(df)
         console.print(stats_table)
         console.print()
-        
+
         # Issues by Severity
-        for severity in sorted(df['finding_severity'].unique(), key=lambda x: {"high": 0, "medium": 1, "low": 2}.get(x, 3)):
-            severity_color = {"high": "red", "medium": "yellow", "low": "green"}.get(severity, "black")
-            df_severity = df[df['finding_severity'] == severity]
-            
+        for severity in sorted(
+            df["finding_severity"].unique(),
+            key=lambda x: {"high": 0, "medium": 1, "low": 2}.get(x, 3),
+        ):
+            severity_color = {"high": "red", "medium": "yellow", "low": "green"}.get(
+                severity, "black"
+            )
+            df_severity = df[df["finding_severity"] == severity]
+
             # Create a table for issues of this severity
-            issues_table = self._issues_table(df_severity, severity, severity_color)            
+            issues_table = self._issues_table(df_severity, severity, severity_color)
             console.print(issues_table)
             console.print()
-        
+
         # Agent-Specific Analysis
-        #agent_table = self._agent_table(df)        
-        #console.print(agent_table)
-        
+        # agent_table = self._agent_table(df)
+        # console.print(agent_table)
+
         # Get the string output
         return buffer.getvalue()
-    
+
     def _summary_table(self, df: pd.DataFrame) -> Table:
-        stats_table = Table(title="Summary Statistics", show_header=True, header_style="bold blue", box=None)
+        stats_table = Table(
+            title="Summary Statistics",
+            show_header=True,
+            header_style="bold blue",
+            box=None,
+        )
         stats_table.add_column("Metric", style="blue bold", width=30)
         stats_table.add_column("Value", style="black", width=60)
-        
+
         stats_table.add_row("Total Findings", str(len(df)))
-        stats_table.add_row("Agents Involved", ", ".join(df['agent_name'].unique().tolist()))
-        
+        stats_table.add_row(
+            "Agents Involved", ", ".join(df["agent_name"].unique().tolist())
+        )
+
         # Severity distribution with color coding
-        severity_counts = df['finding_severity'].value_counts().to_dict()
+        severity_counts = df["finding_severity"].value_counts().to_dict()
         severity_text = Text()
         for severity, count in severity_counts.items():
-            color = {"high": "red", "medium": "yellow", "low": "green"}.get(severity, "black")
-            severity_text.append(f"{severity.upper()}: {count}  ", style=f"bold {color}")
+            color = {"high": "red", "medium": "yellow", "low": "green"}.get(
+                severity, "black"
+            )
+            severity_text.append(
+                f"{severity.upper()}: {count}  ", style=f"bold {color}"
+            )
         stats_table.add_row("Severity Distribution", severity_text)
 
         # Priority distribution with color coding
-        #priority_counts = df['recommendation_priority'].value_counts().to_dict()
-        #priority_text = Text()
-        #for priority, count in priority_counts.items():
+        # priority_counts = df['recommendation_priority'].value_counts().to_dict()
+        # priority_text = Text()
+        # for priority, count in priority_counts.items():
         #    color = {"high": "red", "medium": "yellow", "low": "green"}.get(priority, "black")
         #    priority_text.append(f"{priority.upper()}: {count}  ", style=f"bold {color}")
-        #stats_table.add_row("Priority Distribution", priority_text)
+        # stats_table.add_row("Priority Distribution", priority_text)
 
         return stats_table
-    
-    def _issues_table(self, df_severity: pd.DataFrame, severity: Severity, severity_color: str) -> Table:
+
+    def _issues_table(
+        self, df_severity: pd.DataFrame, severity: Severity, severity_color: str
+    ) -> Table:
         issues_table = Table(
-                title=f"{severity.upper()} Severity Issues ({len(df_severity)})",
-                show_header=True,
-                header_style=f"bold {severity_color}",
-                border_style=severity_color,
-                expand=False
-            )
+            title=f"{severity.upper()} Severity Issues ({len(df_severity)})",
+            show_header=True,
+            header_style=f"bold {severity_color}",
+            border_style=severity_color,
+            expand=False,
+        )
         issues_table.add_column("#", style="dim", width=3)
         issues_table.add_column("Agent", style="blue bold", width=30)
         issues_table.add_column("Finding", style="black", width=40)
         issues_table.add_column("Action", style="black", width=40)
-        
+
         for i, (_, row) in enumerate(df_severity.iterrows(), 1):
             issues_table.add_row(
                 str(i),
-                row['agent_name'],
+                row["agent_name"],
                 f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
-                f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]"
+                f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
             )
         return issues_table
-    
+
     def _agent_table(self, df: pd.DataFrame) -> Table:
         # Agent-Specific Analysis
         agent_table = Table(
             title="Agent-Specific Analysis",
             show_header=True,
             header_style="bold blue",
-            border_style="blue"
+            border_style="blue",
         )
         agent_table.add_column("Agent", style="blue bold", width=30)
         agent_table.add_column("Findings", justify="center", style="yellow", width=10)
         agent_table.add_column("Artifacts", style="black", width=30)
         agent_table.add_column("Summary", style="black", width=40)
-        
-        for agent in df['agent_name'].unique():
-            agent_df = df[df['agent_name'] == agent]
-            artifacts = agent_df['analyzed_artifacts'].iloc[0] if not agent_df.empty else 'None'
-            summary = agent_df['summary'].iloc[0] if agent_df['summary'].iloc[0] else 'N/A'
-            
-            agent_table.add_row(
-                agent,
-                str(len(agent_df)),
-                artifacts,
-                summary
+
+        for agent in df["agent_name"].unique():
+            agent_df = df[df["agent_name"] == agent]
+            artifacts = (
+                agent_df["analyzed_artifacts"].iloc[0] if not agent_df.empty else "None"
             )
+            summary = (
+                agent_df["summary"].iloc[0] if agent_df["summary"].iloc[0] else "N/A"
+            )
+
+            agent_table.add_row(agent, str(len(agent_df)), artifacts, summary)
         return agent_table
 
+
 class APIRequest(BaseModel):
-    dataset_artifacts: Optional[DatasetArtifacts] = Field(default=None,description="Dataset artifacts")
-    training_artifacts: Optional[TrainingArtifacts] = Field(default=None,description="Training artifacts")
-    deepchecks_artifacts: Optional[DeepchecksArtifacts] = Field(default=None,description="Deepchecks artifacts")
-    model_checkpoint_artifacts: Optional[ModelCheckpointArtifacts] = Field(default=None,description="Model checkpoint artifacts")
-    dataset_name: Optional[str] = Field(default=None,description="Name of the dataset")
+    dataset_artifacts: Optional[DatasetArtifacts] = Field(
+        default=None, description="Dataset artifacts"
+    )
+    training_artifacts: Optional[TrainingArtifacts] = Field(
+        default=None, description="Training artifacts"
+    )
+    deepchecks_artifacts: Optional[DeepchecksArtifacts] = Field(
+        default=None, description="Deepchecks artifacts"
+    )
+    model_checkpoint_artifacts: Optional[ModelCheckpointArtifacts] = Field(
+        default=None, description="Model checkpoint artifacts"
+    )
+    dataset_name: Optional[str] = Field(default=None, description="Name of the dataset")

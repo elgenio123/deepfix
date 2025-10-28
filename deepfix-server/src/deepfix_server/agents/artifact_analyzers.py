@@ -5,10 +5,18 @@ from .base import ArtifactAnalyzer
 from ..models import AgentContext, AgentResult
 from ..config import LLMConfig
 from .training_dynamics_utils import TrainingDynamicsAnalyzer
-from deepfix_core.models import DeepchecksArtifacts, DatasetArtifacts, ModelCheckpointArtifacts, TrainingArtifacts,Finding, Severity
+from deepfix_core.models import (
+    DeepchecksArtifacts,
+    DatasetArtifacts,
+    ModelCheckpointArtifacts,
+    TrainingArtifacts,
+    Finding,
+    Severity,
+)
 from ..logging import get_logger
 
 LOGGER = get_logger(__name__)
+
 
 class DeepchecksArtifactsAnalyzer(ArtifactAnalyzer):
     """Expert in data quality and validation, data drift detection, data integrity assessment, and outlier identification"""
@@ -64,10 +72,11 @@ class DeepchecksArtifactsAnalyzer(ArtifactAnalyzer):
 
                 Provide specific, actionable recommendations with clear impact assessment.
         """
-    
+
     @property
     def supported_artifact_types(self):
         return DeepchecksArtifacts
+
 
 class DatasetArtifactsAnalyzer(ArtifactAnalyzer):
     """Expert in dataset analysis and quality assessment, data distribution analysis, feature quality assessment, and class balance evaluation"""
@@ -127,7 +136,8 @@ class DatasetArtifactsAnalyzer(ArtifactAnalyzer):
     @property
     def supported_artifact_types(self):
         return DatasetArtifacts
-    
+
+
 class ModelCheckpointArtifactsAnalyzer(ArtifactAnalyzer):
     """Expert in model checkpoint integrity and validation, model configuration analysis, and deployment readiness assessment"""
 
@@ -191,14 +201,17 @@ class ModelCheckpointArtifactsAnalyzer(ArtifactAnalyzer):
     def supported_artifact_types(self):
         return ModelCheckpointArtifacts
 
+
 class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
-    def __init__(self, llm_config: Optional[LLMConfig]=None,llm: Optional[dspy.Module] = None):
-        super().__init__(llm=llm,config=llm_config)
-        
-        self.logger = LOGGER 
+    def __init__(
+        self, llm_config: Optional[LLMConfig] = None, llm: Optional[dspy.Module] = None
+    ):
+        super().__init__(llm=llm, config=llm_config)
+
+        self.logger = LOGGER
         self._analysis_cache = {}
         self.analyzer = TrainingDynamicsAnalyzer()
-    
+
     @property
     def system_prompt(self) -> str:
         return """You are an expert ML training diagnostics specialist with deep expertise in:
@@ -233,20 +246,20 @@ class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
     @property
     def supported_artifact_types(self):
         return TrainingArtifacts
-    
+
     def _run(self, context: AgentContext) -> AgentResult:
         """Main analysis method following the specification"""
-        
+
         raise NotImplementedError("TrainingArtifactsAnalyzer is not implemented yet")
 
         # Find training artifacts
         training_artifacts = self._get_training_artifacts(context.artifacts)
         if not training_artifacts:
             return self._no_training_data_result()
-        
+
         findings = []
         recommendations = []
-        
+
         try:
             # Analyze training metrics if available
             if training_artifacts.metrics_values is not None:
@@ -254,259 +267,308 @@ class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
                 findings.extend(self._detect_overfitting_patterns(training_artifacts))
                 findings.extend(self._analyze_training_stability(training_artifacts))
                 findings.extend(self._detect_gradient_anomalies(training_artifacts))
-                
+
                 # Add parameter-metric correlation analysis if params available
                 if training_artifacts.params:
-                    findings.extend(self._analyze_parameter_impact(
-                        training_artifacts.metrics_values, training_artifacts.params
-                    ))
-        
-        # Generate recommendations based on findings
-            
+                    findings.extend(
+                        self._analyze_parameter_impact(
+                            training_artifacts.metrics_values, training_artifacts.params
+                        )
+                    )
+
+            # Generate recommendations based on findings
+
             return AgentResult(
                 agent_name=self.agent_name,
                 analysis=self._format_analysis_output(findings, recommendations),
-                analyzed_artifacts=["TrainingArtifacts"]
+                analyzed_artifacts=["TrainingArtifacts"],
             )
-            
+
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.error("Training dynamics analysis failed: %s", str(e))
             return self._error_result(str(e))
-    
+
     def _get_training_artifacts(self, artifacts: List) -> Optional[TrainingArtifacts]:
         """Extract training artifacts from context"""
         for artifact in artifacts:
             if isinstance(artifact, TrainingArtifacts):
                 return artifact
         return None
-    
+
     def _no_training_data_result(self) -> AgentResult:
         """Return result when no training data is available"""
         return AgentResult(
             agent_name=self.agent_name,
             analysis="No training artifacts available for analysis",
-            analyzed_artifacts=[]
+            analyzed_artifacts=[],
         )
-    
+
     def _error_result(self, error_msg: str) -> AgentResult:
         """Return result when analysis fails"""
         return AgentResult(
             agent_name=self.agent_name,
             analysis=f"Training dynamics analysis failed: {error_msg}",
-            analyzed_artifacts=["TrainingArtifacts"]
+            analyzed_artifacts=["TrainingArtifacts"],
         )
-    
+
     # ===== CORE ANALYSIS COMPONENTS =====
-    
+
     def _analyze_training_curves(self, artifacts: TrainingArtifacts) -> List[Finding]:
         """Analyze overall training curve characteristics"""
         findings = []
         metrics_df = artifacts.metrics_values
-        
+
         if metrics_df is None or metrics_df.empty:
             return findings
-        
+
         try:
             # Focus on primary metrics (loss, accuracy)
             primary_metrics = self.analyzer.identify_primary_metrics(metrics_df)
-            
+
             for metric_name, metric_series in primary_metrics.items():
                 # Calculate improvement rate
-                improvement_rate = self.analyzer.calculate_improvement_rate(metric_series)
-                
+                improvement_rate = self.analyzer.calculate_improvement_rate(
+                    metric_series
+                )
+
                 # Detect plateau phases
                 plateau_info = self.analyzer.detect_performance_plateaus(metric_series)
-                
+
                 # Assess overall trend quality
-                trend_quality = self.analyzer.assess_trend_quality(metric_series, improvement_rate)
-                
+                trend_quality = self.analyzer.assess_trend_quality(
+                    metric_series, improvement_rate
+                )
+
                 if trend_quality["concerns"]:
-                    findings.append(Finding(
-                        description=f"Training trend concerns detected in {metric_name}",
-                        evidence=f"Improvement rate: {improvement_rate:.4f}, Plateau epochs: {plateau_info['total_plateau_epochs']}, Concerns: {', '.join(trend_quality['concerns'])}",
-                        severity=self.analyzer.assess_trend_severity(trend_quality),
-                        confidence=trend_quality["score"]
-                    ))
-        
+                    findings.append(
+                        Finding(
+                            description=f"Training trend concerns detected in {metric_name}",
+                            evidence=f"Improvement rate: {improvement_rate:.4f}, Plateau epochs: {plateau_info['total_plateau_epochs']}, Concerns: {', '.join(trend_quality['concerns'])}",
+                            severity=self.analyzer.assess_trend_severity(trend_quality),
+                            confidence=trend_quality["score"],
+                        )
+                    )
+
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.warning("Training curve analysis failed: %s", str(e))
             findings.append(self._analysis_failure_finding("training_curves", e))
-        
+
         return findings
-    
-    def _detect_overfitting_patterns(self, artifacts: TrainingArtifacts) -> List[Finding]:
+
+    def _detect_overfitting_patterns(
+        self, artifacts: TrainingArtifacts
+    ) -> List[Finding]:
         """Detect overfitting through multiple analytical approaches"""
         findings = []
         metrics_df = artifacts.metrics_values
-        
+
         if metrics_df is None or metrics_df.empty:
             return findings
-        
+
         try:
             # 1. Performance Gap Analysis
             findings.extend(self._analyze_performance_gap(metrics_df))
-            
+
             # 2. Trend Divergence Detection
             findings.extend(self._analyze_trend_divergence(metrics_df))
-            
+
             # 3. Plateau Detection
             findings.extend(self._detect_validation_plateaus(metrics_df))
-            
+
             # 4. Early Stopping Analysis
             findings.extend(self._analyze_early_stopping_signals(metrics_df))
-        
+
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.warning("Overfitting detection failed: %s", str(e))
             findings.append(self._analysis_failure_finding("overfitting_detection", e))
-        
+
         return findings
-    
+
     def _analyze_performance_gap(self, metrics_df: pd.DataFrame) -> List[Finding]:
         """Analyze train-validation performance gaps"""
         findings = []
-        
+
         # Extract train/validation metric pairs
         metric_pairs = self.analyzer.identify_metric_pairs(metrics_df)
-        
+
         for train_col, val_col in metric_pairs:
             if train_col in metrics_df.columns and val_col in metrics_df.columns:
                 # Calculate performance gap over time
                 gap_analysis = self.analyzer.calculate_performance_gap(
-                    metrics_df[train_col], 
-                    metrics_df[val_col]
+                    metrics_df[train_col], metrics_df[val_col]
                 )
-                
+
                 # Detect concerning patterns
-                if gap_analysis["max_relative_gap"] > self.config.overfitting_thresholds["train_val_divergence"]:
-                    findings.append(Finding(
-                        description=f"Significant train-validation gap detected in {train_col}/{val_col}",
-                        evidence=f"Max relative gap: {gap_analysis['max_relative_gap']:.3f}, Divergence epoch: {gap_analysis.get('divergence_start_epoch', 'N/A')}, Trend correlation: {gap_analysis.get('trend_correlation', 'N/A'):.3f}",
-                        severity=self.analyzer.assess_overfitting_severity(gap_analysis),
-                        confidence=min(0.9, gap_analysis["max_relative_gap"] * 5)
-                    ))
-        
+                if (
+                    gap_analysis["max_relative_gap"]
+                    > self.config.overfitting_thresholds["train_val_divergence"]
+                ):
+                    findings.append(
+                        Finding(
+                            description=f"Significant train-validation gap detected in {train_col}/{val_col}",
+                            evidence=f"Max relative gap: {gap_analysis['max_relative_gap']:.3f}, Divergence epoch: {gap_analysis.get('divergence_start_epoch', 'N/A')}, Trend correlation: {gap_analysis.get('trend_correlation', 'N/A'):.3f}",
+                            severity=self.analyzer.assess_overfitting_severity(
+                                gap_analysis
+                            ),
+                            confidence=min(0.9, gap_analysis["max_relative_gap"] * 5),
+                        )
+                    )
+
         return findings
 
     def _analyze_trend_divergence(self, metrics_df: pd.DataFrame) -> List[Finding]:
         """Detect trend divergence between train and validation metrics"""
         findings = []
         metric_pairs = self.analyzer.identify_metric_pairs(metrics_df)
-        
+
         for train_col, val_col in metric_pairs:
             if train_col in metrics_df.columns and val_col in metrics_df.columns:
                 # Use moving averages to smooth curves
                 window = min(5, len(metrics_df) // 4)
-                train_smooth = metrics_df[train_col].rolling(window=window, center=True).mean()
-                val_smooth = metrics_df[val_col].rolling(window=window, center=True).mean()
-                
+                train_smooth = (
+                    metrics_df[train_col].rolling(window=window, center=True).mean()
+                )
+                val_smooth = (
+                    metrics_df[val_col].rolling(window=window, center=True).mean()
+                )
+
                 # Calculate correlation between trends
                 correlation = train_smooth.corr(val_smooth)
-                
+
                 # Detect divergence points
                 if correlation < 0.5:  # Low correlation indicates divergence
-                    findings.append(Finding(
-                        description=f"Training-validation trend divergence in {train_col}/{val_col}",
-                        evidence=f"Trend correlation: {correlation:.3f} (threshold: 0.5)",
-                        severity=Severity.MEDIUM if correlation > 0.2 else Severity.HIGH,
-                        confidence=1.0 - correlation if correlation >= 0 else 0.9
-                    ))
-        
+                    findings.append(
+                        Finding(
+                            description=f"Training-validation trend divergence in {train_col}/{val_col}",
+                            evidence=f"Trend correlation: {correlation:.3f} (threshold: 0.5)",
+                            severity=Severity.MEDIUM
+                            if correlation > 0.2
+                            else Severity.HIGH,
+                            confidence=1.0 - correlation if correlation >= 0 else 0.9,
+                        )
+                    )
+
         return findings
-    
+
     def _detect_validation_plateaus(self, metrics_df: pd.DataFrame) -> List[Finding]:
         """Detect validation metric plateaus"""
         findings = []
-        val_columns = [col for col in metrics_df.columns if 'val' in col.lower()]
-        
+        val_columns = [col for col in metrics_df.columns if "val" in col.lower()]
+
         for val_col in val_columns:
             if val_col in metrics_df.columns:
-                plateau_info = self.analyzer.detect_performance_plateaus(metrics_df[val_col])
+                plateau_info = self.analyzer.detect_performance_plateaus(
+                    metrics_df[val_col]
+                )
                 plateau_epochs = plateau_info.get("total_plateau_epochs", 0)
-                threshold = self.config.overfitting_thresholds["val_loss_plateau_epochs"]
-                
+                threshold = self.config.overfitting_thresholds[
+                    "val_loss_plateau_epochs"
+                ]
+
                 if plateau_epochs >= threshold:
-                    findings.append(Finding(
-                        description=f"Validation plateau detected in {val_col}",
-                        evidence=f"Plateau duration: {plateau_epochs} epochs (threshold: {threshold})",
-                        severity=Severity.MEDIUM if plateau_epochs < threshold * 2 else Severity.HIGH,
-                        confidence=min(0.9, plateau_epochs / (threshold * 2))
-                    ))
-        
+                    findings.append(
+                        Finding(
+                            description=f"Validation plateau detected in {val_col}",
+                            evidence=f"Plateau duration: {plateau_epochs} epochs (threshold: {threshold})",
+                            severity=Severity.MEDIUM
+                            if plateau_epochs < threshold * 2
+                            else Severity.HIGH,
+                            confidence=min(0.9, plateau_epochs / (threshold * 2)),
+                        )
+                    )
+
         return findings
-    
-    def _analyze_early_stopping_signals(self, metrics_df: pd.DataFrame) -> List[Finding]:
+
+    def _analyze_early_stopping_signals(
+        self, metrics_df: pd.DataFrame
+    ) -> List[Finding]:
         """Analyze early stopping signals"""
         findings = []
-        val_loss_cols = [col for col in metrics_df.columns if 'val' in col.lower() and 'loss' in col.lower()]
-        
+        val_loss_cols = [
+            col
+            for col in metrics_df.columns
+            if "val" in col.lower() and "loss" in col.lower()
+        ]
+
         for val_loss_col in val_loss_cols:
             if val_loss_col in metrics_df.columns:
                 # Find best epoch and check if training continued significantly after
                 best_epoch = metrics_df[val_loss_col].idxmin()
                 total_epochs = len(metrics_df) - 1
                 epochs_after_best = total_epochs - best_epoch
-                
+
                 patience = self.config.overfitting_thresholds["early_stopping_patience"]
-                
+
                 if epochs_after_best > patience:
-                    findings.append(Finding(
-                        description=f"Training continued {epochs_after_best} epochs after best validation loss",
-                        evidence=f"Best epoch: {best_epoch}, Total epochs: {total_epochs}, Recommended patience: {patience}",
-                        severity=Severity.MEDIUM,
-                        confidence=min(0.9, epochs_after_best / (patience * 2))
-                    ))
-        
+                    findings.append(
+                        Finding(
+                            description=f"Training continued {epochs_after_best} epochs after best validation loss",
+                            evidence=f"Best epoch: {best_epoch}, Total epochs: {total_epochs}, Recommended patience: {patience}",
+                            severity=Severity.MEDIUM,
+                            confidence=min(0.9, epochs_after_best / (patience * 2)),
+                        )
+                    )
+
         return findings
-    
-    def _analyze_training_stability(self, artifacts: TrainingArtifacts) -> List[Finding]:
+
+    def _analyze_training_stability(
+        self, artifacts: TrainingArtifacts
+    ) -> List[Finding]:
         """Analyze training stability through multiple metrics"""
         findings = []
         metrics_df = artifacts.metrics_values
-        
+
         if metrics_df is None or metrics_df.empty:
             return findings
-        
+
         try:
             findings.extend(self._analyze_loss_variance(metrics_df))
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.warning("Training stability analysis failed: %s", str(e))
             findings.append(self._analysis_failure_finding("training_stability", e))
-        
+
         return findings
-    
+
     def _analyze_loss_variance(self, metrics_df: pd.DataFrame) -> List[Finding]:
         """Analyze loss variance for stability assessment"""
         findings = []
-        loss_columns = [col for col in metrics_df.columns if 'loss' in col.lower()]
-        
+        loss_columns = [col for col in metrics_df.columns if "loss" in col.lower()]
+
         for loss_col in loss_columns:
             if loss_col in metrics_df.columns and len(metrics_df[loss_col]) > 10:
-                window_size = min(self.config.stability_thresholds["metric_volatility_window"], len(metrics_df) // 2)
-                rolling_cv = self.analyzer.calculate_rolling_cv(metrics_df[loss_col], window_size)
+                window_size = min(
+                    self.config.stability_thresholds["metric_volatility_window"],
+                    len(metrics_df) // 2,
+                )
+                rolling_cv = self.analyzer.calculate_rolling_cv(
+                    metrics_df[loss_col], window_size
+                )
                 threshold = self.config.stability_thresholds["loss_variance_threshold"]
                 high_volatility_periods = rolling_cv > threshold
-                
+
                 if high_volatility_periods.any():
                     volatility_score = rolling_cv.max()
                     volatile_epochs = high_volatility_periods.sum()
-                    
-                    findings.append(Finding(
-                        description=f"High training volatility detected in {loss_col}",
-                        evidence=f"Max coefficient of variation: {volatility_score:.4f}, Volatile epochs: {volatile_epochs}",
-                        severity=self._assess_stability_severity(volatility_score),
-                        confidence=min(0.9, volatility_score / threshold)
-                    ))
-        
+
+                    findings.append(
+                        Finding(
+                            description=f"High training volatility detected in {loss_col}",
+                            evidence=f"Max coefficient of variation: {volatility_score:.4f}, Volatile epochs: {volatile_epochs}",
+                            severity=self._assess_stability_severity(volatility_score),
+                            confidence=min(0.9, volatility_score / threshold),
+                        )
+                    )
+
         return findings
-    
+
     def _detect_gradient_anomalies(self, artifacts: TrainingArtifacts) -> List[Finding]:
         """Detect gradient anomalies from training metrics"""
         findings = []
         metrics_df = artifacts.metrics_values
-        
+
         if metrics_df is None or metrics_df.empty:
             return findings
-        
+
         try:
             gradient_metrics = self.analyzer.extract_gradient_metrics(metrics_df)
             if gradient_metrics:
@@ -516,75 +578,87 @@ class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.warning("Gradient anomaly detection failed: %s", str(e))
             findings.append(self._analysis_failure_finding("gradient_anomalies", e))
-        
+
         return findings
-    
-    def _detect_exploding_gradients(self, gradient_metrics: Dict[str, pd.Series]) -> List[Finding]:
+
+    def _detect_exploding_gradients(
+        self, gradient_metrics: Dict[str, pd.Series]
+    ) -> List[Finding]:
         """Detect exploding gradient patterns"""
         findings = []
-        
+
         for metric_name, gradient_norms in gradient_metrics.items():
             threshold = self.config.gradient_thresholds["exploding_gradient_threshold"]
             exploding_episodes = gradient_norms > threshold
-            
+
             if exploding_episodes.any():
                 max_norm = gradient_norms.max()
                 explosion_count = exploding_episodes.sum()
-                
-                findings.append(Finding(
-                    description=f"Exploding gradients detected in {metric_name}",
-                    evidence=f"Max gradient norm: {max_norm:.2e}, Explosion episodes: {explosion_count}",
-                    severity=Severity.HIGH,
-                    confidence=min(0.95, max_norm / threshold)
-                ))
-        
+
+                findings.append(
+                    Finding(
+                        description=f"Exploding gradients detected in {metric_name}",
+                        evidence=f"Max gradient norm: {max_norm:.2e}, Explosion episodes: {explosion_count}",
+                        severity=Severity.HIGH,
+                        confidence=min(0.95, max_norm / threshold),
+                    )
+                )
+
         return findings
-    
-    def _infer_gradient_issues_from_loss(self, metrics_df: pd.DataFrame) -> List[Finding]:
+
+    def _infer_gradient_issues_from_loss(
+        self, metrics_df: pd.DataFrame
+    ) -> List[Finding]:
         """Infer gradient issues from loss behavior"""
         findings = []
-        loss_columns = [col for col in metrics_df.columns if 'loss' in col.lower()]
-        
+        loss_columns = [col for col in metrics_df.columns if "loss" in col.lower()]
+
         for loss_col in loss_columns:
             if loss_col in metrics_df.columns and len(metrics_df[loss_col]) > 5:
                 loss_series = metrics_df[loss_col]
                 loss_changes = loss_series.diff()
                 sudden_spikes = loss_changes > (loss_series.std() * 3)
-                
+
                 if sudden_spikes.any():
                     spike_count = sudden_spikes.sum()
                     max_spike = loss_changes.max()
-                    
-                    findings.append(Finding(
-                        description=f"Potential exploding gradients inferred from {loss_col} spikes",
-                        evidence=f"Loss spikes detected: {spike_count}, Max spike: {max_spike:.4f}",
-                        severity=Severity.MEDIUM,
-                        confidence=0.6
-                    ))
-        
+
+                    findings.append(
+                        Finding(
+                            description=f"Potential exploding gradients inferred from {loss_col} spikes",
+                            evidence=f"Loss spikes detected: {spike_count}, Max spike: {max_spike:.4f}",
+                            severity=Severity.MEDIUM,
+                            confidence=0.6,
+                        )
+                    )
+
         return findings
-    
-    def _analyze_parameter_impact(self, metrics_df: pd.DataFrame, params: Dict[str, Any]) -> List[Finding]:
+
+    def _analyze_parameter_impact(
+        self, metrics_df: pd.DataFrame, params: Dict[str, Any]
+    ) -> List[Finding]:
         """Analyze correlation between parameters and training dynamics"""
         findings = []
-        
+
         try:
             learning_rate = params.get("learning_rate", params.get("lr"))
             if learning_rate and self.analyzer.has_convergence_issues(metrics_df):
                 if learning_rate > 0.1:
-                    findings.append(Finding(
-                        description=f"Learning rate may be too high ({learning_rate})",
-                        evidence="High learning rate combined with training instability",
-                        severity=Severity.MEDIUM,
-                        confidence=0.7
-                    ))
+                    findings.append(
+                        Finding(
+                            description=f"Learning rate may be too high ({learning_rate})",
+                            evidence="High learning rate combined with training instability",
+                            severity=Severity.MEDIUM,
+                            confidence=0.7,
+                        )
+                    )
         except (ValueError, KeyError, AttributeError) as e:
             self.logger.warning("Parameter impact analysis failed: %s", str(e))
-        
+
         return findings
-    
+
     # ===== UTILITY METHODS =====
-    
+
     def _assess_stability_severity(self, volatility_score: float) -> Severity:
         threshold = self.config.stability_thresholds["loss_variance_threshold"]
         if volatility_score > threshold * 4:
@@ -593,12 +667,13 @@ class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
             return Severity.MEDIUM
         else:
             return Severity.LOW
-    
-    def _analysis_failure_finding(self, analysis_type: str, error: Exception) -> Finding:
+
+    def _analysis_failure_finding(
+        self, analysis_type: str, error: Exception
+    ) -> Finding:
         return Finding(
             description=f"Could not complete {analysis_type} analysis",
             evidence=f"Error: {type(error).__name__}: {str(error)}",
             severity=Severity.LOW,
-            confidence=0.1
+            confidence=0.1,
         )
-        

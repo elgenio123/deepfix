@@ -24,7 +24,6 @@ class DeepSightCallback(Callback):
         self.batch_size = batch_size
         self.metric_names = metric_names
 
-
     def setup(self, trainer, pl_module, stage):
         LOGGER.info(f"Setup callback for {stage} stage")
 
@@ -55,7 +54,7 @@ class DeepSightCallback(Callback):
         else:
             LOGGER.warning("No mlflow logger found")
 
-    #TODO: make it work with any logger?
+    # TODO: make it work with any logger?
     def run(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         # get best model path and score from trainer
         self.best_model_path = trainer.checkpoint_callback.best_model_path
