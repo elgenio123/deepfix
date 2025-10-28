@@ -306,8 +306,7 @@ def load_segmentation_dataset(
                 pin_memory=pin_memory,
                 object_type=object_type,
             )
-    except ValueError:
-        raise
+
     except Exception as e:
         LOGGER.error("Failed to load segmentation dataset: %s", str(e))
         raise

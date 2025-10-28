@@ -2,7 +2,7 @@ from deepchecks.vision import VisionData, BatchOutputFormat
 from torch.utils.data import DataLoader, Dataset
 import torch
 from supervision.dataset.core import DetectionDataset
-from typing import Dict, Optional, Callable
+from typing import Dict, Optional, Callable, Any, Iterable
 from functools import partial
 
 
@@ -64,6 +64,19 @@ def detection_collate_without_model(data) -> BatchOutputFormat:
 
     return BatchOutputFormat(images=images, labels=labels)
 
+
+def segmentation_collate_without_model(data) -> BatchOutputFormat:
+    images = []
+    labels = []
+    for item in data:
+        image, mask = item
+        if isinstance(image, torch.Tensor):
+            image = image.permute(1, 2, 0).cpu().numpy() # HWC to CHW
+        if isinstance(mask, torch.Tensor):
+            mask = mask.cpu().numpy()        
+        images.append(image)
+        labels.append(mask)
+    return BatchOutputFormat(images=images, labels=labels)
 
 class ClassificationVisionDataLoader:
     def __init__(
@@ -153,3 +166,44 @@ class DetectionVisionDataLoader:
         )
         vision_data.head()
         return vision_data
+
+
+class SegmentationVisionDataLoader:
+    def __init__(
+        self,
+    ):
+        pass
+
+    @classmethod
+    def load_from_dataset(
+        cls,
+        dataset: Iterable,
+        label_map: Dict[int, str],
+        batch_size: int = 8,
+        shuffle: bool = False,
+    ) -> VisionData:
+        
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=segmentation_collate_without_model,
+        )
+
+        return cls.load_from_dataloader(dataloader, label_map=label_map)
+
+    @classmethod
+    def load_from_dataloader(
+        cls, dataloader: DataLoader, label_map: Dict[int, str]
+    ) -> VisionData:
+        assert isinstance(dataloader, DataLoader), (
+            "dataloader must be an instance of torch.utils.data.DataLoader. Received: {}".format(
+                type(dataloader)
+            )
+        )
+        vision_data = VisionData(
+            dataloader, task_type="semantic_segmentation", label_map=label_map
+        )
+        vision_data.head()
+        return vision_data
+

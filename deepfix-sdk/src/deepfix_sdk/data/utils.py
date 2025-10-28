@@ -12,6 +12,7 @@ from .datasets import (
     TabularDataset,
     ObjectDetectionDataset,
     ImageClassificationDataset,
+    SemanticSegmentationDataset,
     NLPDataset,
 )
 
@@ -78,6 +79,8 @@ class VisionDataStatistics(BaseDataStatistics):
             self.task_type = "image_classification"
         elif isinstance(train_data, ObjectDetectionDataset):
             self.task_type = "object_detection"
+        elif isinstance(train_data, SemanticSegmentationDataset):
+            self.task_type = "semantic_segmentation"
         else:
             raise ValueError(f"Unsupported dataset type: {type(train_data)}")
 

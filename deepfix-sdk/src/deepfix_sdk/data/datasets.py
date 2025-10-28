@@ -1,6 +1,6 @@
 from regex.regex import D
 from torch.utils.data import Dataset
-from typing import Optional, Any, Callable, Protocol, Union, List, Tuple, Dict
+from typing import Optional, Any, Callable, Protocol, Union, List, Tuple, Dict, Iterable
 import pandas as pd
 import numpy as np
 from supervision.dataset.core import DetectionDataset
@@ -9,7 +9,7 @@ from deepchecks.tabular import Dataset as DeepchecksTabularDataset
 from deepchecks.vision import VisionData
 from deepchecks.nlp import TextData
 from ..utils.logging import get_logger
-from ..data.loader import ClassificationVisionDataLoader, DetectionVisionDataLoader
+from ..data.loader import ClassificationVisionDataLoader, DetectionVisionDataLoader, SegmentationVisionDataLoader
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ class BaseDataset(Protocol):
 
 
 class VisionDataset(BaseDataset):
-    def __init__(self, dataset_name: str, dataset: Union[Dataset, DetectionDataset]):
+    def __init__(self, dataset_name: str, dataset: Union[Dataset, DetectionDataset, Iterable]):
         self.dataset = dataset
         self.dataset_name = dataset_name
 
@@ -118,6 +118,35 @@ class ObjectDetectionDataset(VisionDataset):
             batch_size=batch_size,
             shuffle=shuffle,
         )
+
+
+class SemanticSegmentationDataset(VisionDataset):
+
+    def __init__(self, dataset_name: str, dataset: Union[Iterable, VisionData], label_map: Optional[Dict[int, str]] = None):
+        super().__init__(dataset_name=dataset_name, dataset=dataset)
+        self.label_map = label_map
+    
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx) -> Dict[str, Union[np.ndarray, np.ndarray]]:
+        image, annotation = self.dataset[idx]
+        return dict(image=image, label=annotation)
+
+    def __iter__(self):
+        return iter(self.dataset)
+
+    def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8, shuffle: bool = False) -> VisionData:
+        if isinstance(self.dataset, VisionData):
+            return self.dataset
+        else:
+            assert self.label_map is not None, "label_map is required"
+            return SegmentationVisionDataLoader.load_from_dataset(
+                self.dataset,
+                label_map=self.label_map,
+                batch_size=batch_size,
+                shuffle=shuffle,
+            )
 
 
 class TabularDataset(BaseDataset):
