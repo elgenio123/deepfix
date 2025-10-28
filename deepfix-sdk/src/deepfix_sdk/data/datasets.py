@@ -1,3 +1,4 @@
+from regex.regex import D
 from torch.utils.data import Dataset
 from typing import Optional, Any, Callable, Protocol, Union, List, Tuple, Dict
 import pandas as pd
@@ -26,7 +27,7 @@ class VisionDataset(BaseDataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return self.dataset[idx]
+        raise NotImplementedError("should be implemented by subclass")
 
     def __iter__(self):
         return iter(self.dataset)
@@ -44,6 +45,9 @@ class ImageClassificationDataset(VisionDataset):
             batch_size=batch_size,
             model=model,
         )
+    def __getitem__(self, idx):
+        image, label = self.dataset[idx]
+        return dict(image=image,label=label)
 
 
 class ObjectDetectionDataset(VisionDataset):
@@ -71,12 +75,15 @@ class ObjectDetectionDataset(VisionDataset):
         labels = list(range(len(self.dataset.classes)))
         return dict(zip(labels, self.dataset.classes))
     
+    def get_annotations(self,)->Dict[str, Detections]:
+        return self.dataset.annotations
+    
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self, idx)->Tuple[str, np.ndarray, Detections]:
+    def __getitem__(self, idx)->Dict[str, Union[str,np.ndarray, Detections]]:
         image_path, image, annotation =  self.dataset[idx]
-        return image_path, image, annotation
+        return dict(image_path=image_path, image=image, label=annotation)
 
     def __iter__(self):
         return iter(self.dataset)

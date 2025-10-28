@@ -2,13 +2,13 @@ from deepchecks.vision import VisionData, BatchOutputFormat
 from torch.utils.data import DataLoader, Dataset
 import torch
 from supervision.dataset.core import DetectionDataset
-from typing import Dict, Optional, Callable, Any
+from typing import Dict, Optional, Callable
 from functools import partial
 
 
 def classification_collate(data) -> BatchOutputFormat:
     images = torch.stack([x[0] for x in data])
-    images = images.permute(0, 2, 3, 1).cpu().numpy()  # (N, C, H, W) into (N, H, W, C)
+    images = images.cpu().numpy()
     labels = [x[1] for x in data]
     return BatchOutputFormat(images=images, labels=labels)
 
@@ -21,7 +21,7 @@ def classification_collate_with_model(
         predictions = model(images)
         if isinstance(predictions, torch.Tensor):
             predictions = predictions.cpu().numpy()
-    images = images.permute(0, 2, 3, 1).cpu().numpy()  # (N, C, H, W) into (N, H, W, C)
+    images = images.cpu().numpy()
     labels = [x[1] for x in data]
     return BatchOutputFormat(images=images, labels=labels, predictions=predictions)
 

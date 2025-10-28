@@ -141,7 +141,7 @@ class FoodWasteDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.dataset[idx]
-        image = self.transform(sample["image"])
+        image = self.transform(sample["image"]).permute(1, 2, 0)
         ing_ids = sample["Artikelnummer"]
         weights = sample["Menge_Rückläufer"]
         i = np.argmax(weights)

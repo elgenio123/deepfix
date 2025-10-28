@@ -137,7 +137,7 @@ class FoodDataset(Dataset):
     def __getitem__(self, idx):
         image = self.dataset[idx]["image"]
         label = self.dataset[idx]["label"]
-        return self.transform(image), label
+        return self.transform(image).permute(1, 2, 0), label
 
     @property
     def num_classes(self):
