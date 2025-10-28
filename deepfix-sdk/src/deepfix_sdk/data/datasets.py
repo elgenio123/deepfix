@@ -89,7 +89,7 @@ class ObjectDetectionDataset(VisionDataset):
         return iter(self.dataset)
     
     def to_loader(
-        self, batch_size: int = 8, shuffle: bool = False
+        self, batch_size: int = 8, shuffle: bool = False, **kwargs
     ) -> VisionData:
         return DetectionVisionDataLoader.load_from_dataset(
             self.dataset,

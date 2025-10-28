@@ -5,7 +5,7 @@ This module provides convenient loaders for pre-built NLP datasets from the Deep
 supporting text classification and token classification (NER) tasks with TextData return types.
 """
 
-from typing import Tuple
+from typing import Tuple, Union
 import logging
 
 from deepchecks.nlp import TextData
@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 # Classification Datasets
 def load_tweet_emotion_classification(
     include_embeddings: bool = False, as_train_test=False
-) -> TextData:
+) -> Union[TextData, Tuple[TextData, TextData]]:
     """
     Load Tweet Emotion classification dataset from DeepChecks.
 

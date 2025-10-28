@@ -1,0 +1,12 @@
+
+services:
+
+  deepfix-server:
+    build: .
+    image: deepfix-server:latest
+    ports:
+      - "8844:8844"
+    env_file:
+      - .env 
+
+

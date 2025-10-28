@@ -29,10 +29,14 @@ def get_data_statistics(
 
 
 class BaseDataStatistics(Protocol):
-    def get_statistics(
-        self,
-    ) -> Dict[str, Union[int, List[float]]]:
-        stats = dict(self.get_train_statistics(), **self.get_test_statistics())
+    def __init__(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None):
+        self.train_data = train_data
+        self.test_data = test_data
+
+    def get_statistics(self) -> Dict[str, Any]:
+        stats = self.get_train_statistics()
+        if self.test_data is not None:
+            stats.update(**self.get_test_statistics())
         return stats
     
     def get_train_statistics(self) -> Dict[str, Any]:
@@ -61,12 +65,6 @@ class VisionDataStatistics(BaseDataStatistics):
         self.train_data = train_data
         self.test_data = test_data        
 
-    def get_statistics(
-        self,
-    ) -> Dict[str, Union[int, List[float]]]:
-        stats = dict(self.get_train_statistics(), **self.get_test_statistics())
-        return stats
-
     def get_train_statistics(
         self,
     ) -> Dict[str, Union[int, List[float]]]:
@@ -81,6 +79,8 @@ class VisionDataStatistics(BaseDataStatistics):
     def get_test_statistics(
         self,
     ) -> Dict[str, Union[int, List[float]]]:
+        if self.test_data is None:
+            return {}
         num_samples = len(self.test_data)
         test_stats = self._compute_statistics(self.test_data)
         stats = dict(
@@ -215,7 +215,7 @@ class VisionDataStatistics(BaseDataStatistics):
         for annotation in tqdm(annotations_dict.values(), desc="Computing base box statistics"):
            
             # Check if there are any detections
-            num_boxes_in_image = annotation.shape[0]
+            num_boxes_in_image = len(annotation.xyxy)
             
             if num_boxes_in_image == 0:
                 num_negative_samples += 1
@@ -260,6 +260,8 @@ class VisionDataStatistics(BaseDataStatistics):
 
         return {
             "num_negative_samples": num_negative_samples,
+            "num_positive_samples": num_samples - num_negative_samples,
+            "negative_positive_ratio": num_negative_samples / (num_samples - num_negative_samples),
             "num_boxes": num_boxes_total,
             "boxes_per_image": boxes_per_image_stats,
             "box_stats": {
@@ -288,12 +290,6 @@ class TabularDataStatistics(BaseDataStatistics):
             self.test_data = test_data
         else:
             self.test_data = None
-
-    def get_statistics(self) -> Dict[str, Any]:
-        stats = self.get_train_statistics()
-        if self.test_data is not None:
-            stats.update(**self.get_test_statistics())
-        return stats
 
     def get_train_statistics(self) -> Dict[str, Any]:
         stats = self._compute_statistics(self.train_data.get_data())
