@@ -27,8 +27,6 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[project.scripts]
-deepfix = "deepfix.cli.main:main"
 
 [tool.uv.sources]
 deepfix-core = { workspace = true }
