@@ -26,7 +26,7 @@ RUN uv venv /opt/venv
 # Install dependencies into the venv first (use lock/info from pyproject)
 COPY deepfix-server ./deepfix-server
 COPY deepfix-core ./deepfix-core
-#COPY deepfix-sdk ./deepfix-sdk
+
 COPY pyproject.toml ./
 
 RUN . /opt/venv/bin/activate \
@@ -44,7 +44,7 @@ FROM python:3.11-slim-bookworm AS runtime
 
 LABEL maintainer="fadel.seydou@delcaux.com"
 LABEL version="0.0.1"
-LABEL description="Food waste quantifier"
+LABEL description="deepfix-server"
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
