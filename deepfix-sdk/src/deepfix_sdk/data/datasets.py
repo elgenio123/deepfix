@@ -133,6 +133,13 @@ class SemanticSegmentationDataset(VisionDataset):
 
     def __getitem__(self, idx) -> Dict[str, Union[np.ndarray, np.ndarray]]:
         image, annotation = self.dataset[idx]
+        c = image.shape[0]        
+        if isinstance(image, torch.Tensor):
+            image = image.cpu().numpy()
+        if isinstance(annotation, torch.Tensor):
+            annotation = annotation.cpu().numpy()
+        if c in [1, 3]:
+            image = image.transpose(1, 2, 0) # (c,h,w) -> (h,w,c)
         return dict(image=image, label=annotation)
 
     def __iter__(self):
@@ -146,7 +153,7 @@ class SemanticSegmentationDataset(VisionDataset):
     
     def _build_label_map(self) -> Dict[int, str]:
         label_map = set()
-        for idx in range(len(self.dataset)):
+        for idx in range(self.__len__()):
             label = self.dataset[idx]['label']
             if isinstance(label, torch.Tensor):
                 label = label.view(-1)

@@ -166,7 +166,8 @@ class DatasetIngestionPipeline(Pipeline):
         dataset_experiment_name: Optional[str] = None,
         overwrite: bool = False,
     ):
-        sqlite_path = sqlite_path or DefaultPaths.ARTIFACTS_SQLITE_PATH
+        self.sqlite_path = sqlite_path or DefaultPaths.ARTIFACTS_SQLITE_PATH
+        self.dataset_name = dataset_name
 
         if isinstance(data_type, str):
             data_type = DataType(data_type)
@@ -187,34 +188,33 @@ class DatasetIngestionPipeline(Pipeline):
             create_run_if_not_exists=True,
             experiment_name=dataset_experiment_name
             or DefaultPaths.DATASETS_EXPERIMENT_NAME.value,
-            run_name=dataset_name,
+            run_name=self.dataset_name,
         )
-
-        if self.check_if_exists(dataset_name, sqlite_path):
+        self.do_checks = train_test_validation or data_integrity
+        if self.check_if_exists(self.dataset_name, self.sqlite_path):
             if overwrite:
-                do_checks = train_test_validation or data_integrity
                 success = self.delete_artifact(
-                    dataset_name, sqlite_path, checks=do_checks, delete_mlflow_run=True
+                    self.dataset_name, self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
                 )
                 if not success:
                     raise ValueError(
-                        f"Failed to delete existing dataset {dataset_name}"
+                        f"Failed to delete existing dataset {self.dataset_name}"
                     )
             else:
                 raise ValueError(
-                    f"Dataset {dataset_name} already exists in the database. Use overwrite=True to overwrite it."
+                    f"Dataset {self.dataset_name} already exists in the database. Use overwrite=True to overwrite it."
                 )
 
-        cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=sqlite_path)
+        cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=self.sqlite_path)
         steps = [
-            LogDatasetMetadata(dataset_name=dataset_name, data_type=data_type, **cfg),
+            LogDatasetMetadata(dataset_name=self.dataset_name, data_type=data_type, **cfg),
         ]
         if train_test_validation or data_integrity:
             steps.extend(
                 [
                     DataIngestor(batch_size=batch_size, model=None),
                     Checks(
-                        deepchecks_config=deepchecks_config, dataset_name=dataset_name
+                        deepchecks_config=deepchecks_config, dataset_name=self.dataset_name
                     ),
                     LogChecksArtifacts(**cfg),
                 ]
@@ -265,8 +265,15 @@ class DatasetIngestionPipeline(Pipeline):
         self.context = {}
         self.context["test_data"] = test_data
         self.context["train_data"] = train_data
-        for step in self.steps:
-            step.run(context=self.context)
+        try:
+            for step in self.steps:
+                step.run(context=self.context)
+        except Exception as e:
+            success = self.delete_artifact(
+                    self.dataset_name, self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
+                )
+            raise e
+
         return self.context
 
 

@@ -86,29 +86,36 @@ class VisionDataStatistics(BaseDataStatistics):
 
     def get_statistics(self) -> Dict[str, Any]:
         stats = self.get_train_statistics()
+
         if self.test_data is not None:
             stats.update(**self.get_test_statistics())
         stats["task_type"] = self.task_type
+
+        stats.update({"t-statistic",self.compute_t_statistics(stats)})
+
         return stats
 
-    def compute_p_values(
-        self, train_stats: Dict[str, Any], test_stats: Dict[str, Any]
+    def compute_t_statistics(
+        self, stats: Dict[str, Any]
     ) -> Dict[str, Any]:
-        # p_values = {}
 
-        train_color_means = train_stats["train_stats"]["mean"]
-        train_color_stds = train_stats["train_stats"]["std"]
-        train_n = train_stats["num_train_samples"]
+        if "test_stats" not in stats:
+            return {}
 
-        test_color_means = test_stats["test_stats"]["mean"]
-        test_color_stds = test_stats["test_stats"]["std"]
-        test_n = test_stats["num_test_samples"]
+        train_color_means = stats["train_stats"]["mean"]
+        train_color_stds = stats["train_stats"]["std"]
+        train_n = stats["num_train_samples"]
+
+        test_color_means = stats["test_stats"]["mean"]
+        test_color_stds = stats["test_stats"]["std"]
+        test_n = stats["num_test_samples"]
 
         t = np.abs(np.array(train_color_means) - np.array(test_color_means)) / np.sqrt(
-            train_color_stds**2 / train_n + test_color_stds**2 / test_n
+            np.array(train_color_stds)**2 / train_n + np.array(test_color_stds)**2 / test_n
         )
+        t = map(float,t)
 
-        return t
+        return dict(zip([f"color_channel_{i}" for i in range(len(train_color_means))], t))
 
     def get_train_statistics(
         self,
@@ -158,6 +165,7 @@ class VisionDataStatistics(BaseDataStatistics):
         sum_squared_pixels = torch.zeros(C, dtype=torch.float64)
         count = 0
         class_counts = {}  # Will store count of each class
+        pixel_class_ratio = dict()
 
         # Compute mean
         for idx in tqdm(range(len(dataset)), desc="Computing dataset base statistics"):
@@ -179,6 +187,12 @@ class VisionDataStatistics(BaseDataStatistics):
                 class_ids = label.class_id
                 for class_id in map(int, class_ids):
                     class_counts[class_id] = class_counts.get(class_id, 0) + 1
+            elif isinstance(dataset, SemanticSegmentationDataset):
+                class_ids = set(label.flatten())
+                for class_id in map(int, class_ids):
+                    class_counts[class_id] = class_counts.get(class_id, 0) + 1
+                total = max(sum(class_counts.values()),1)
+                pixel_class_ratio = {k:round(v/total,3) for k,v in class_counts.items()}
             else:
                 raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
@@ -219,6 +233,7 @@ class VisionDataStatistics(BaseDataStatistics):
             "mean": mean.tolist(),
             "std": std.tolist(),
             "class_distribution": class_counts,
+            "pixel_class_ratio":pixel_class_ratio
         }
 
     def _compute_box_statistics(
