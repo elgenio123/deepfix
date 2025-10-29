@@ -1,8 +1,8 @@
-from regex.regex import D
 from torch.utils.data import Dataset
-from typing import Optional, Any, Callable, Protocol, Union, List, Tuple, Dict, Iterable
+from typing import Optional, Any, Callable, Protocol, Union, List, Dict
 import pandas as pd
 import numpy as np
+import torch
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from deepchecks.tabular import Dataset as DeepchecksTabularDataset
@@ -20,7 +20,7 @@ class BaseDataset(Protocol):
 
 
 class VisionDataset(BaseDataset):
-    def __init__(self, dataset_name: str, dataset: Union[Dataset, DetectionDataset, Iterable]):
+    def __init__(self, dataset_name: str, dataset: Union[Dataset, DetectionDataset]):
         self.dataset = dataset
         self.dataset_name = dataset_name
 
@@ -122,9 +122,11 @@ class ObjectDetectionDataset(VisionDataset):
 
 class SemanticSegmentationDataset(VisionDataset):
 
-    def __init__(self, dataset_name: str, dataset: Union[Iterable, VisionData], label_map: Optional[Dict[int, str]] = None):
+    def __init__(self, dataset_name: str, dataset: Dataset, label_map: Optional[Dict[int, str]] = None):
+        assert isinstance(dataset, Dataset), f"dataset must be an instance of Dataset. Received: {type(dataset)}"
         super().__init__(dataset_name=dataset_name, dataset=dataset)
         self.label_map = label_map
+        
     
     def __len__(self):
         return len(self.dataset)
@@ -136,14 +138,31 @@ class SemanticSegmentationDataset(VisionDataset):
     def __iter__(self):
         return iter(self.dataset)
 
+    def get_label_map(self) -> Dict[int, str]:
+        if self.label_map is None:
+            return {i: f"class_{i}" for i in range(len(self.dataset))}
+        self.label_map = self._build_label_map()
+        return self.label_map
+    
+    def _build_label_map(self) -> Dict[int, str]:
+        label_map = set()
+        for idx in range(len(self.dataset)):
+            label = self.dataset[idx]['label']
+            if isinstance(label, torch.Tensor):
+                label = label.view(-1)
+            elif isinstance(label, np.ndarray):
+                label = label.ravel()
+
+            label_map = label_map.union(set(label.flatten()))
+        return {i: f"class_{i}" for i in label_map}
+
     def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8, shuffle: bool = False) -> VisionData:
         if isinstance(self.dataset, VisionData):
             return self.dataset
         else:
-            assert self.label_map is not None, "label_map is required"
             return SegmentationVisionDataLoader.load_from_dataset(
                 self.dataset,
-                label_map=self.label_map,
+                label_map=self.get_label_map(),
                 batch_size=batch_size,
                 shuffle=shuffle,
             )

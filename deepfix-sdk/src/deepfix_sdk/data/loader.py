@@ -177,7 +177,7 @@ class SegmentationVisionDataLoader:
     @classmethod
     def load_from_dataset(
         cls,
-        dataset: Iterable,
+        dataset: Dataset,
         label_map: Dict[int, str],
         batch_size: int = 8,
         shuffle: bool = False,
