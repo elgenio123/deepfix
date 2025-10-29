@@ -7,7 +7,7 @@ from deepfix_core.models import APIRequest, APIResponse
 from .coordinators import ArtifactAnalysisCoordinator
 from .models import AgentContext
 from .config import LLMConfig
-from .logging import get_logger
+from .logging import get_logger, setup_dspy_logging
 
 LOGGER = get_logger(__name__)
 
@@ -17,6 +17,11 @@ class AnalyseArtifactsAPI(ls.LitAPI):
     """Analyse Artifacts API."""
 
     def setup(self, device):
+        try:
+            setup_dspy_logging(logger=LOGGER)
+        except Exception:
+            print(f"Error setting up DSPy logging: {traceback.format_exc()}")
+
         llm_config = LLMConfig.load_from_env()
         self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
 

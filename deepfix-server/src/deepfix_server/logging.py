@@ -10,7 +10,32 @@ import logging.handlers
 from typing import Optional, Dict, Any
 from pathlib import Path
 import sys
+import os
 
+
+def setup_dspy_logging(experiment_name: str = "Agents-Tracing",tracking_uri: Optional[str] = None, logger: Optional[logging.Logger] = None):
+    import mlflow
+
+    _tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI")
+    if _tracking_uri is None:
+        if logger is not None:
+            logger.warning("MLFLOW_TRACKING_URI is not set, please set it in the environment variables or provide it as an argument.")
+            logger.warning("Tracing will not be enabled.")
+        else:
+            print("MLFLOW_TRACKING_URI is not set, please set it in the environment variables or provide it as an argument.")
+            print("="*50)
+            print("Tracing will not be enabled.")
+            print("="*50)
+        return
+
+    mlflow.dspy.autolog()
+    mlflow.set_tracking_uri(_tracking_uri)
+    mlflow.set_experiment(experiment_name)
+    if logger is not None:
+        logger.info("DSPy logging setup complete.")
+    else:
+        print("DSPy logging setup complete.")
+    return
 
 def setup_logging(
     level: str = "INFO",
