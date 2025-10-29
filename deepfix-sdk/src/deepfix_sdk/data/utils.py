@@ -1,9 +1,10 @@
 import torch
 import numpy as np
-from typing import Optional, Union, List, Dict, Any, Protocol
+from typing import Optional, Union, List, Dict, Any, Protocol,Literal
 from tqdm import tqdm
 import pandas as pd
-from deepfix_core.models import DataType
+from deepfix_core.models import DataType, BaseDatasetStatistics, VisionStatistics, ObjectDetectionStatistics, TaskType, TabularStatistics, NLPStatistics
+from deepfix_core.models.artifacts import TextStatistics, LabelStatistics, PropertiesStatistics
 from deepchecks.nlp import TextData
 
 from .datasets import (
@@ -43,21 +44,39 @@ class BaseDataStatistics(Protocol):
     ):
         self.train_data = train_data
         self.test_data = test_data
+        self.task_type = self._get_task_type(train_data)
+        self.task_type = self._get_task_type(train_data)
+        if test_data is not None:
+            test_task_type = self._get_task_type(test_data)
+            assert self.task_type == test_task_type, (
+                f"Task type of train_data and test_data must be the same. Got {self.task_type} and {test_task_type}"
+            )
+    
+    def _get_task_type(self, dataset: BaseDataset) -> TaskType:
+        if isinstance(dataset, ImageClassificationDataset):
+            return TaskType.IMAGE_CLASSIFICATION
+        elif isinstance(dataset, ObjectDetectionDataset):
+            return TaskType.OBJECT_DETECTION
+        elif isinstance(dataset, SemanticSegmentationDataset):
+            return TaskType.IMAGE_SEGMENTATION
+        else:
+            raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
     def get_statistics(self) -> Dict[str, Any]:
-        stats = self.get_train_statistics()
+        stats = {'train': self.get_train_statistics()}
         if self.test_data is not None:
-            stats.update(**self.get_test_statistics())
+            stats['test'] = self.get_test_statistics()
+        stats["task_type"] = self.task_type
         return stats
 
-    def get_train_statistics(self) -> Dict[str, Any]:
-        return {}
+    def get_train_statistics(self) -> BaseDatasetStatistics:
+        raise NotImplementedError("get_train_statistics method must be implemented in the subclass")
 
-    def get_test_statistics(self) -> Dict[str, Any]:
-        return {}
+    def get_test_statistics(self) -> BaseDatasetStatistics:
+        raise NotImplementedError("get_test_statistics method must be implemented in the subclass")
 
-    def _compute_statistics(self, dataset: BaseDataset) -> Dict[str, Any]:
-        return {}
+    def _compute_statistics(self, dataset: BaseDataset) -> BaseDatasetStatistics:
+        raise NotImplementedError("_compute_statistics method must be implemented in the subclass")
 
 
 class VisionDataStatistics(BaseDataStatistics):
@@ -75,24 +94,12 @@ class VisionDataStatistics(BaseDataStatistics):
             )
         self.train_data = train_data
         self.test_data = test_data
-        if isinstance(train_data, ImageClassificationDataset):
-            self.task_type = "image_classification"
-        elif isinstance(train_data, ObjectDetectionDataset):
-            self.task_type = "object_detection"
-        elif isinstance(train_data, SemanticSegmentationDataset):
-            self.task_type = "semantic_segmentation"
-        else:
-            raise ValueError(f"Unsupported dataset type: {type(train_data)}")
+        self.task_type = self._get_task_type(train_data)
+        
 
     def get_statistics(self) -> Dict[str, Any]:
-        stats = self.get_train_statistics()
-
-        if self.test_data is not None:
-            stats.update(**self.get_test_statistics())
-        stats["task_type"] = self.task_type
-
-        stats.update({"t-statistic",self.compute_t_statistics(stats)})
-
+        stats = super().get_statistics()
+        #stats.update({"t-statistic":self.compute_t_statistics(stats)})
         return stats
 
     def compute_t_statistics(
@@ -119,30 +126,21 @@ class VisionDataStatistics(BaseDataStatistics):
 
     def get_train_statistics(
         self,
-    ) -> Dict[str, Union[int, List[float]]]:
-        num_samples = len(self.train_data)
-        train_stats = self._compute_statistics(self.train_data)
-        stats = dict(num_train_samples=num_samples, train_stats=train_stats)
-        return stats
+    ) -> VisionStatistics:
+        return self._compute_statistics(self.train_data)
 
     def get_test_statistics(
         self,
-    ) -> Dict[str, Union[int, List[float]]]:
-        if self.test_data is None:
-            return {}
-        num_samples = len(self.test_data)
-        test_stats = self._compute_statistics(self.test_data)
-        stats = dict(num_test_samples=num_samples, test_stats=test_stats)
-        return stats
+    ) -> VisionStatistics:
+        return self._compute_statistics(self.test_data)
 
-    def _compute_statistics(self, dataset: VisionDataset) -> Dict[str, Any]:
+    def _compute_statistics(self, dataset: VisionDataset) -> VisionStatistics:
         stats = self._compute_base_statistics(dataset)
         if isinstance(dataset, ObjectDetectionDataset):
-            labels_stats = self._compute_box_statistics(dataset)
-            stats.update(labels_stats)
+            stats.object_detection_statistics = self._compute_box_statistics(dataset)
         return stats
 
-    def _compute_base_statistics(self, dataset: VisionDataset) -> Dict[str, Any]:
+    def _compute_base_statistics(self, dataset: VisionDataset) -> VisionStatistics:
         assert isinstance(dataset, VisionDataset), (
             f"dataset must be an instance of VisionDataset. Received: {type(dataset)}"
         )
@@ -229,16 +227,17 @@ class VisionDataStatistics(BaseDataStatistics):
         variance = (sum_squared_pixels / count) - (mean**2)
         std = torch.sqrt(variance)
 
-        return {
-            "mean": mean.tolist(),
-            "std": std.tolist(),
-            "class_distribution": class_counts,
-            "pixel_class_ratio":pixel_class_ratio
-        }
+        return VisionStatistics(
+            image_color_means=mean.tolist(),
+            image_color_stds=std.tolist(),
+            class_distribution={str(k): v for k, v in class_counts.items()},
+            pixel_class_ratio={str(k): float(v) for k, v in pixel_class_ratio.items()},
+            num_samples=num_samples
+        )
 
     def _compute_box_statistics(
         self, dataset: ObjectDetectionDataset
-    ) -> Dict[str, Any]:
+    ) -> ObjectDetectionStatistics:
         """
         Compute statistics on bounding boxes for an object detection dataset.
 
@@ -255,16 +254,12 @@ class VisionDataStatistics(BaseDataStatistics):
         # Initialize accumulators
         num_samples = len(dataset)
         if num_samples == 0:
-            return {
-                "num_negative_samples": 0,
-                "num_boxes": 0,
-                "boxes_per_image": {},
-                "box_dimensions": {
-                    "width": {},
-                    "height": {},
-                },
-                "box_areas": {},
-            }
+            return ObjectDetectionStatistics(
+                num_negative_samples=0,
+                num_positive_samples=0,
+                negative_positive_ratio=0,
+                num_boxes=0,
+            )
 
         num_negative_samples = 0
         num_boxes_total = 0
@@ -321,20 +316,19 @@ class VisionDataStatistics(BaseDataStatistics):
         if len(box_areas) > 0:
             box_area_series = pd.Series(box_areas)
             box_area_stats = box_area_series.describe().to_dict()
+        
+        negative_positive_ratio=num_negative_samples/ (num_samples - num_negative_samples) if (num_samples - num_negative_samples > 0) else 0
 
-        return {
-            "num_negative_samples": num_negative_samples,
-            "num_positive_samples": num_samples - num_negative_samples,
-            "negative_positive_ratio": num_negative_samples
-            / (num_samples - num_negative_samples),
-            "num_boxes": num_boxes_total,
-            "boxes_per_image": boxes_per_image_stats,
-            "box_stats": {
-                "width": box_width_stats,
-                "height": box_height_stats,
-                "area": box_area_stats,
-            },
-        }
+        return ObjectDetectionStatistics(
+            num_negative_samples=num_negative_samples,
+            num_positive_samples=num_samples - num_negative_samples,
+            negative_positive_ratio=negative_positive_ratio,
+            num_boxes=num_boxes_total,
+            boxes_per_image=boxes_per_image_stats,
+            box_width_stats=box_width_stats,
+            box_height_stats=box_height_stats,
+            box_area_stats=box_area_stats,
+        )
 
 
 class TabularDataStatistics(BaseDataStatistics):
@@ -355,27 +349,41 @@ class TabularDataStatistics(BaseDataStatistics):
             self.test_data = test_data
         else:
             self.test_data = None
+        self.task_type = TaskType.TABULAR_CLASSIFICATION if isinstance(train_data, TabularDataset) else TaskType.TABULAR_REGRESSION
 
-    def get_train_statistics(self) -> Dict[str, Any]:
-        stats = self._compute_statistics(self.train_data.get_data())
-        stats["categorical_features"] = self.train_data.get_categorical_features()
-        stats["numerical_features"] = self.train_data.get_numerical_features()
-        return stats
+    def get_train_statistics(self) -> TabularStatistics:
+        return self._compute_statistics(
+            self.train_data.get_data(),
+            self.train_data.get_categorical_features(),
+            self.train_data.get_numerical_features()
+        )
 
-    def get_test_statistics(self) -> Dict[str, Any]:
-        stats = self._compute_statistics(self.test_data.get_data())
-        stats["categorical_features"] = self.test_data.get_categorical_features()
-        stats["numerical_features"] = self.test_data.get_numerical_features()
-        return stats
+    def get_test_statistics(self) -> TabularStatistics:
+        return self._compute_statistics(
+            self.test_data.get_data(),
+            self.test_data.get_categorical_features(),
+            self.test_data.get_numerical_features()
+        )
 
-    def _compute_statistics(self, dataset: pd.DataFrame) -> Dict[str, Any]:
-        stats = dataset.describe().to_dict()
+    def _compute_statistics(
+        self, 
+        dataset: pd.DataFrame, 
+        categorical_features: List[str],
+        numerical_features: List[str]
+    ) -> TabularStatistics:
+        feature_stats = dataset.describe().to_dict()
         number_unique_values = dataset.nunique().to_dict()
-        stats["number_unique_values"] = number_unique_values
-        stats["percentage_unique_values"] = (
+        percentage_unique_values = (
             (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
         )
-        return stats
+        
+        return TabularStatistics(
+            feature_statistics=feature_stats,
+            number_unique_values=number_unique_values,
+            percentage_unique_values=percentage_unique_values,
+            categorical_features=categorical_features,
+            numerical_features=numerical_features
+        )
 
 
 class NLPDataStatistics(BaseDataStatistics):
@@ -396,60 +404,68 @@ class NLPDataStatistics(BaseDataStatistics):
             self.test_data = test_data
         else:
             self.test_data = None
+        self.task_type = TaskType.TEXT_CLASSIFICATION
 
-    def get_train_statistics(self) -> Dict[str, Any]:
-        stats = self._compute_statistics(self.train_data.dataset)
-        return stats
+    def get_train_statistics(self) -> NLPStatistics:
+        return self._compute_statistics(self.train_data.dataset)
 
-    def get_test_statistics(self) -> Dict[str, Any]:
+    def get_test_statistics(self) -> NLPStatistics:
         if self.test_data is None:
-            return {}
-        stats = self._compute_statistics(self.test_data.dataset)
-        return stats
+            raise ValueError("test_data is None, cannot compute test statistics")
+        return self._compute_statistics(self.test_data.dataset)
 
-    def _compute_statistics(self, dataset: TextData) -> Dict[str, Any]:
+    def _compute_statistics(self, dataset: TextData) -> NLPStatistics:
         """Compute comprehensive statistics for a TextData dataset."""
-        stats = {}
-        
         # Basic dataset information
-        stats["num_samples"] = dataset.n_samples
-        stats["task_type"] = dataset.task_type.value if dataset.task_type else "other"
+        num_samples = dataset.n_samples
+        task_type = dataset.task_type.value if dataset.task_type else None
         
         # Text statistics
-        stats["text_statistics"] = self._compute_text_statistics(dataset)
+        text_stats = self._compute_text_statistics(dataset)
+        text_statistics = TextStatistics(**text_stats) if text_stats else None
         
         # Label statistics (if labels exist)
+        label_statistics = None
         if dataset.has_label():
-            stats["label_statistics"] = self._compute_label_statistics(dataset)
+            label_stats = self._compute_label_statistics(dataset)
+            if label_stats:
+                label_statistics = LabelStatistics(**label_stats)
         
         # Properties statistics (if properties exist)
+        properties_statistics = None
+        categorical_properties = []
+        numerical_properties = []
         try:
             if dataset.properties is not None:
-                stats["properties_statistics"] = self._compute_properties_statistics(dataset)
-                stats["categorical_properties"] = dataset.categorical_properties
-                stats["numerical_properties"] = dataset.numerical_properties
-            else:
-                stats["properties_statistics"] = {}
-                stats["categorical_properties"] = []
-                stats["numerical_properties"] = []
+                props_stats = self._compute_properties_statistics(dataset)
+                if props_stats:
+                    properties_statistics = PropertiesStatistics(**props_stats)
+                categorical_properties = dataset.categorical_properties or []
+                numerical_properties = dataset.numerical_properties or []
         except (AttributeError, ValueError):
-            stats["properties_statistics"] = {}
-            stats["categorical_properties"] = []
-            stats["numerical_properties"] = []
+            pass
         
         # Metadata information (if metadata exists)
+        categorical_metadata = []
+        numerical_metadata = []
         try:
             if dataset.metadata is not None:
-                stats["categorical_metadata"] = dataset.categorical_metadata or []
-                stats["numerical_metadata"] = dataset.numerical_metadata or []
-            else:
-                stats["categorical_metadata"] = []
-                stats["numerical_metadata"] = []
+                categorical_metadata = dataset.categorical_metadata or []
+                numerical_metadata = dataset.numerical_metadata or []
         except (AttributeError, ValueError):
-            stats["categorical_metadata"] = []
-            stats["numerical_metadata"] = []
+            pass
         
-        return stats
+        return NLPStatistics(
+            num_samples=num_samples,
+            task_type=task_type,
+            text_statistics=text_statistics,
+            label_statistics=label_statistics,
+            properties_statistics=properties_statistics,
+            categorical_properties=categorical_properties if categorical_properties else None,
+            numerical_properties=numerical_properties if numerical_properties else None,
+            categorical_metadata=categorical_metadata if categorical_metadata else None,
+            numerical_metadata=numerical_metadata if numerical_metadata else None,
+        )
     
     def _compute_text_statistics(self, dataset: TextData) -> Dict[str, Any]:
         """Compute statistics about the text content."""
@@ -508,20 +524,26 @@ class NLPDataStatistics(BaseDataStatistics):
         
         return stats
     
-    def _compute_properties_statistics(self, dataset: TextData) -> Dict[str, Any]:
+    def _compute_properties_statistics(self, dataset: TextData) -> Optional[Dict[str, Any]]:
         """Compute statistics about text properties (similar to TabularDataStatistics)."""
         properties = dataset.properties
         
+        if properties is None or len(properties) == 0:
+            return None
+        
         # Compute describe statistics
-        stats = properties.describe().to_dict()
+        feature_statistics = properties.describe().to_dict()
         
         # Add unique value counts
         number_unique_values = properties.nunique().to_dict()
-        stats["number_unique_values"] = number_unique_values
         
         # Add percentage of unique values
-        stats["percentage_unique_values"] = (
+        percentage_unique_values = (
             (properties.nunique() * 100 / len(properties)).round(2).to_dict()
         )
         
-        return stats
+        return {
+            "feature_statistics": feature_statistics,
+            "number_unique_values": number_unique_values,
+            "percentage_unique_values": percentage_unique_values,
+        }

@@ -147,7 +147,10 @@ class LogDatasetMetadata(LogArtifact):
             data_type=self.data_type, train_data=train_data, test_data=test_data
         )
         dataset_artifacts = DatasetArtifacts(
-            dataset_name=dataset_name, statistics=data_statistics
+            dataset_name=dataset_name,
+            train_statistics=data_statistics["train"],
+            test_statistics=data_statistics.get("test"),
+            task_type=data_statistics["task_type"],
         )
         self.artifact_mgr.register_artifact(
             run_id=dataset_name,
