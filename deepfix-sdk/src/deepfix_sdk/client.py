@@ -1,4 +1,5 @@
 from typing import Optional, Union
+import os
 import requests
 from rich.console import Console
 from rich.spinner import Spinner
@@ -87,8 +88,9 @@ class DeepFixClient:
             refresh_per_second=10,
         ):
             payload = request.model_dump()
+            headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
             response = requests.post(
-                self._analyze_endpoint, json=payload, timeout=self.timeout
+                self._analyze_endpoint, json=payload, timeout=self.timeout, headers=headers
             )
 
             if response.status_code != 200:
