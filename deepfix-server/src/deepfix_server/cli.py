@@ -24,7 +24,7 @@ def version() -> None:
 def launch(
     port: int = typer.Option(8844, "-port", help="Port to run DeepFix server on"),
     host: str = typer.Option(
-        "127.0.0.1", "-host", help="Host to bind DeepFix server to"
+        "0.0.0.0", "-host", help="Host to bind DeepFix server to"
     ),
     env_file: Optional[str] = typer.Option(
         None, "-e", "--env-file", help="Environment file to load"
