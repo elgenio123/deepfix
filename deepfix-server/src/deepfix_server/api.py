@@ -55,8 +55,11 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             raise HTTPException(status_code=500, detail=traceback.format_exc())
 
 
-def run_analyse_artifacts_api(port=4141, host="0.0.0.0"):
-    server = ls.LitServer(AnalyseArtifactsAPI(api_path="/v1/analyse"))
+def run_analyse_artifacts_api(port:int=4141, host:str="0.0.0.0", workers_per_device:int=1,fast_queue:bool=False):
+    server = ls.LitServer(AnalyseArtifactsAPI(api_path="/v1/analyse"),
+                        workers_per_device=workers_per_device,
+                        fast_queue=fast_queue
+                    )
     server.run(
         host=host,
         port=port,
