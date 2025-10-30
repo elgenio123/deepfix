@@ -18,8 +18,8 @@ def version() -> None:
 
 @app.command(name="launch-mlflow")
 def launch_mlflow_server(
-    port: int = typer.Option(5000, help="Port to run MLflow server on"),
-    host: str = typer.Option("0.0.0.0", help="Host to bind MLflow server to"),
+    port: int = typer.Option(5000,"-port", help="Port to run MLflow server on"),
+    host: str = typer.Option("0.0.0.0", "-host", help="Host to bind MLflow server to"),
 ) -> None:
     """Launch MLflow tracking server."""
     try:

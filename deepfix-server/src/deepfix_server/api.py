@@ -18,7 +18,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
 
     def setup(self, device):
         try:
-            setup_dspy_logging(logger=LOGGER)
+            setup_dspy_logging()
         except Exception:
             print(f"Error setting up DSPy logging: {traceback.format_exc()}")
 
