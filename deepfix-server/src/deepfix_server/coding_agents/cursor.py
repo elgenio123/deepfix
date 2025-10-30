@@ -5,9 +5,9 @@ import json
 from typing import Iterator, Union
 
 class ModelName(StrEnum):
-    GPT_4o = "gpt-4o"
     GPT_5 = "gpt-5"
-    DEEPSEEK_V3 = "deepseek-v3"
+    DEEPSEEK_V3 = "deepseek-v3.1"
+    AUTO = "auto"
 
 class OutputFormat(StrEnum):
     TEXT = "text"
@@ -17,20 +17,22 @@ class OutputFormat(StrEnum):
 
 class CursorAgentConfig(BaseModel):
     output_format: str = Field(default=OutputFormat.TEXT.value,description="Output format to use for the Cursor agent")
-    model_name: str = Field(default=ModelName.DEEPSEEK_V3.value,description="Model name to use for the Cursor agent")
+    model_name: str = Field(default="auto",description="Model name to use for the Cursor agent")
 
+
+INSTRUCTIONS = """"You are a helpful assitant that answer questions without looking at the codebase. You DO NOT WRITE CODE.\n\n"""
 
 class CursorAgent:
 
     def __init__(self, output_format:str, model_name:str):
         self.config = CursorAgentConfig(
             output_format=OutputFormat(output_format).value,
-            model_name=ModelName(model_name).value,
+            model_name=model_name,
         )
 
     def run(self, prompt:str) -> str:
         args = ["cursor-agent", 
-                "-p", prompt, 
+                "-p", INSTRUCTIONS + prompt, 
                 "--output-format", self.config.output_format, 
                 "--model", self.config.model_name
             ]
@@ -41,14 +43,14 @@ class CursorAgent:
             raise RuntimeError(f"Cursor agent failed to run: {e.stderr}") from e
 
 
-def run_cursor_agent_stream(prompt:str, model_name:Union[str, ModelName]) -> Iterator[str]:
+def run_cursor_agent_stream(prompt:str, model_name:str) -> Iterator[str]:
     config = CursorAgentConfig(
         output_format=OutputFormat.STREAM_JSON.value,
-        model_name=ModelName(model_name).value,
+        model_name=model_name,
     )
     args = [
         "cursor-agent",
-        "-p", prompt,
+        "-p", INSTRUCTIONS + prompt,
         "--output-format", config.output_format,
         "--model", config.model_name,
     ]
@@ -63,9 +65,16 @@ def run_cursor_agent_stream(prompt:str, model_name:Union[str, ModelName]) -> Ite
                 continue
             try:
                 line = json.loads(line)
-                yield line["content"]
-            except json.JSONDecodeError:
-                yield line["content"]
+                if line.get("subtype","") == "init":
+                    continue
+                if line.get("type","") == "user":
+                    continue
+                if line.get("type","") == "assistant":
+                    yield line['message']['content'][-1]['text']
+            except Exception as e:
+                print(f"Error parsing line: {line}")
+                raise e
+
         process.wait()
         if process.returncode != 0:
             stderr_text = process.stderr.read() if process.stderr is not None else ""
