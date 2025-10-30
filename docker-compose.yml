@@ -6,7 +6,12 @@ services:
     image: deepfix-server:latest
     ports:
       - "8844:8844"
+      - "5001:5000"
     env_file:
-      - deepfix-server/.env
+      - deepfix-server/.env 
+    volumes:
+      - ./server_logs:/logs
+      - ./server_mlflow_data:/mlflow
+
 
 

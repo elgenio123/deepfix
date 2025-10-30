@@ -52,9 +52,13 @@ COPY --from=builder /opt/venv /opt/venv
 # Ensure venv takes precedence
 ENV PATH="/opt/venv/bin:$PATH"
 
-EXPOSE 8844
+WORKDIR /app
 
-CMD ["deepfix-server", "launch","-port", "8844", "-host", "0.0.0.0"]
+EXPOSE 8844 5000
+RUN mkdir -p /logs && mkdir -p /mlflow
+VOLUME /logs /mlflow
 
+COPY start_server_docker.sh .
+RUN chmod +x start_server_docker.sh
 
-
+CMD ["./start_server_docker.sh"]
