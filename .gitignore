@@ -33,7 +33,7 @@ MANIFEST
 
 .secrets
 *.env
-models/
+/models/
 results/
 mlruns/
 census_campaign_results/
