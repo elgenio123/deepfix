@@ -1,8 +1,9 @@
 from pydantic import BaseModel, Field
 import subprocess
+import asyncio
 from enum import StrEnum
 import json
-from typing import Iterator, Union
+from typing import Iterator, AsyncIterator, Union
 
 class ModelName(StrEnum):
     GPT_5 = "gpt-5"
@@ -85,5 +86,58 @@ def run_cursor_agent_stream(prompt:str, model_name:str) -> Iterator[str]:
                 process.stdout.close()
             if process.stderr is not None:
                 process.stderr.close()
+        except Exception:
+            pass
+
+
+async def run_cursor_agent_stream_async(prompt: str, model_name: str) -> AsyncIterator[str]:
+    """Async version of run_cursor_agent_stream using asyncio.create_subprocess_exec."""
+    config = CursorAgentConfig(
+        output_format=OutputFormat.STREAM_JSON.value,
+        model_name=model_name,
+    )
+    args = [
+        "cursor-agent",
+        "-p", INSTRUCTIONS + prompt,
+        "--output-format", config.output_format,
+        "--model", config.model_name,
+    ]
+
+    process = await asyncio.create_subprocess_exec(
+        *args,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        if process.stdout is None:
+            raise RuntimeError("Failed to capture cursor-agent stdout")
+        
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+            line = line.decode().strip()
+            if not line:
+                continue
+            try:
+                line_data = json.loads(line)
+                if line_data.get("subtype", "") == "init":
+                    continue
+                if line_data.get("type", "") == "user":
+                    continue
+                if line_data.get("type", "") == "assistant":
+                    yield line_data['message']['content'][-1]['text']
+            except Exception as e:
+                print(f"Error parsing line: {line}")
+                raise e
+
+        await process.wait()
+        if process.returncode != 0:
+            stderr_data = await process.stderr.read() if process.stderr is not None else b""
+            stderr_text = stderr_data.decode()
+            raise RuntimeError(f"Cursor agent failed to run: {stderr_text}")
+    finally:
+        try:
+            process.kill()
         except Exception:
             pass
