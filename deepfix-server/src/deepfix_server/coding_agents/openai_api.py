@@ -31,7 +31,11 @@ class OpenAIApi(ls.LitAPI):
 
 
 def run_openai_api(port:int=4141, host:str="0.0.0.0", fast_queue:bool=False):
-    server = ls.LitServer(OpenAIApi(spec=ls.OpenAISpec()), fast_queue=fast_queue)
+    server = ls.LitServer(OpenAIApi(spec=ls.OpenAISpec(),
+                                    enable_async=True
+                                ), 
+                          fast_queue=fast_queue
+                        )
     server.run(
         host=host,
         port=port,
