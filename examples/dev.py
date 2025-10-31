@@ -11,7 +11,8 @@ from deepfix_sdk.client import DeepFixClient
 from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
 from deepfix_sdk.data.datasets import ImageClassificationDataset, ObjectDetectionDataset, SemanticSegmentationDataset
 
-client = DeepFixClient(timeout=120)
+url = "http://deepfix.delcaux.com"
+client = DeepFixClient(timeout=60,api_url=url)
 
 def diagnose_dataset(name: str):
     # Diagnose dataset
