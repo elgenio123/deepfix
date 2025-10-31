@@ -61,4 +61,8 @@ VOLUME /logs /mlflow
 COPY start_server_docker.sh .
 RUN chmod +x start_server_docker.sh
 
+RUN curl -fsSL https://cursor.com/install -o /app/cursor-install.sh && \
+    sh /app/cursor-install.sh --install-dir /usr/local/bin && \
+    rm /app/cursor-install.sh
+
 CMD ["./start_server_docker.sh"]

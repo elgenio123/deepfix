@@ -3,7 +3,7 @@ from litserve.specs.openai import ChatCompletionRequest
 from fastapi import HTTPException
 import traceback
 from pydantic import BaseModel
-from .cursor import run_cursor_agent_stream
+from .cursor import run_cursor_agent_stream, run_cursor_agent_stream_async
 
 
 class OpenAIApiRequest(BaseModel):
@@ -18,13 +18,13 @@ class OpenAIApi(ls.LitAPI):
     def setup(self, device):
         return
 
-    def predict(self, request: ChatCompletionRequest):
+    async def predict(self, request: ChatCompletionRequest):
         try:
             #print(request.model_dump_json(indent=2))
             prompt = request.messages[-1].content
             model = request.model or "auto"
-            for content in run_cursor_agent_stream(prompt=prompt, model_name=model):
-                yield content        
+            async for content in run_cursor_agent_stream_async(prompt=prompt, model_name=model):
+                yield content
         except Exception as e:
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Error running cursor agent: {str(e)}")
