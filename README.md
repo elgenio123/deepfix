@@ -63,7 +63,7 @@ from deepfix_sdk.client import DeepFixClient
 from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
 from deepfix_sdk.data.datasets import ImageClassificationDataset
 
-client = DeepFixClient(api_url="http://127.0.0.1:8844",timeout=120)
+client = DeepFixClient(api_url="http://deepfix.delcaux.com",timeout=120)
 
 # Load image dataset
 dataset_name="cafetaria-foodwaste"
