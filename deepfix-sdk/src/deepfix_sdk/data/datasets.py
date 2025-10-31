@@ -137,7 +137,7 @@ class SemanticSegmentationDataset(VisionDataset):
         if isinstance(image, torch.Tensor):
             image = image.cpu().numpy()
         if isinstance(annotation, torch.Tensor):
-            annotation = annotation.cpu().numpy()
+            annotation = annotation.cpu().long().numpy()
         if c in [1, 3]:
             image = image.transpose(1, 2, 0) # (c,h,w) -> (h,w,c)
         return dict(image=image, label=annotation)
@@ -161,7 +161,7 @@ class SemanticSegmentationDataset(VisionDataset):
                 label = label.ravel()
 
             label_map = label_map.union(set(label.flatten()))
-        return {i: f"class_{i}" for i in label_map}
+        return {int(i): f"class_{i}" for i in label_map}
 
     def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8, shuffle: bool = False) -> VisionData:
         if isinstance(self.dataset, VisionData):

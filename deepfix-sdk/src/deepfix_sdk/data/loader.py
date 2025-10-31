@@ -73,7 +73,7 @@ def segmentation_collate_without_model(data) -> BatchOutputFormat:
         if isinstance(image, torch.Tensor):
             image = image.permute(1, 2, 0).cpu().numpy() # HWC to CHW
         if isinstance(mask, torch.Tensor):
-            mask = mask.cpu().numpy()        
+            mask = mask.cpu().long().numpy()        
         images.append(image)
         labels.append(mask)
     return BatchOutputFormat(images=images, labels=labels)
