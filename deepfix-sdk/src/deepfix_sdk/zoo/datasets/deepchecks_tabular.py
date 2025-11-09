@@ -26,7 +26,7 @@ def load_adult_classification(as_train_test: bool = False) -> Dataset:
     """
     LOGGER.info("Loading Adult classification dataset")
     return classification.adult.load_data(
-        data_format="Dataset", as_train_test=as_train_test
+        data_format="Dataframe", as_train_test=as_train_test
     )
 
 
@@ -39,7 +39,7 @@ def load_iris_classification(as_train_test: bool = False) -> Dataset:
     """
     LOGGER.info("Loading Iris classification dataset")
     return classification.iris.load_data(
-        data_format="Dataset", as_train_test=as_train_test
+        data_format="Dataframe", as_train_test=as_train_test
     )
 
 
@@ -53,10 +53,10 @@ def load_airbnb_regression(data_size: Optional[int] = 15000) -> Tuple[Dataset, D
     """
     LOGGER.info("Loading AirBnb regression dataset")
     train_data, _ = regression.airbnb.load_data_and_predictions(
-        data_format="Dataset", load_train=True, data_size=data_size
+        data_format="Dataframe", load_train=True, data_size=data_size
     )
     test_data, _ = regression.airbnb.load_data_and_predictions(
-        data_format="Dataset", load_train=False, data_size=data_size
+        data_format="Dataframe", load_train=False, data_size=data_size
     )
     return train_data, test_data
 
@@ -70,7 +70,7 @@ def load_wine_quality_regression(as_train_test: bool = False) -> Dataset:
     """
     LOGGER.info("Loading Wine quality regression dataset")
     return regression.wine_quality.load_data(
-        data_format="Dataset", as_train_test=as_train_test
+        data_format="Dataframe", as_train_test=as_train_test
     )
 
 
@@ -83,5 +83,5 @@ def load_avocado_regression(as_train_test: bool = False) -> Dataset:
     """
     LOGGER.info("Loading Avocado regression dataset")
     return regression.avocado.load_data(
-        data_format="Dataset", as_train_test=as_train_test
+        data_format="Dataframe", as_train_test=as_train_test
     )

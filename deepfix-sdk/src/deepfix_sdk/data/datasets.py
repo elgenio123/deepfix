@@ -179,7 +179,7 @@ class TabularDataset(BaseDataset):
     def __init__(
         self,
         dataset_name: str,
-        dataset: Union[pd.DataFrame, DeepchecksTabularDataset],
+        dataset: pd.DataFrame,
         label: Optional[str] = None,
         cat_features: List[str] = [],
     ):
@@ -192,9 +192,6 @@ class TabularDataset(BaseDataset):
             self.dataset = DeepchecksTabularDataset(
                 dataset, label=label, cat_features=cat_features
             )
-
-        elif isinstance(dataset, DeepchecksTabularDataset):
-            self.dataset = dataset
 
         else:
             raise ValueError(f"Invalid dataset type: {type(dataset)}")
