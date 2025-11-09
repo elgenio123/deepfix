@@ -118,8 +118,12 @@ def ingest_tabular_dataset():
     train, test = load_adult_classification(as_train_test=True)
     dataset_name = "adult-classification"
 
-    train_data = TabularDataset(dataset=train, dataset_name=dataset_name)
-    test_data = TabularDataset(dataset=test, dataset_name=dataset_name)
+    label = "income"
+    cat_features = train.select_dtypes(include=['object','string','category']).columns.tolist()
+    cat_features.remove(label)
+
+    train_data = TabularDataset(dataset=train, dataset_name=dataset_name, label=label, cat_features=cat_features)
+    test_data = TabularDataset(dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features)
 
     client.ingest_dataset(
         dataset_name=dataset_name,
