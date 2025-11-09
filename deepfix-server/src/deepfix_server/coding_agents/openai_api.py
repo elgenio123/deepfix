@@ -3,7 +3,9 @@ from litserve.specs.openai import ChatCompletionRequest
 from fastapi import HTTPException
 import traceback
 from pydantic import BaseModel
-from .cursor import run_cursor_agent_stream, run_cursor_agent_stream_async
+import os
+
+from .cursor import run_cursor_agent_stream_async #,run_cursor_agent_stream
 
 
 class OpenAIApiRequest(BaseModel):
@@ -16,6 +18,8 @@ class OpenAIApi(ls.LitAPI):
     """Analyse Artifacts API."""
 
     def setup(self, device):
+        if os.getenv("CURSOR_API_KEY") is None:
+            raise HTTPException(status_code=500, detail=f"CURSOR_API_KEY is not set in the environment file")
         return
 
     async def predict(self, request: ChatCompletionRequest):

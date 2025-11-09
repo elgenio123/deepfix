@@ -58,6 +58,10 @@ def launch_cursor_agent_api(port:int=typer.Option(8841, "-port", help="Port to r
             typer.echo(f"❌ Environment file {env_file} not found", err=True)
             sys.exit(1)
         load_dotenv(env_file)
+    
+    if os.getenv("CURSOR_API_KEY") is None:
+        typer.echo(f"❌ CURSOR_API_KEY is not set in the environment file", err=True)
+        sys.exit(1)
 
     typer.echo(f"🚀 Starting Cursor Agent API on {host}:{port}")
     run_openai_api(port=port, host=host, fast_queue=fast_queue)
