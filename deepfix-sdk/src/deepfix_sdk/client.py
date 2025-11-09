@@ -81,7 +81,7 @@ class DeepFixClient:
         cfg["deepchecks_artifacts"] = value.get(ArtifactPath.DEEPCHECKS.value)
         return APIRequest(**cfg)
 
-    def _send_request(self, request: APIRequest):
+    def _send_request(self, request: APIRequest)->APIResponse:
         with Live(
             Spinner("dots", text="[cyan]Running analysis...[/cyan]", style="cyan"),
             console=console,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import pandas as pd
 from rich.console import Console
 from rich.table import Table
@@ -70,13 +70,19 @@ class APIResponse(BaseModel):
 
         return summary
 
-    def to_text(self) -> str:
+    def to_text(self, verbose: bool = False) -> str:
         """Generate a beautifully formatted analysis report using Rich."""
         # Create a string buffer to capture Rich output
         buffer = StringIO()
         console = Console(file=buffer, width=120, force_terminal=True)
 
         df = self.get_results_as_dataframe()
+
+        if not verbose:
+            mask = df["agent_name"].isin(['CrossArtifactReasoningAgent'])
+            if not any(mask):
+                raise ValueError(f"No analysis results found for ``CrossArtifactReasoningAgent``. Available agents: {', '.join(self.agent_results.keys())}")
+            df = df[mask]
 
         # Header Panel
         header_text = Text(
@@ -125,7 +131,7 @@ class APIResponse(BaseModel):
             console.print()
 
         # Summary Statistics Table
-        stats_table = self._summary_table(df)
+        stats_table = self._summary_table(df, verbose=verbose)
         console.print(stats_table)
         console.print()
 
@@ -140,18 +146,19 @@ class APIResponse(BaseModel):
             df_severity = df[df["finding_severity"] == severity]
 
             # Create a table for issues of this severity
-            issues_table = self._issues_table(df_severity, severity, severity_color)
+            issues_table = self._issues_table(df_severity, severity, severity_color, verbose=verbose)
             console.print(issues_table)
             console.print()
 
         # Agent-Specific Analysis
-        # agent_table = self._agent_table(df)
-        # console.print(agent_table)
+        #if verbose:
+        #    agent_table = self._agent_table(df)
+        #    console.print(agent_table)
 
         # Get the string output
         return buffer.getvalue()
 
-    def _summary_table(self, df: pd.DataFrame) -> Table:
+    def _summary_table(self, df: pd.DataFrame, verbose: bool = False) -> Table:
         stats_table = Table(
             title="Summary Statistics",
             show_header=True,
@@ -162,9 +169,10 @@ class APIResponse(BaseModel):
         stats_table.add_column("Value", style="black", width=60)
 
         stats_table.add_row("Total Findings", str(len(df)))
-        stats_table.add_row(
-            "Agents Involved", ", ".join(df["agent_name"].unique().tolist())
-        )
+        if verbose:
+            stats_table.add_row(
+                "Agents Involved", ", ".join(df["agent_name"].unique().tolist())
+            )
 
         # Severity distribution with color coding
         severity_counts = df["finding_severity"].value_counts().to_dict()
@@ -189,7 +197,7 @@ class APIResponse(BaseModel):
         return stats_table
 
     def _issues_table(
-        self, df_severity: pd.DataFrame, severity: Severity, severity_color: str
+        self, df_severity: pd.DataFrame, severity: Severity, severity_color: str, verbose: bool = False
     ) -> Table:
         issues_table = Table(
             title=f"{severity.upper()} Severity Issues ({len(df_severity)})",
@@ -199,17 +207,25 @@ class APIResponse(BaseModel):
             expand=False,
         )
         issues_table.add_column("#", style="dim", width=3)
-        issues_table.add_column("Agent", style="blue bold", width=30)
+        if verbose:
+            issues_table.add_column("Agent", style="blue bold", width=30)
         issues_table.add_column("Finding", style="black", width=40)
         issues_table.add_column("Action", style="black", width=40)
 
         for i, (_, row) in enumerate(df_severity.iterrows(), 1):
-            issues_table.add_row(
-                str(i),
-                row["agent_name"],
-                f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
-                f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
-            )
+            if verbose:
+                issues_table.add_row(
+                    str(i),
+                        row["agent_name"],
+                        f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
+                        f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
+                    )
+            else:
+                issues_table.add_row(
+                    str(i),
+                    f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
+                    f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
+                )
         return issues_table
 
     def _agent_table(self, df: pd.DataFrame) -> Table:
@@ -220,7 +236,7 @@ class APIResponse(BaseModel):
             header_style="bold blue",
             border_style="blue",
         )
-        agent_table.add_column("Agent", style="blue bold", width=30)
+        #agent_table.add_column("Agent", style="blue bold", width=30)
         agent_table.add_column("Findings", justify="center", style="yellow", width=10)
         agent_table.add_column("Artifacts", style="black", width=30)
         agent_table.add_column("Summary", style="black", width=40)
@@ -234,7 +250,12 @@ class APIResponse(BaseModel):
                 agent_df["summary"].iloc[0] if agent_df["summary"].iloc[0] else "N/A"
             )
 
-            agent_table.add_row(agent, str(len(agent_df)), artifacts, summary)
+            agent_table.add_row(
+                            #agent,
+                            str(len(agent_df)), 
+                            artifacts, 
+                            summary
+                        )
         return agent_table
 
 
