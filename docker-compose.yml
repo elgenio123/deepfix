@@ -13,6 +13,7 @@ services:
     volumes:
       - ./server_logs:/logs
       - ./server_mlflow_data:/mlflow
+    restart: always
 
 
 
