@@ -43,27 +43,7 @@ if [ -z "$PINGGY_SSH_USER" ]; then
     exit 1
 fi
 
-log "Starting DeepFix server..."
-
-# Start Docker
-log "Starting Docker container..."
-docker compose up > docker.log 2>&1 &
-DOCKER_PID=$!
-
-# Wait for Docker to be ready (max 30 seconds)
-for i in {1..30}; do
-    if docker compose ps | grep -q "healthy\|running"; then
-        log "Docker container is ready"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        error "Docker container failed to start"
-        exit 1
-    fi
-    sleep 1
-done
-
-log "Starting SSH tunnel to Pinggy..."
+log "Starting DeepFix server and SSH tunnel to Pinggy..."
 
 # SSH tunnel loop with exponential backoff
 RETRY_COUNT=0
@@ -72,7 +52,7 @@ BACKOFF=5
 
 while true; do
     # Check if Docker container is still running
-    if ! docker compose ps | grep -q "healthy\|running"; then
+    if ! docker compose ps | grep -q "deepfix-server"; then
         error "Docker container is not running. Restarting..."
         docker compose up > docker.log 2>&1 &
     fi
