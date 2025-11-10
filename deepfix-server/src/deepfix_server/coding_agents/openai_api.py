@@ -20,6 +20,9 @@ class OpenAIApi(ls.LitAPI):
     def setup(self, device):
         if os.getenv("CURSOR_API_KEY") is None:
             raise HTTPException(status_code=500, detail=f"CURSOR_API_KEY is not set in the environment file")
+        if os.getenv("CURSOR_MODEL_NAME") is None:
+            raise HTTPException(status_code=500, detail=f"CURSOR_MODEL_NAME is not set in the environment file")
+        self.model_name = os.getenv("CURSOR_MODEL_NAME")
         return
 
     async def predict(self, request: ChatCompletionRequest):
@@ -27,7 +30,7 @@ class OpenAIApi(ls.LitAPI):
             #print(request.model_dump_json(indent=2))
             prompt = request.messages[-1].content
             model = request.model or "auto"
-            async for content in run_cursor_agent_stream_async(prompt=prompt, model_name=model):
+            async for content in run_cursor_agent_stream_async(prompt=prompt, model_name=self.model_name):
                 yield content
         except Exception as e:
             traceback.print_exc()
