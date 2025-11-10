@@ -19,8 +19,9 @@ class ArtifactAnalysisSignature(dspy.Signature):
     artifacts: str = dspy.InputField(
         desc="Structured artifacts (dataset, model checkpoint, training artifacts)"
     )
-    # system_prompt: Optional[str] = dspy.InputField(desc="System instructions for the analyzer")
-
+    output_language: str = dspy.InputField(
+        desc="Language of the output analysis"
+    )
     analysis: List[Analysis] = dspy.OutputField(
         desc="Findings and recommendations based on the artifacts"
     )
@@ -32,8 +33,8 @@ class CrossArtifactReasoningSignature(dspy.Signature):
     previous_analyses: List[AgentResult] = dspy.InputField(
         desc="Results from multiple artifact analyzers"
     )
-    system_prompt: Optional[str] = dspy.InputField(
-        desc="System instructions for the reasoning agent"
+    output_language: str = dspy.InputField(
+        desc="Language of the output analysis"
     )
 
     analysis: List[Analysis] = dspy.OutputField(

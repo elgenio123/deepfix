@@ -29,7 +29,7 @@ class DeepFixClient:
 
         self._analyze_endpoint = f"{self.api_url}/v1/analyse"
 
-    def diagnose_dataset(self, dataset_name: str) -> APIResponse:
+    def diagnose_dataset(self, dataset_name: str, language: str = "english") -> APIResponse:
         artifact_config = ArtifactConfig(
             load_dataset_metadata=True,
             load_checks=False,
@@ -41,7 +41,7 @@ class DeepFixClient:
             artifact_config=artifact_config,
             dataset_name=dataset_name,
         )
-        request = self._create_dataset_request(dataset_name=dataset_name)
+        request = self._create_dataset_request(dataset_name=dataset_name, language=language)
         response = self._send_request(request)
         return response
 
@@ -69,9 +69,9 @@ class DeepFixClient:
             test_data=test_data,
         )
 
-    def _create_dataset_request(self, dataset_name: str):
+    def _create_dataset_request(self, dataset_name: str, language: str = "english"):
         output = self.artifacts_loader.run()
-        cfg = {"dataset_name": dataset_name}
+        cfg = {"dataset_name": dataset_name, "language": language}
         value = output.get(ArtifactPath.DATASET.value)
         if value is None:
             raise ValueError(f"Dataset artifacts not found for dataset {dataset_name}")

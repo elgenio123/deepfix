@@ -20,6 +20,7 @@ class AgentContext(BaseModel):
     deepchecks_artifacts: Optional[DeepchecksArtifacts] = None
     model_checkpoint_artifacts: Optional[ModelCheckpointArtifacts] = None
     dataset_name: Optional[str] = None
+    language: str = Field(default="english", description="Language of the analysis")
     agent_results: Dict[str, AgentResult] = Field(
         default={}, description="Results of the agents"
     )

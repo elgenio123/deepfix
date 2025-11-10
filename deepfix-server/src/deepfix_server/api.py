@@ -33,6 +33,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 deepchecks_artifacts=request.deepchecks_artifacts,
                 model_checkpoint_artifacts=request.model_checkpoint_artifacts,
                 dataset_name=request.dataset_name,
+                language=request.language,
             )
         except Exception as e:
             raise HTTPException(

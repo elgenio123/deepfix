@@ -12,24 +12,29 @@ LOGGER = get_logger(__name__)
 class CrossArtifactReasoningAgent(Agent):
     def __init__(self, llm_config: Optional[LLMConfig] = None):
         super().__init__(config=llm_config)
-        self.llm = dspy.ChainOfThought(CrossArtifactReasoningSignature)
+        signature = type(
+            f"{self.agent_name}Signature",
+            (CrossArtifactReasoningSignature,),
+            {"__doc__": self.system_prompt},
+        )
+        self.llm = dspy.ChainOfThought(signature)
 
-    def run(self, previous_analyses: Dict[str, AgentResult]) -> AgentResult:
+    def run(self, previous_analyses: Dict[str, AgentResult], output_language: str = "english") -> AgentResult:
         try:
-            return self(previous_analyses)
+            return self(previous_analyses, output_language)
         except Exception as e:
             LOGGER.error(
                 f"Error with agent {self.agent_name}:\n {traceback.format_exc()}"
             )
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
-    def forward(self, previous_analyses: Dict[str, AgentResult]) -> AgentResult:
+    def forward(self, previous_analyses: Dict[str, AgentResult],output_language: str = "english") -> AgentResult:
         LOGGER.info(f"Running cross-artifact reasoning agent...")
 
         assert len(previous_analyses) > 0, "At least one analysis must be provided"
         with self._llm_context():
             out = self.llm(
-                system_prompt=self.system_prompt, previous_analyses=previous_analyses
+                previous_analyses=previous_analyses, output_language=output_language
             )
         analyzed_artifacts = []
         retrieved_knowledge = []
