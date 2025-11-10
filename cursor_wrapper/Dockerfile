@@ -12,11 +12,21 @@ VOLUME /logs
 
 COPY app.py .
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-RUN curl -fsSL https://cursor.com/install -o /app/cursor-install.sh && \
-    sh /app/cursor-install.sh --install-dir /usr/local/bin && \
-    rm /app/cursor-install.sh
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install litserve pydantic
+# Install cursor-agent using the official installation script
+RUN curl https://cursor.com/install -fsS | bash
+
+# Ensure cursor-agent is in PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Verify installation
+RUN cursor-agent --version
+
+RUN pip install litserve pydantic rich
 
 CMD ["python", "app.py"]

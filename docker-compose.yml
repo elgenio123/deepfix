@@ -7,7 +7,6 @@ services:
     ports:
       - "8844:8844"
       - "5001:5000"
-      - "8841:8841"
     env_file:
       - deepfix-server/.env 
     volumes:
@@ -19,9 +18,9 @@ services:
     build: ./cursor_wrapper
     image: cursor-agent:latest
     ports:
-      - "8842:8841"
+      - "8841:8841"
     env_file:
-      - deepfix-server/.env
+      - cursor_wrapper/.env
     volumes:
       - ./cursor_agent_logs:/logs
 
