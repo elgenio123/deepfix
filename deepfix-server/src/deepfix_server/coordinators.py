@@ -61,7 +61,8 @@ class ArtifactAnalysisCoordinator:
         # 2. Cross-artifact reasoning
         LOGGER.info(f"Cross-artifact reasoning...")
         out = self.cross_artifact_reasoning_agent.run(
-            previous_analyses=context.agent_results
+            previous_analyses=context.agent_results,
+            output_language=context.language
         )
         context.agent_results[out.agent_name] = out
 
