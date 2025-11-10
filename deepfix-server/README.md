@@ -128,8 +128,7 @@ pytest
 Local development install:
 
 ```bash
-pip install -e deepfix-core
-pip install -e deepfix-server
+uv pip install -e .
 ```
 
 ### Notes and Limitations
