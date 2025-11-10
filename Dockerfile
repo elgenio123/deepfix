@@ -59,7 +59,7 @@ RUN mkdir -p /logs && mkdir -p /mlflow
 VOLUME /logs /mlflow
 
 COPY start_server_docker.sh .
-RUN chmod +x start_server_docker.sh
+RUN sed -i 's/\r$//' start_server_docker.sh && chmod +x start_server_docker.sh
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://cursor.com/install -o /app/cursor-install.sh && \
