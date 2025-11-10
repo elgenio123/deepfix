@@ -27,9 +27,7 @@ class OpenAIApi(ls.LitAPI):
 
     async def predict(self, request: ChatCompletionRequest):
         try:
-            #print(request.model_dump_json(indent=2))
             prompt = request.messages[-1].content
-            model = request.model or "auto"
             async for content in run_cursor_agent_stream_async(prompt=prompt, model_name=self.model_name):
                 yield content
         except Exception as e:
