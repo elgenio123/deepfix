@@ -51,10 +51,9 @@ def _get_base_dirs() -> Dict[str, Path]:
 
 
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
-    mlruns_dir = data_dir / "deepfix_mlflow"
-    mlruns_dir.mkdir(parents=True, exist_ok=True)
-    # Use an OS-correct file:// URI (e.g., file:///C:/... on Windows)
-    return mlruns_dir.resolve().as_uri()
+    mlruns_dir = data_dir / "deepfix_mlflow.db"
+    mlruns_dir.parent.mkdir(parents=True, exist_ok=True)
+    return mlruns_dir.resolve().as_uri().replace("file://", "sqlite://")
 
 
 def _default_mlflow_downloads_dir(data_dir: Path) -> str:
