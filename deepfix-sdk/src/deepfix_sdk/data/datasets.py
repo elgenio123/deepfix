@@ -225,7 +225,7 @@ class TabularDataset(BaseDataset):
         return self.dataset.cat_features
     
     @property
-    def numerical_features(self) -> List[str]:
+    def num_features(self) -> List[str]:
         return self.dataset.numerical_features
 
     def to_loader(self, *args, **kwargs) -> "TabularDataset":

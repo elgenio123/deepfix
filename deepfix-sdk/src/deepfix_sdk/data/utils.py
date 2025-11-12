@@ -354,15 +354,15 @@ class TabularDataStatistics(BaseDataStatistics):
     def get_train_statistics(self) -> TabularStatistics:
         return self._compute_statistics(
             self.train_data.get_data(),
-            self.train_data.get_categorical_features(),
-            self.train_data.get_numerical_features()
+            self.train_data.cat_features,
+            self.train_data.num_features
         )
 
     def get_test_statistics(self) -> TabularStatistics:
         return self._compute_statistics(
             self.test_data.get_data(),
-            self.test_data.get_categorical_features(),
-            self.test_data.get_numerical_features()
+            self.test_data.cat_features,
+            self.test_data.num_features
         )
 
     def _compute_statistics(

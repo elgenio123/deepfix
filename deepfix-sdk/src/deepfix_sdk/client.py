@@ -126,6 +126,9 @@ class DeepFixClient:
                 TabularDataset, NLPDataset).
             test_data (BaseDataset, optional): Test/validation dataset. If provided,
                 enables cross-dataset validation checks. Defaults to None.
+            model (Any, optional): Model to ingest. Must be an instance of a model class.
+                Defaults to None.
+            model_name (str, optional): Name of the model. Defaults to None.
             batch_size (int, optional): Batch size for processing the dataset.
                 Defaults to 8.
             overwrite (bool, optional): If True, overwrite existing dataset with the
@@ -158,6 +161,7 @@ class DeepFixClient:
             model_evaluation=model is not None,
             batch_size=batch_size,
             overwrite=overwrite,
+            model_name=model_name,
         )
         dataset_logging_pipeline.run(
             train_data=train_data,

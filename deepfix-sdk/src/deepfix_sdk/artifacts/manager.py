@@ -67,7 +67,7 @@ class ArtifactsManager:
         rec = self.repo.get(run_id, artifact_key.value)
         if isinstance(rec, ArtifactRecord):
             raise ValueError(
-                f"Artifact {artifact_key.value} already registered for run {run_id}"
+                f"Artifact {artifact_key.value} already registered for run `{run_id}`"
             )
         # create record
         record = ArtifactRecord(
