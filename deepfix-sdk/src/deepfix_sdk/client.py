@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any, Optional
 import os
 import requests
 from rich.console import Console
@@ -7,7 +7,7 @@ from rich.live import Live
 
 from deepfix_core.models import APIRequest, APIResponse, ArtifactPath, DataType
 
-from .pipelines import ArtifactLoadingPipeline, DatasetIngestionPipeline
+from .pipelines import ArtifactLoadingPipeline, IngestionPipeline
 from .config import MLflowConfig, ArtifactConfig
 from .data.datasets import BaseDataset
 
@@ -97,14 +97,14 @@ class DeepFixClient:
         response = self._send_request(request)
         return response
 
-    def ingest_dataset(
+    def ingest(
         self,
         dataset_name: str,
         data_type: Union[str, DataType],
         train_data: BaseDataset,
         test_data: Optional[BaseDataset] = None,
-        train_test_validation: bool = True,
-        data_integrity: bool = True,
+        model: Any = None,
+        model_name:Optional[str]=None,
         batch_size: int = 8,
         overwrite: bool = False,
     ) -> None:
@@ -126,10 +126,6 @@ class DeepFixClient:
                 TabularDataset, NLPDataset).
             test_data (BaseDataset, optional): Test/validation dataset. If provided,
                 enables cross-dataset validation checks. Defaults to None.
-            train_test_validation (bool, optional): Enable train/test data validation
-                checks to ensure compatibility and consistency. Defaults to True.
-            data_integrity (bool, optional): Enable data integrity checks for format,
-                encoding, and completeness validation. Defaults to True.
             batch_size (int, optional): Batch size for processing the dataset.
                 Defaults to 8.
             overwrite (bool, optional): If True, overwrite existing dataset with the
@@ -147,24 +143,26 @@ class DeepFixClient:
             ...     dataset_name="my-dataset",
             ...     data=df
             ... )
-            >>> client.ingest_dataset(
+            >>> client.ingest(
             ...     dataset_name="my-dataset",
             ...     data_type="tabular",
             ...     train_data=train_dataset,
             ...     batch_size=16
             ... )
         """
-        dataset_logging_pipeline = DatasetIngestionPipeline(
+        dataset_logging_pipeline = IngestionPipeline(
             dataset_name=dataset_name,
             data_type=data_type,
-            train_test_validation=train_test_validation,
-            data_integrity=data_integrity,
+            train_test_validation=test_data is not None,
+            data_integrity=True,
+            model_evaluation=model is not None,
             batch_size=batch_size,
             overwrite=overwrite,
         )
         dataset_logging_pipeline.run(
             train_data=train_data,
             test_data=test_data,
+            model=model
         )
 
     def _create_dataset_request(self, dataset_name: str, language: str = "english"):

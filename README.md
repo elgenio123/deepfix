@@ -77,7 +77,7 @@ train_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=train
 val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_data)
 
 # Ingest dataset
-client.ingest_dataset(dataset_name=dataset_name,
+client.ingest(dataset_name=dataset_name,
                     train_data=train_data,
                     test_data=val_data,
                     train_test_validation=True,

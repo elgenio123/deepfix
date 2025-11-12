@@ -181,7 +181,7 @@ class TabularDataset(BaseDataset):
         dataset_name: str,
         dataset: pd.DataFrame,
         label: Optional[str] = None,
-        cat_features: List[str] = [],
+        cat_features: Optional[List[str]] = None,
     ):
         if isinstance(dataset, pd.DataFrame):
             assert label is not None, "Label column is required"
@@ -202,18 +202,30 @@ class TabularDataset(BaseDataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return self.dataset.iloc[idx]
+        return self.dataset.data.iloc[idx], self.dataset.label_col.iloc[idx]
 
     def __iter__(self):
         return iter(self.dataset)
 
     def get_data(self) -> pd.DataFrame:
         return self.dataset.data.copy()
-
-    def get_categorical_features(self) -> List[str]:
+    
+    @property
+    def X(self) -> pd.DataFrame:
+        x = self.get_data().drop(columns=[self.dataset.label_name])
+        x[self.cat_features] = x[self.cat_features].astype("category")
+        return x
+    
+    @property
+    def y(self) -> pd.Series:
+        return self.dataset.label_col.copy()
+    
+    @property
+    def cat_features(self) -> List[str]:
         return self.dataset.cat_features
-
-    def get_numerical_features(self) -> List[str]:
+    
+    @property
+    def numerical_features(self) -> List[str]:
         return self.dataset.numerical_features
 
     def to_loader(self, *args, **kwargs) -> "TabularDataset":

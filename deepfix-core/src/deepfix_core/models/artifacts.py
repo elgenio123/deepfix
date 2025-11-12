@@ -120,6 +120,7 @@ class Artifacts(BaseModel):
 
 class DeepchecksArtifacts(Artifacts):
     dataset_name: str = Field(description="Name of the dataset")
+    model_name: Optional[str] = Field(default=None, description="Name of the model")
     results: Dict[str, List[DeepchecksParsedResult]] = Field(
         description="Results of the artifact"
     )
@@ -145,7 +146,7 @@ class DeepchecksArtifacts(Artifacts):
         if d.get("config"):
             config = DeepchecksConfig.from_dict(d["config"])
         return DeepchecksArtifacts(
-            dataset_name=d["dataset_name"], results=results, config=config
+            dataset_name=d["dataset_name"], model_name=d.get("model_name"), results=results, config=config
         )
 
     @classmethod

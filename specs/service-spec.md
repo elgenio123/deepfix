@@ -180,7 +180,7 @@ logging:
 - **NOT responsible for**: AI analysis or knowledge retrieval
 
 **Implementation Notes**:
-- Keep existing `DatasetIngestionPipeline` for dataset artifacts
+- Keep existing `IngestionPipeline` for dataset artifacts
 - Lightning callback collects training metrics during fit
 - Deepchecks runs client-side before logging to MLflow
 

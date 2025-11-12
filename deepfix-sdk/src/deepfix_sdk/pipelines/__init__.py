@@ -1,6 +1,6 @@
 from .factory import (
     TrainLoggingPipeline,
-    DatasetIngestionPipeline,
+    IngestionPipeline,
     ChecksPipeline,
     ArtifactLoadingPipeline,
 )
@@ -8,7 +8,7 @@ from .base import Pipeline
 
 __all__ = [
     "TrainLoggingPipeline",
-    "DatasetIngestionPipeline",
+    "IngestionPipeline",
     "ChecksPipeline",
     "ArtifactLoadingPipeline",
     "Pipeline",

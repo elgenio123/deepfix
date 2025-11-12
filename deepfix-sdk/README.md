@@ -115,7 +115,7 @@ val_dataset = ImageClassificationDataset(
 )
 
 # Ingest dataset with quality checks
-client.ingest_dataset(
+client.ingest(
     dataset_name="foodwaste-classification",
     data_type="image",
     train_data=train_dataset,
@@ -158,7 +158,7 @@ test_dataset = TabularDataset(
 )
 
 # Ingest dataset
-client.ingest_dataset(
+client.ingest(
     dataset_name="my-tabular-dataset",
     data_type="tabular",
     train_data=train_dataset,
@@ -198,7 +198,7 @@ test_dataset = NLPDataset(
 )
 
 # Ingest and diagnose
-client.ingest_dataset(
+client.ingest(
     dataset_name="imdb-sentiment",
     data_type="nlp",
     train_data=train_dataset,
@@ -250,12 +250,12 @@ response = client.diagnose_dataset(
 
 **Returns:** `APIResponse` object containing analysis results and recommendations
 
-##### `ingest_dataset()`
+##### `ingest()`
 
 Ingests a dataset with optional quality validation.
 
 ```python
-client.ingest_dataset(
+client.ingest(
     dataset_name: str,
     data_type: Union[str, DataType],
     train_data: BaseDataset,

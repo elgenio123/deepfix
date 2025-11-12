@@ -35,6 +35,8 @@ from deepchecks.nlp.suites import (
 from deepchecks.nlp import TextData
 
 from ..utils.logging import get_logger
+from sklearn.base import BaseEstimator
+
 from deepfix_core.models import (
     DeepchecksParsedResult,
     DeepchecksCheckResult,
@@ -221,9 +223,11 @@ class BaseDeepchecksRunner(ABC):
 
     def run_suites(
         self,
-        train_data: VisionData,
+        train_data: Union[VisionData, TabularDataset, "TextData"],
         dataset_name: str,
-        test_data: Optional[VisionData] = None,
+        test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
+        model: Optional[BaseEstimator]=None,
+        model_name:Optional[str]=None
     ) -> DeepchecksArtifacts:
         output = {}
         if self.config.train_test_validation:
@@ -239,13 +243,14 @@ class BaseDeepchecksRunner(ABC):
             output["data_integrity"] = self.parser.run(out_data_integrity)
 
         if self.config.model_evaluation:
+            assert model is not None, "model must be provided for model evaluation"
             out_model_evaluation = self.run_suite_model_evaluation(
-                train_data, test_data=test_data
+                model=model,train_data=train_data, test_data=test_data
             )
             output["model_evaluation"] = self.parser.run(out_model_evaluation)
 
         artifact = DeepchecksArtifacts(
-            dataset_name=dataset_name, results=output, config=self.config
+            dataset_name=dataset_name, model_name=model_name, results=output, config=self.config
         )
 
         if self.config.save_results:
@@ -272,6 +277,7 @@ class BaseDeepchecksRunner(ABC):
     @abstractmethod
     def run_suite_model_evaluation(
         self,
+        model:Any,
         train_data: Union[VisionData, TabularDataset, "TextData"],
         test_data: Optional[Union[VisionData, TabularDataset, "TextData"]] = None,
     ) -> SuiteResult:
@@ -279,8 +285,16 @@ class BaseDeepchecksRunner(ABC):
 
 
 def get_deepchecks_runner(
-    data_type: Union[str, DataType], config: Optional[DeepchecksConfig] = None
+    data_type: Union[str, DataType],
+    train_test_validation:bool=True,
+    data_integrity:bool=True,
+    model_evaluation:bool=False,
+    config:Optional[DeepchecksConfig]=None
 ) -> BaseDeepchecksRunner:
+    if config is None:
+        config = DeepchecksConfig(train_test_validation=train_test_validation,
+                                data_integrity=data_integrity,
+                                model_evaluation=model_evaluation)
     _type = DataType(data_type) if isinstance(data_type, str) else data_type
     if _type == DataType.VISION:
         return DeepchecksRunnerForVision(config=config)
@@ -334,12 +348,14 @@ class DeepchecksRunnerForVision(BaseDeepchecksRunner):
         )
 
     def run_suite_model_evaluation(
-        self, train_data: VisionData, test_data: Optional[VisionData] = None
+        self, model:Any,train_data: VisionData, test_data: Optional[VisionData] = None
     ) -> SuiteResult:
+        raise NotImplementedError("TODO: debug this method")
         self._check_inputs(train_data, test_data)
         LOGGER.info("Running model evaluation suite")
         return self.suite_model_evaluation.run(
             train_dataset=train_data,
+            model=model,
             test_dataset=test_data,
             max_samples=self.config.max_samples,
             random_state=self.config.random_state,
@@ -422,7 +438,7 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
         )
 
     def run_suite_model_evaluation(
-        self, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
+        self, model:BaseEstimator, train_data: TabularDataset, test_data: Optional[TabularDataset] = None
     ) -> SuiteResult:
         """
         Run model evaluation suite on tabular data.
@@ -442,6 +458,7 @@ class DeepchecksRunnerForTabular(BaseDeepchecksRunner):
         return self.suite_model_evaluation.run(
             train_dataset=train_data.dataset,
             test_dataset=test_data.dataset if test_data is not None else None,
+            model=model
         )
 
     def _check_inputs(
@@ -497,7 +514,7 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
         )
 
     def run_suite_model_evaluation(
-        self, train_data: TextData, test_data: Optional[TextData] = None
+        self,model:Any, train_data: TextData, test_data: Optional[TextData] = None
     ) -> SuiteResult:
         """
         Run model evaluation suite on NLP text data.
@@ -513,6 +530,7 @@ class DeepchecksRunnerForNLP(BaseDeepchecksRunner):
             SuiteResult containing model evaluation results
         """
         LOGGER.info("Running model evaluation suite for NLP text data")
+        raise NotImplementedError("TODO: make compute the inputs of the suite test beforehand!")
         return self.suite_model_evaluation.run(
             train_dataset=train_data,
             test_dataset=test_data,
