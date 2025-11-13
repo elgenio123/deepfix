@@ -9,7 +9,7 @@ from deepfix_core.models import (
 
 
 class DatasetPromptBuilder(BasePromptBuilder):
-    """Builds prompts for training artifact analysis."""
+    """Builds prompts for dataset artifact analysis."""
 
     def can_build(self, artifact: Artifacts) -> bool:
         """Check if this builder can handle TrainingArtifacts."""

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from .base import Step
 from ..utils.logging import get_logger
@@ -7,10 +7,11 @@ from deepfix_core.models import (
     DeepchecksArtifacts,
     DatasetArtifacts,
     TrainingArtifacts,
-    DataType,
+    DataType
 )
 from ..artifacts import ArtifactsManager
 from ..data import BaseDataset, get_data_statistics
+from ..models import get_model_metadata
 from ..integrations import MLflowManager
 
 LOGGER = get_logger(__name__)
@@ -87,38 +88,12 @@ class LogChecksArtifacts(LogArtifact):
         return context
 
 
-class LogModelCheckpoint(LogArtifact):
-    def __init__(self, mlflow_manager: MLflowManager, sqlite_path: str):
-        super().__init__(
-            artifact_key=ArtifactPath.MODEL_CHECKPOINT,
-            sqlite_path=sqlite_path,
-            mlflow_manager=mlflow_manager,
-        )
-
-    def run(
-        self, context: dict, checkpoint_artifact_path: Optional[str] = None
-    ) -> dict:
-        local_path = checkpoint_artifact_path or context.get("checkpoint_artifact_path")
-        if local_path is None:
-            LOGGER.warning(
-                "checkpoint_artifact_path not provided, will not log model checkpoint"
-            )
-            return context
-        self.artifact_mgr.register_artifact(
-            run_id=self.mlflow_manager.run_id,
-            artifact_key=ArtifactPath.MODEL_CHECKPOINT,
-            local_path=local_path,
-            add_to_mlflow=True,
-        )
-        return context
-
-
 class LogDatasetMetadata(LogArtifact):
     def __init__(
         self,
         sqlite_path: str,
         mlflow_manager: MLflowManager,
-        dataset_name: str,
+        run_name: str,
         data_type: DataType,
     ):
         super().__init__(
@@ -126,7 +101,7 @@ class LogDatasetMetadata(LogArtifact):
             sqlite_path=sqlite_path,
             mlflow_manager=mlflow_manager,
         )
-        self.dataset_name = dataset_name
+        self.run_name = run_name
         self.data_type = data_type
 
     def run(
@@ -137,10 +112,10 @@ class LogDatasetMetadata(LogArtifact):
     ) -> dict:
         train_data = train_data or context.get("train_data")
         test_data = test_data or context.get("test_data")
-        dataset_name = self.dataset_name or context.get("dataset_name")
+        dataset_name = self.run_name or context.get("run_name")
 
         assert isinstance(dataset_name, str), (
-            f"dataset_name must be a string, got {type(dataset_name)}"
+            f"run_name must be a string, got {type(dataset_name)}"
         )
 
         data_statistics = get_data_statistics(
@@ -157,5 +132,49 @@ class LogDatasetMetadata(LogArtifact):
             artifact_key=ArtifactPath.DATASET,
             add_to_mlflow=True,
             artifacts=dataset_artifacts,
+        )
+        return context
+
+
+class LogModelCheckpoint(LogArtifact):
+    def __init__(
+        self,
+        run_name: str,
+        sqlite_path: str,
+        mlflow_manager: MLflowManager,
+    ):
+        super().__init__(
+            artifact_key=ArtifactPath.MODEL_CHECKPOINT,
+            sqlite_path=sqlite_path,
+            mlflow_manager=mlflow_manager,
+        )
+        self.run_name = run_name
+    def run(
+        self,
+        context: dict,
+        model: Optional[Any] = None,
+    ) -> dict:
+        model = model or context.get("model")
+        
+        if model is None:
+            LOGGER.warning("model not provided, will not log model metadata")
+            return context
+
+        # Extract model metadata
+        try:
+            artifacts = get_model_metadata(model)
+        except Exception as e:
+            LOGGER.error(f"Failed to extract model metadata: {str(e)}")
+            raise e
+
+        # Create model checkpoint artifacts with metadata
+        artifacts.path = context.get("model_checkpoint_path", None)
+        artifacts.model_type = model.__class__.__name__
+        artifacts.config = context.get("model_config", None)
+        self.artifact_mgr.register_artifact(
+            run_id=self.run_name,
+            artifact_key=ArtifactPath.MODEL_CHECKPOINT,
+            add_to_mlflow=True,
+            artifacts=artifacts,
         )
         return context

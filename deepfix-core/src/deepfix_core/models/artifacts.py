@@ -16,7 +16,7 @@ class ArtifactPath(StrEnum):
     # training artifacts
     TRAINING = "training_artifacts"
     TRAINING_METRICS = "metrics.csv"
-    MODEL_CHECKPOINT = "best_checkpoint"
+    MODEL_CHECKPOINT = "model_checkpoint"
     TRAINING_PARAMS = "params.yaml"
     # deepchecks artifacts
     DEEPCHECKS = "deepchecks"
@@ -111,11 +111,17 @@ class DeepchecksParsedResult(BaseModel):
 
 class Artifacts(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
-        raise NotImplementedError("to_dict method to be implemented in the subclass")
+        return self.model_dump()
 
     @classmethod
     def from_dict(cls, d: dict):
         return cls(**d)
+    
+    @classmethod
+    def from_file(cls, path: str) -> "Artifacts":
+        with open(path, "r", encoding="utf-8") as f:
+            d = yaml.safe_load(f)
+        return cls.from_dict(d)
 
 
 class DeepchecksArtifacts(Artifacts):
@@ -151,48 +157,29 @@ class DeepchecksArtifacts(Artifacts):
 
     @classmethod
     def from_file(
-        cls, file_path: Optional[str] = None, dir_path: Optional[str] = None
+        cls, file_path: str
     ) -> "DeepchecksArtifacts":
-        assert (file_path is None) ^ (dir_path is None), (
-            "Either file_path or dir_path must be provided"
-        )
-
-        file_path = (
-            file_path
-            if (file_path is not None)
-            else os.path.join(dir_path, ArtifactPath.DEEPCHECKS_ARTIFACTS.value)
-        )
         with open(file_path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
-
         artifacts = cls.from_dict(d)
-        if dir_path is not None:
-            artifacts.config = DeepchecksConfig.from_file(
-                os.path.join(dir_path, ArtifactPath.DEEPCHECKS_CONFIG.value)
-            )
-
         return artifacts
 
 
 class ModelCheckpointArtifacts(Artifacts):
-    path: str = Field(description="Path to the model checkpoint")
+    path: Optional[str] = Field(default=None, description="Path to the model checkpoint")
     config: Optional[Dict[str, Any]] = Field(
         default=None, description="Config of the model"
     )
+    model_type: Optional[str] = Field(
+        default=None, description="Type/class name of the model"
+    )
+    hyperparameters: Optional[Dict[str, Any]] = Field(
+        default=None, description="Model hyperparameters"
+    )
+    context: Optional[Dict[str, Any]] = Field(
+        default=None, description="Context of the model checkpoint"
+    )
 
-    def to_dict(self) -> Dict[str, Any]:
-        dumped_dict = self.model_dump()
-        return dumped_dict
-
-    @classmethod
-    def from_dict(cls, d: dict):
-        return cls(model_path=d["model_path"], model_config=d.get("config"))
-
-    @classmethod
-    def from_file(cls, path: str) -> "ModelCheckpointArtifacts":
-        with open(path, "r", encoding="utf-8") as f:
-            d = yaml.safe_load(f)
-        return cls.from_dict(d)
 
 
 ## Training Artifacts

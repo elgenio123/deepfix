@@ -81,14 +81,14 @@ class MLflowManager:
         mlflow.set_tracking_uri(self.tracking_uri)
 
     @classmethod
-    def from_config(cls, config: MLflowConfig) -> "MLflowManager":
+    def from_config(cls, config: MLflowConfig, run_name:str) -> "MLflowManager":
         return cls(
             tracking_uri=config.tracking_uri,
             experiment_name=config.experiment_name,
             run_id=config.run_id,
             dwnd_dir=config.download_dir,
             create_run_if_not_exists=config.create_run_if_not_exists,
-            run_name=config.run_name,
+            run_name=run_name,
         )
 
     def set_experiment(self, experiment_name: str) -> None:

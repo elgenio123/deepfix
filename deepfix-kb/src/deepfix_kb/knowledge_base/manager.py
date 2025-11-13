@@ -11,12 +11,10 @@ from llama_index.core.node_parser import (
     HierarchicalNodeParser,
     SentenceSplitter,
 )
-
-from ..agents.models import KnowledgeDocument, KnowledgeDomain, KnowledgeItem
-from ...utils.logging import get_logger
-from ..config import DefaultPaths
-
-logger = get_logger(__name__)
+from deepfix_core.models.defaults import DefaultPaths
+from ..config import KnowledgeDocument, KnowledgeDomain
+import logging
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeBaseManager:

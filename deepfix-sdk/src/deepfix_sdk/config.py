@@ -23,20 +23,14 @@ class MLflowConfig(BaseModel):
         default=DefaultPaths.MLFLOW_DOWNLOADS.value,
         description="Local directory for downloading artifacts",
     )
-    experiment_name: Optional[str] = Field(
-        default=None, description="MLflow experiment name (optional)"
-    )
     create_run_if_not_exists: bool = Field(
         default=False,
         description="Whether to create the run if it doesn't exist",
     )
-    run_name: Optional[str] = Field(default=None, description="MLflow run name")
-
-    dataset_experiment_name: str = Field(
-        default=DefaultPaths.DATASETS_EXPERIMENT_NAME.value,
-        description="MLflow experiment name for datasets",
+    experiment_name: str = Field(
+        default=DefaultPaths.EXPERIMENT_NAME.value,
+        description="MLflow experiment name for deepfix",
     )
-
     trace_dspy: bool = Field(
         default=True,
         description="Whether to trace dspy requests",
@@ -60,9 +54,8 @@ class MLflowConfig(BaseModel):
 
 class ArtifactConfig(BaseModel):
     """Configuration for artifact management."""
-
     load_training: bool = Field(
-        default=True, description="Whether to load training artifacts"
+        default=False, description="Whether to load training artifacts"
     )
     load_checks: bool = Field(
         default=True, description="Whether to load Deepchecks artifacts"
@@ -71,7 +64,7 @@ class ArtifactConfig(BaseModel):
         default=True, description="Whether to load dataset metadata"
     )
     load_model_checkpoint: bool = Field(
-        default=False, description="Whether to load model checkpoint"
+        default=True, description="Whether to load model checkpoint"
     )
     download_if_missing: bool = Field(
         default=True, description="Whether to download artifacts if not locally cached"

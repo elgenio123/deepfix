@@ -11,13 +11,12 @@ from ..config import PromptConfig
 from .deepchecks_prompt import DeepchecksPromptBuilder
 from .training_prompt import TrainingPromptBuilder
 from .dataset_prompt import DatasetPromptBuilder
+from .checkpoint_prompt import CheckpointPromptBuilder
 from .base import BasePromptBuilder
-from .instructions import get_instructions
 
 
 class PromptBuilderError(Exception):
     """Base exception for PromptBuilder errors."""
-
     pass
 
 
@@ -65,9 +64,7 @@ class PromptBuilder:
                     )
 
             # Combine all prompts
-            custom_instructions = getattr(self.config, "custom_instructions") or ""
-            prompt_parts.append(custom_instructions)
-            full_prompt = "\n\n".join(prompt_parts) + get_instructions(self.config)
+            full_prompt = "\n\n".join(prompt_parts)
 
             return full_prompt
 
@@ -92,5 +89,6 @@ class PromptBuilder:
             DeepchecksPromptBuilder(),
             TrainingPromptBuilder(),
             DatasetPromptBuilder(),
+            CheckpointPromptBuilder()
         ]
         return builders

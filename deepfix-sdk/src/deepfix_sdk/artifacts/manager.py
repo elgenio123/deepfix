@@ -221,19 +221,13 @@ class ArtifactsManager:
         artifacts = os.path.join(
             local_path, Path(ArtifactPath.DEEPCHECKS.value).with_suffix(".yaml")
         )
-        artifacts = DeepchecksArtifacts.from_file(artifacts)
-        return artifacts
+        return DeepchecksArtifacts.from_file(artifacts)
 
     def _load_model_checkpoint(self, local_path: str) -> ModelCheckpointArtifacts:
-        best_checkpoint = os.path.join(local_path, ArtifactPath.MODEL_CHECKPOINT.value)
-        artifacts = list(Path(best_checkpoint).iterdir())
-        assert len(artifacts) == 1, (
-            "There should be only one artifact in the best checkpoint"
+        artifacts = os.path.join(
+            local_path, Path(ArtifactPath.MODEL_CHECKPOINT.value).with_suffix(".yaml")
         )
-        assert artifacts[0].is_file(), (
-            "The artifact should be a file, but got a directory."
-        )
-        return ModelCheckpointArtifacts(model_path=str(artifacts[0]), model_config=None)
+        return ModelCheckpointArtifacts.from_file(artifacts)
 
     def _load_dataset_artifacts(self, local_path: str) -> DatasetArtifacts:
         artifacts = os.path.join(

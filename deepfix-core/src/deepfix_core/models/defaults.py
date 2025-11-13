@@ -165,6 +165,8 @@ class DefaultPaths(StrEnum):
     MLFLOW_DEFAULT_ARTIFACT_ROOT = _default_mlflow_artifact_root(_BASE_DIRS["data"])
 
     DATASETS_EXPERIMENT_NAME = "deepfix_datasets"
+    EXPERIMENT_NAME = "deepfix"
+    TRAINING_EXPERIMENT_NAME = "deepfix_training"
 
     ARTIFACTS_SQLITE_PATH = _default_sqlite_path(_BASE_DIRS["data"])
 

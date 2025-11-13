@@ -50,23 +50,22 @@ class DeepFixClient:
         """
         self.mlflow_config = mlflow_config or MLflowConfig()
         self.api_url = api_url
-        self.artifacts_loader: Optional[ArtifactLoadingPipeline] = None
         self.timeout = timeout
 
         self._analyze_endpoint = f"{self.api_url}/v1/analyse"
 
-    def diagnose_dataset(self, dataset_name: str, language: str = "english") -> APIResponse:
-        """Analyze a dataset and return diagnostic results with recommendations.
+    def diagnose(self, run_name: str, language: str = "english", dataset_name: Optional[str] = None) -> APIResponse:
+        """Analyze a run and return diagnostic results with recommendations.
 
-        This method performs a comprehensive analysis of the specified dataset to identify
+        This method performs a comprehensive analysis of the specified run to identify
         potential issues, quality problems, and provides AI-powered recommendations for
         improvement.
 
         Args:
-            dataset_name (str): Name of the dataset to analyze. Must match a dataset
+            run_name (str): Name of the run to analyze. Must match a run
                 that has been previously ingested.
             language (str, optional): Language for analysis output. Defaults to "english".
-
+            dataset_name (str, optional): Name of the dataset. Defaults to None.
         Returns:
             APIResponse: Response object containing:
                 - Analysis results and findings
@@ -79,23 +78,24 @@ class DeepFixClient:
             Exception: If the analysis request fails (non-200 status code).
 
         Example:
-            >>> response = client.diagnose_dataset(dataset_name="my-dataset")
+            >>> response = client.diagnose(run_name="my-run")
             >>> print(response.to_text())
         """
         artifact_config = ArtifactConfig(
             load_dataset_metadata=True,
-            load_checks=False,
-            load_model_checkpoint=False,
+            load_checks=True,
+            load_model_checkpoint=True,
             load_training=False,
         )
-        self.artifacts_loader = ArtifactLoadingPipeline(
+        loaded_artifacts = ArtifactLoadingPipeline(
             mlflow_config=self.mlflow_config,
             artifact_config=artifact_config,
-            dataset_name=dataset_name,
-        )
-        request = self._create_dataset_request(dataset_name=dataset_name, language=language)
+            run_name=run_name,
+        ).run()
+        request = self._create_dataset_request(run_name=run_name, language=language, dataset_name=dataset_name, loaded_artifacts=loaded_artifacts)
         response = self._send_request(request)
         return response
+            
 
     def ingest(
         self,
@@ -169,31 +169,31 @@ class DeepFixClient:
             model=model
         )
 
-    def _create_dataset_request(self, dataset_name: str, language: str = "english"):
+    def _create_dataset_request(self, run_name: str, language: str = "english", dataset_name: Optional[str] = None, loaded_artifacts: dict = None):
         """Create an API request for dataset analysis.
 
         Internal method that loads dataset artifacts and constructs an APIRequest
         object for sending to the DeepFix server.
 
         Args:
-            dataset_name (str): Name of the dataset to create request for.
+            run_name (str): Name of the run to create request for.
             language (str, optional): Language for analysis. Defaults to "english".
-
+            dataset_name (str, optional): Name of the dataset. Defaults to None.
         Returns:
             APIRequest: Request object configured with dataset artifacts and language.
 
         Raises:
             ValueError: If dataset artifacts are not found or have unexpected format.
         """
-        output = self.artifacts_loader.run()
-        cfg = {"dataset_name": dataset_name, "language": language}
-        value = output.get(ArtifactPath.DATASET.value)
+        cfg = {"dataset_name": dataset_name, "language": language, "run_name": run_name}
+        value = loaded_artifacts.get(ArtifactPath.DATASET.value)
         if value is None:
-            raise ValueError(f"Dataset artifacts not found for dataset {dataset_name}")
+            raise ValueError(f"Dataset artifacts not found for run {run_name}")
         if not isinstance(value, dict):
             raise ValueError(f"Expected a dictionary, got {type(value)}")
         cfg["dataset_artifacts"] = value.get(ArtifactPath.DATASET.value)
         cfg["deepchecks_artifacts"] = value.get(ArtifactPath.DEEPCHECKS.value)
+        cfg["model_checkpoint_artifacts"] = value.get(ArtifactPath.MODEL_CHECKPOINT.value)
         return APIRequest(**cfg)
 
     def _send_request(self, request: APIRequest) -> APIResponse:

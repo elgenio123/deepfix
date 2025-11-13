@@ -22,6 +22,10 @@ class Pipeline:
     def __init__(self, steps: list[Step]):
         self.steps = steps
         self.context = {}
+    
+    def append_steps(self, steps: list[Step]) -> None:
+        """Append additional steps to the pipeline."""
+        self.steps.extend(steps)
 
     def run(self, **kwargs) -> dict:
         """Execute the pipeline with provided context.

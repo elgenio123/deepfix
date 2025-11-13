@@ -165,7 +165,7 @@ class IngestionPipeline(Pipeline):
         random_state: int = 42,
         save_results: bool = False,
         output_dir: Optional[str] = None,
-        dataset_experiment_name: Optional[str] = None,
+        experiment_name: Optional[str] = None,
         overwrite: bool = False,
     ):
         self.sqlite_path = sqlite_path or DefaultPaths.ARTIFACTS_SQLITE_PATH
@@ -177,7 +177,7 @@ class IngestionPipeline(Pipeline):
         
         if model_evaluation:
             assert model_name is not None, "model_name must be provided if model_evaluation is True"
-            self.run_name = f"{dataset_name}-{model_name}"
+            self.run_name = f"{dataset_name}___{model_name}"
         else:
             self.run_name = dataset_name
         
@@ -195,15 +195,15 @@ class IngestionPipeline(Pipeline):
         self.mlflow_manager = MLflowManager(
             tracking_uri=mlflow_tracking_uri or DefaultPaths.MLFLOW_TRACKING_URI.value,
             create_run_if_not_exists=True,
-            experiment_name=dataset_experiment_name
-            or DefaultPaths.DATASETS_EXPERIMENT_NAME.value,
+            experiment_name=experiment_name
+            or DefaultPaths.EXPERIMENT_NAME.value,
             run_name=self.run_name,
         )
         self.do_checks = train_test_validation or data_integrity
         if self.check_if_exists(self.run_name, self.sqlite_path):
             if overwrite:
                 success = self.delete_artifact(
-                    self.run_name, self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
+                    self.run_name, sqlite_path=self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
                 )
                 if not success:
                     raise ValueError(
@@ -216,7 +216,7 @@ class IngestionPipeline(Pipeline):
 
         cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=self.sqlite_path)
         steps = [
-            LogDatasetMetadata(dataset_name=self.dataset_name, data_type=data_type, **cfg),
+            LogDatasetMetadata(run_name=self.run_name, data_type=data_type, **cfg),
         ]
         if train_test_validation or data_integrity:
             steps.extend(
@@ -228,6 +228,9 @@ class IngestionPipeline(Pipeline):
                     LogChecksArtifacts(**cfg),
                 ]
             )
+        if model_evaluation:
+            steps.append(LogModelCheckpoint(run_name=self.run_name, **cfg))
+        
         super().__init__(steps=steps)
 
     def delete_artifact(
@@ -280,8 +283,10 @@ class IngestionPipeline(Pipeline):
                 step.run(context=self.context)
         except Exception as e:
             success = self.delete_artifact(
-                    self.run_name, self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
+                    self.run_name, sqlite_path=self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
                 )
+            if not success:
+                LOGGER.error(f"Failed to delete existing run `{self.run_name}`")
             raise e
 
         return self.context
@@ -290,24 +295,15 @@ class IngestionPipeline(Pipeline):
 class ArtifactLoadingPipeline(Pipeline):
     def __init__(
         self,
-        dataset_name: Optional[str] = None,
+        run_name:str,
         mlflow_config: Optional[MLflowConfig] = None,
         artifact_config: Optional[ArtifactConfig] = None,
     ):
-        # Validate dataset_name early if required by config
-        if artifact_config and artifact_config.load_dataset_metadata:
-            if not isinstance(dataset_name, str):
-                raise ValueError(
-                    f"dataset_name must be a string when load_dataset_metadata is True, "
-                    f"got {type(dataset_name).__name__}"
-                )
-
-        self.dataset_name = dataset_name
+        
+        self.run_name = run_name
         self.mlflow_config = mlflow_config or MLflowConfig()
         self.artifact_config = artifact_config or ArtifactConfig()
-
-        self.mlflow_manager = MLflowManager.from_config(self.mlflow_config)
-        self.dataset_experiment_name = self.mlflow_config.dataset_experiment_name
+        self.mlflow_manager = MLflowManager.from_config(self.mlflow_config,run_name=run_name)
 
         super().__init__(steps=self._load_steps())
 
@@ -317,20 +313,13 @@ class ArtifactLoadingPipeline(Pipeline):
         cfg = dict(
             mlflow_manager=self.mlflow_manager,
             artifact_sqlite_path=self.artifact_config.sqlite_path,
+            run_name=self.run_name,
         )
 
         # Load dataset metadata if configured
         if self.artifact_config.load_dataset_metadata:
-            mlflow_manager = MLflowManager(
-                tracking_uri=self.mlflow_config.tracking_uri,
-                experiment_name=self.dataset_experiment_name,
-            )
             steps.append(
-                LoadDatasetArtifact(
-                    dataset_name=self.dataset_name,
-                    artifact_sqlite_path=self.artifact_config.sqlite_path,
-                    mlflow_manager=mlflow_manager,
-                )
+                LoadDatasetArtifact(**cfg)
             )
 
         # Load deepchecks artifacts if configured
@@ -354,39 +343,3 @@ class ArtifactLoadingPipeline(Pipeline):
 
         return steps
 
-    def append_steps(self, steps: list[Step]) -> None:
-        """Append additional steps to the pipeline."""
-        self.steps.extend(steps)
-
-    def run(self, **kwargs) -> dict:
-        """Execute the pipeline, passing context through all steps.
-
-        Args:
-            **kwargs: Initial context values to pass to steps
-
-        Returns:
-            dict: Context dictionary with results from each step stored by step name
-
-        Raises:
-            Exception: Re-raises any exception from a step after logging
-        """
-        self.context = {}
-        for step in self.steps:
-            try:
-                # Store the result in context using step name as key
-                result = step.run(context=self.context, **kwargs)
-                if hasattr(step, "name"):
-                    self.context[step.name] = result
-                else:
-                    # Fallback to class name if name property not available
-                    self.context[step.__class__.__name__] = result
-            except Exception as e:
-                LOGGER.error(
-                    "Error running step %s: %s",
-                    step.__class__.__name__,
-                    e,
-                    exc_info=True,
-                )
-                raise
-
-        return self.context
