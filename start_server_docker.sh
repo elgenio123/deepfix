@@ -14,5 +14,5 @@ mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////$MLFLOW_
 #    -fast-queue > "$LOG_DIR/cursor-agent.log" 2>&1 &
 
 echo "Starting deepfix server..."
- deepfix-server launch -port 8844 -host 0.0.0.0 \
+deepfix-server launch -port 8844 -host 0.0.0.0 \
     -workers 2 -fast-queue > "$LOG_DIR/server.log" 2>&1
