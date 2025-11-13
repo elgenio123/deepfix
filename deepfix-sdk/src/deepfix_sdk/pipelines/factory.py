@@ -219,9 +219,12 @@ class IngestionPipeline(Pipeline):
                     f"Run `{self.run_name}` already exists in the database. Use overwrite=True to overwrite it."
                 )
 
-        cfg = dict(mlflow_manager=self.mlflow_manager, sqlite_path=self.sqlite_path)
+        cfg = dict(mlflow_manager=self.mlflow_manager, 
+                                                            sqlite_path=self.sqlite_path,
+                                                            run_name=self.run_name
+                                                        )
         steps = [
-            LogDatasetMetadata(run_name=self.run_name, data_type=data_type, **cfg),
+            LogDatasetMetadata(data_type=data_type, **cfg),
         ]
         if train_test_validation or data_integrity:
             steps.extend(
@@ -234,7 +237,7 @@ class IngestionPipeline(Pipeline):
                 ]
             )
         if model_evaluation:
-            steps.append(LogModelCheckpoint(run_name=self.run_name, **cfg))
+            steps.append(LogModelCheckpoint(**cfg))
         
         super().__init__(steps=steps)
 

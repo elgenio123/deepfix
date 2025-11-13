@@ -23,20 +23,22 @@ class LogArtifact(Step):
         artifact_key: ArtifactPath,
         sqlite_path: str,
         mlflow_manager: MLflowManager,
+        run_name: str,
     ):
         self.artifact_key = artifact_key
         self.mlflow_manager = mlflow_manager
         self.artifact_mgr = ArtifactsManager(
             sqlite_path=sqlite_path, mlflow_manager=self.mlflow_manager
         )
-
+        self.run_name = run_name
 
 class LogTrainingArtifact(LogArtifact):
-    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager):
+    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.TRAINING,
             sqlite_path=sqlite_path,
             mlflow_manager=mlflow_manager,
+            run_name=run_name,
         )
 
     def run(
@@ -54,7 +56,7 @@ class LogTrainingArtifact(LogArtifact):
         df = self.mlflow_manager.get_run_metric_histories(metric_names=metric_names)
         training_artifacts = TrainingArtifacts(params=params, metrics_values=df)
         self.artifact_mgr.register_artifact(
-            run_id=self.mlflow_manager.run_id,
+            run_id=self.run_name,
             artifact_key=ArtifactPath.TRAINING,
             artifacts=training_artifacts,
             add_to_mlflow=True,
@@ -63,13 +65,13 @@ class LogTrainingArtifact(LogArtifact):
 
 
 class LogChecksArtifacts(LogArtifact):
-    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager):
+    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.DEEPCHECKS,
             sqlite_path=sqlite_path,
             mlflow_manager=mlflow_manager,
+            run_name=run_name,
         )
-
     def run(
         self,
         context: dict,
@@ -80,7 +82,7 @@ class LogChecksArtifacts(LogArtifact):
             "checks_artifacts must be provided in context or as an argument"
         )
         self.artifact_mgr.register_artifact(
-            run_id=self.mlflow_manager.run_id,
+            run_id=self.run_name,
             artifact_key=ArtifactPath.DEEPCHECKS,
             artifacts=checks_artifacts,
             add_to_mlflow=True,
@@ -100,8 +102,8 @@ class LogDatasetMetadata(LogArtifact):
             artifact_key=ArtifactPath.DATASET,
             sqlite_path=sqlite_path,
             mlflow_manager=mlflow_manager,
+            run_name=run_name,
         )
-        self.run_name = run_name
         self.data_type = data_type
 
     def run(
@@ -147,8 +149,9 @@ class LogModelCheckpoint(LogArtifact):
             artifact_key=ArtifactPath.MODEL_CHECKPOINT,
             sqlite_path=sqlite_path,
             mlflow_manager=mlflow_manager,
+            run_name=run_name,
         )
-        self.run_name = run_name
+
     def run(
         self,
         context: dict,
