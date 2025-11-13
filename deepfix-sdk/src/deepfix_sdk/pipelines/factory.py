@@ -149,6 +149,12 @@ class ChecksPipeline(Pipeline):
         return super().run(**self.context)
 
 
+def create_run_name(dataset_name: str, model_name: Optional[str] = None) -> str:
+    if model_name is not None:
+        return f"{dataset_name}___{model_name}"
+    return dataset_name
+
+
 class IngestionPipeline(Pipeline):
     def __init__(
         self,
@@ -177,9 +183,8 @@ class IngestionPipeline(Pipeline):
         
         if model_evaluation:
             assert model_name is not None, "model_name must be provided if model_evaluation is True"
-            self.run_name = f"{dataset_name}___{model_name}"
-        else:
-            self.run_name = dataset_name
+
+        self.run_name = create_run_name(dataset_name,model_name=model_name)
         
         deepchecks_config = DeepchecksConfig(
             model_evaluation=model_evaluation,
@@ -295,15 +300,16 @@ class IngestionPipeline(Pipeline):
 class ArtifactLoadingPipeline(Pipeline):
     def __init__(
         self,
-        run_name:str,
+        dataset_name:str,
+        model_name:Optional[str]=None,
         mlflow_config: Optional[MLflowConfig] = None,
         artifact_config: Optional[ArtifactConfig] = None,
     ):
         
-        self.run_name = run_name
+        self.run_name = create_run_name(dataset_name,model_name=model_name)
         self.mlflow_config = mlflow_config or MLflowConfig()
         self.artifact_config = artifact_config or ArtifactConfig()
-        self.mlflow_manager = MLflowManager.from_config(self.mlflow_config,run_name=run_name)
+        self.mlflow_manager = MLflowManager.from_config(self.mlflow_config,run_name=self.run_name)
 
         super().__init__(steps=self._load_steps())
 

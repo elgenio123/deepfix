@@ -3,6 +3,7 @@ from .factory import (
     IngestionPipeline,
     ChecksPipeline,
     ArtifactLoadingPipeline,
+    create_run_name,
 )
 from .base import Pipeline
 
@@ -12,4 +13,5 @@ __all__ = [
     "ChecksPipeline",
     "ArtifactLoadingPipeline",
     "Pipeline",
+    "create_run_name",
 ]

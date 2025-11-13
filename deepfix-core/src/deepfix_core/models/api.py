@@ -273,5 +273,5 @@ class APIRequest(BaseModel):
         default=None, description="Model checkpoint artifacts"
     )
     dataset_name: Optional[str] = Field(default=None, description="Name of the dataset")
-    run_name: Optional[str] = Field(default=None, description="Name of the run")
+    model_name: Optional[str] = Field(default=None, description="Name of the model")
     language: str = Field(default="english", description="Language of the analysis")
