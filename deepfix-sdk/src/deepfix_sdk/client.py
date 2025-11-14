@@ -84,7 +84,7 @@ class DeepFixClient:
         artifact_config = ArtifactConfig(
             load_dataset_metadata=True,
             load_checks=True,
-            load_model_checkpoint=False,
+            load_model_checkpoint=True,
             load_training=False,
         )
         loaded_artifacts = ArtifactLoadingPipeline(
@@ -93,7 +93,6 @@ class DeepFixClient:
             dataset_name=dataset_name,
             model_name=model_name,
         ).run()
-        #print(loaded_artifacts.keys())
         request = self._create_request(dataset_name=dataset_name, model_name=model_name, language=language, loaded_artifacts=loaded_artifacts)
         response = self._send_request(request)
         return response
