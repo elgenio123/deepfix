@@ -279,12 +279,10 @@ class ArtifactsManager:
             if isinstance(artifact_key, str)
             else artifact_key
         )
-        #if artifact_key == ArtifactPath.DATASET:
-        #    return self._delete_dataset_artifact(run_id, checks=True)
         rec = self.repo.get(run_id, artifact_key.value)
         if rec is None:
-            LOGGER.warning(
-                f"Artifact {artifact_key.value} not found for for run_id: {run_id}"
+            LOGGER.info(
+                f"Couldn't delete Artifact `{artifact_key.value}`. Not found for for run_id: {run_id}"
             )
             return None
         if rec.local_path:
