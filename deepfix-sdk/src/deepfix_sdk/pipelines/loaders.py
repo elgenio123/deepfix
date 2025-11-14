@@ -1,6 +1,4 @@
-from typing import Optional, List, Union
-from .base import Step
-from ..utils.logging import get_logger
+
 from deepfix_core.models import (
     ArtifactPath,
     DatasetArtifacts,
@@ -9,31 +7,24 @@ from deepfix_core.models import (
     TrainingArtifacts,
     ModelCheckpointArtifacts,
 )
-from ..integrations import MLflowManager
-from ..artifacts import ArtifactsManager
 
+from ..artifacts import ArtifactsManager
+from .base import Step
+from ..utils.logging import get_logger
 
 class LoadArtifact(Step):
     def __init__(
         self,
         artifact_key: ArtifactPath,
-        mlflow_manager: MLflowManager,
-        artifact_sqlite_path: str,
-        run_id: Optional[str] = None,
+        artifact_mgr: ArtifactsManager,
+        run_id: str
     ):
-        self.mlflow_manager = mlflow_manager
         self.artifact_key = artifact_key
-        self.artifact_mgr = ArtifactsManager(
-            sqlite_path=artifact_sqlite_path, mlflow_manager=self.mlflow_manager
-        )
-        self.run_id = run_id or self.mlflow_manager.run_id
+        self.artifact_mgr = artifact_mgr
+        self.run_id = run_id
         self.logger = get_logger(self.__class__.__name__)
 
     def run(self,context: dict, **kwargs) -> Artifacts:
-        if self.run_id is None:
-            raise ValueError(
-                f"run_id must be set in MLflowManager for artifact: {self.artifact_key}"
-            )
         self.logger.info(
             f"Loading artifact: {self.artifact_key} for run_id: {self.run_id}"
         )
@@ -48,11 +39,10 @@ class LoadArtifact(Step):
 
 
 class LoadTrainingArtifact(LoadArtifact):
-    def __init__(self, mlflow_manager: MLflowManager, artifact_sqlite_path: str, run_name: str):
+    def __init__(self, artifact_mgr: ArtifactsManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.TRAINING,
-            mlflow_manager=mlflow_manager,
-            artifact_sqlite_path=artifact_sqlite_path,
+            artifact_mgr=artifact_mgr,
             run_id=run_name,
         )
 
@@ -61,11 +51,10 @@ class LoadTrainingArtifact(LoadArtifact):
 
 
 class LoadDeepchecksArtifacts(LoadArtifact):
-    def __init__(self, mlflow_manager: MLflowManager, artifact_sqlite_path: str, run_name: str):
+    def __init__(self, artifact_mgr: ArtifactsManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.DEEPCHECKS,
-            mlflow_manager=mlflow_manager,
-            artifact_sqlite_path=artifact_sqlite_path,
+            artifact_mgr=artifact_mgr,
             run_id=run_name,
         )
 
@@ -74,11 +63,10 @@ class LoadDeepchecksArtifacts(LoadArtifact):
 
 
 class LoadModelCheckpoint(LoadArtifact):
-    def __init__(self, mlflow_manager: MLflowManager, artifact_sqlite_path: str, run_name: str):
+    def __init__(self, artifact_mgr: ArtifactsManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.MODEL_CHECKPOINT,
-            mlflow_manager=mlflow_manager,
-            artifact_sqlite_path=artifact_sqlite_path,
+            artifact_mgr=artifact_mgr,
             run_id=run_name,
         )
 
@@ -90,13 +78,11 @@ class LoadDatasetArtifact(LoadArtifact):
     def __init__(
         self,
         run_name: str,
-        mlflow_manager: MLflowManager,
-        artifact_sqlite_path: str,
+        artifact_mgr: ArtifactsManager,
     ):
         super().__init__(
             artifact_key=ArtifactPath.DATASET,
-            mlflow_manager=mlflow_manager,
-            artifact_sqlite_path=artifact_sqlite_path,
+            artifact_mgr=artifact_mgr,
             run_id=run_name,
         )
 

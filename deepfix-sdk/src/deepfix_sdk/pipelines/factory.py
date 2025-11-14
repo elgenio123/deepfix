@@ -17,7 +17,7 @@ from .loaders import (
 from ..data import BaseDataset
 from .data_ingestion import DataIngestor
 from .checks import Checks
-from ..artifacts import ArtifactRepository
+from ..artifacts import ArtifactRepository, ArtifactsManager
 from ..integrations import MLflowManager
 from ..config import DefaultPaths, MLflowConfig, ArtifactConfig
 from ..utils.logging import get_logger
@@ -25,6 +25,11 @@ from ..utils.logging import get_logger
 from deepfix_core.models import ArtifactPath, DeepchecksConfig, DataType
 
 LOGGER = get_logger(__name__)
+
+def create_run_name(dataset_name: str, model_name: Optional[str] = None) -> str:
+    if model_name is not None:
+        return f"{dataset_name}___{model_name}"
+    return dataset_name
 
 class TrainLoggingPipeline(Pipeline):
     def __init__(
@@ -123,17 +128,18 @@ class ChecksPipeline(Pipeline):
             DataIngestor(batch_size=deepchecks_config.batch_size, model=model),
             Checks(deepchecks_config=deepchecks_config, dataset_name=dataset_name, model_name=model_name),
         ]
+        run_name = create_run_name(dataset_name, model_name=model_name)
         if log_artifacts:
             mlflow_manager = MLflowManager(
                 tracking_uri=mlflow_tracking_uri
                 or DefaultPaths.MLFLOW_TRACKING_URI.value,
                 create_run_if_not_exists=True,
                 experiment_name=DefaultPaths.DATASETS_EXPERIMENT_NAME.value,
-                run_name=dataset_name,
+                run_name=run_name,
             )
             steps.append(
                 LogChecksArtifacts(
-                    mlflow_manager=mlflow_manager, sqlite_path=sqlite_path
+                    mlflow_manager=mlflow_manager, sqlite_path=sqlite_path, run_name=run_name
                 )
             )
         super().__init__(steps=steps)
@@ -147,12 +153,6 @@ class ChecksPipeline(Pipeline):
         self.context["test_data"] = test_data
         self.context["train_data"] = train_data
         return super().run(**self.context)
-
-
-def create_run_name(dataset_name: str, model_name: Optional[str] = None) -> str:
-    if model_name is not None:
-        return f"{dataset_name}___{model_name}"
-    return dataset_name
 
 
 class IngestionPipeline(Pipeline):
@@ -186,7 +186,7 @@ class IngestionPipeline(Pipeline):
 
         self.run_name = create_run_name(dataset_name,model_name=model_name)
         
-        deepchecks_config = DeepchecksConfig(
+        self.deepchecks_config = DeepchecksConfig(
             model_evaluation=model_evaluation,
             train_test_validation=train_test_validation,
             data_integrity=data_integrity,
@@ -205,24 +205,22 @@ class IngestionPipeline(Pipeline):
             run_name=self.run_name,
         )
         self.do_checks = train_test_validation or data_integrity
+        self.artifact_mgr = ArtifactsManager(
+                sqlite_path=self.sqlite_path, mlflow_manager=self.mlflow_manager
+            )
         if self.check_if_exists(self.run_name, self.sqlite_path):
             if overwrite:
-                success = self.delete_artifact(
-                    self.run_name, sqlite_path=self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
+                self.delete_artifact(
+                    self.run_name
                 )
-                if not success:
-                    raise ValueError(
-                        f"Failed to delete existing run `{self.run_name}`"
-                    )
             else:
                 raise ValueError(
                     f"Run `{self.run_name}` already exists in the database. Use overwrite=True to overwrite it."
                 )
 
-        cfg = dict(mlflow_manager=self.mlflow_manager, 
-                                                            sqlite_path=self.sqlite_path,
-                                                            run_name=self.run_name
-                                                        )
+        cfg = dict(artifact_mgr=self.artifact_mgr,
+                                                run_name=self.run_name
+                                            )
         steps = [
             LogDatasetMetadata(data_type=data_type, **cfg),
         ]
@@ -231,7 +229,7 @@ class IngestionPipeline(Pipeline):
                 [
                     DataIngestor(batch_size=batch_size, model=None),
                     Checks(
-                        deepchecks_config=deepchecks_config, dataset_name=self.dataset_name, model_name=self.model_name
+                        deepchecks_config=self.deepchecks_config, dataset_name=self.dataset_name, model_name=self.model_name
                     ),
                     LogChecksArtifacts(**cfg),
                 ]
@@ -244,36 +242,15 @@ class IngestionPipeline(Pipeline):
     def delete_artifact(
         self,
         run_name: str,
-        sqlite_path: str,
-        checks: bool = False,
-        delete_mlflow_run: bool = True,
-    ) -> bool:
-        repo = ArtifactRepository(sqlite_path)
-        record = repo.get(run_name, ArtifactPath.DATASET.value)
-        if record is None:
-            return False
+    ) -> None:
+        for artifact_key in ArtifactPath.__members__.values():
+            self.artifact_mgr.delete_artifact(run_name, artifact_key)
+            mlflow_run_id = self.artifact_mgr.get_mlflow_run_id(run_id=run_name, artifact_key=artifact_key)
+        if mlflow_run_id:
+            self.mlflow_manager.delete_run(mlflow_run_id)
+            LOGGER.info(f"Deleted MLflow run `{mlflow_run_id}`")
 
-        if delete_mlflow_run:
-            success = self.mlflow_manager.delete_run(record.mlflow_run_id)
-            if success:
-                LOGGER.info(f"Deleted MLflow run `{record.mlflow_run_id}`")
-
-        if checks:
-            success = repo.delete(
-                run_id=record.mlflow_run_id, artifact_key=ArtifactPath.DEEPCHECKS.value
-            )
-            if success:
-                LOGGER.info(
-                    f"Deleted deepchecks artifacts for run `{record.mlflow_run_id}`"
-                )
-
-        success = repo.delete(
-            run_id=run_name, artifact_key=ArtifactPath.DATASET.value
-        )
-        if success:
-            LOGGER.info(f"Deleted run `{run_name}`")
-
-        return success
+        return None
 
     def check_if_exists(self, run_name: str, sqlite_path: str) -> bool:
         repo = ArtifactRepository(sqlite_path)
@@ -290,11 +267,9 @@ class IngestionPipeline(Pipeline):
             for step in self.steps:
                 step.run(context=self.context)
         except Exception as e:
-            success = self.delete_artifact(
-                    self.run_name, sqlite_path=self.sqlite_path, checks=self.do_checks, delete_mlflow_run=True
+            self.delete_artifact(
+                    self.run_name
                 )
-            if not success:
-                LOGGER.error(f"Failed to delete existing run `{self.run_name}`")
             raise e
 
         return self.context
@@ -312,7 +287,8 @@ class ArtifactLoadingPipeline(Pipeline):
         self.run_name = create_run_name(dataset_name,model_name=model_name)
         self.mlflow_config = mlflow_config or MLflowConfig()
         self.artifact_config = artifact_config or ArtifactConfig()
-        self.mlflow_manager = MLflowManager.from_config(self.mlflow_config,run_name=self.run_name)
+        mlflow_manager = MLflowManager.from_config(self.mlflow_config,run_name=self.run_name)
+        self.artifact_mgr = ArtifactsManager(mlflow_manager=mlflow_manager, sqlite_path=self.artifact_config.sqlite_path)
 
         super().__init__(steps=self._load_steps())
 
@@ -320,8 +296,7 @@ class ArtifactLoadingPipeline(Pipeline):
         """Build steps based on configuration. Supports loading multiple artifact types."""
         steps = []
         cfg = dict(
-            mlflow_manager=self.mlflow_manager,
-            artifact_sqlite_path=self.artifact_config.sqlite_path,
+            artifact_mgr=self.artifact_mgr,
             run_name=self.run_name,
         )
 

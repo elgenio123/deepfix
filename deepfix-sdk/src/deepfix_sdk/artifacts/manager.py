@@ -21,7 +21,6 @@ from deepfix_core.models import (
     ModelCheckpointArtifacts,
 )
 from ..utils.logging import get_logger
-from ..config import MLflowConfig
 
 LOGGER = get_logger(__name__)
 
@@ -37,15 +36,6 @@ class ArtifactsManager:
         self.repo = ArtifactRepository(sqlite_path)
         self.checksum = ChecksumService()
         self.mlflow: MLflowManager = mlflow_manager
-
-    @classmethod
-    def from_config(
-        cls, mlflow_config: MLflowConfig, sqlite_path: str
-    ) -> "ArtifactsManager":
-        from ..integrations import MLflowManager
-
-        mlflow_manager = MLflowManager.from_config(mlflow_config)
-        return cls(mlflow_manager=mlflow_manager, sqlite_path=sqlite_path)
 
     def register_artifact(
         self,
@@ -251,7 +241,7 @@ class ArtifactsManager:
         record = self.repo.get(dataset_name, ArtifactPath.DATASET.value)
         if record is None:
             return False
-        mlflow_run_id = "" + record.mlflow_run_id
+        mlflow_run_id = record.mlflow_run_id
         success = self.repo.delete(
             run_id=dataset_name, artifact_key=ArtifactPath.DATASET.value
         )
@@ -289,8 +279,8 @@ class ArtifactsManager:
             if isinstance(artifact_key, str)
             else artifact_key
         )
-        if artifact_key == ArtifactPath.DATASET:
-            return self._delete_dataset_artifact(run_id, checks=True)
+        #if artifact_key == ArtifactPath.DATASET:
+        #    return self._delete_dataset_artifact(run_id, checks=True)
         rec = self.repo.get(run_id, artifact_key.value)
         if rec is None:
             LOGGER.warning(

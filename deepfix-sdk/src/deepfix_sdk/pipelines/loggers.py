@@ -12,7 +12,6 @@ from deepfix_core.models import (
 from ..artifacts import ArtifactsManager
 from ..data import BaseDataset, get_data_statistics
 from ..models import get_model_metadata
-from ..integrations import MLflowManager
 
 LOGGER = get_logger(__name__)
 
@@ -21,25 +20,22 @@ class LogArtifact(Step):
     def __init__(
         self,
         artifact_key: ArtifactPath,
-        sqlite_path: str,
-        mlflow_manager: MLflowManager,
+        artifact_mgr: ArtifactsManager,
         run_name: str,
     ):
         self.artifact_key = artifact_key
-        self.mlflow_manager = mlflow_manager
-        self.artifact_mgr = ArtifactsManager(
-            sqlite_path=sqlite_path, mlflow_manager=self.mlflow_manager
-        )
+        self.artifact_mgr = artifact_mgr
         self.run_name = run_name
 
+
 class LogTrainingArtifact(LogArtifact):
-    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager, run_name: str):
+    def __init__(self, artifact_mgr: ArtifactsManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.TRAINING,
-            sqlite_path=sqlite_path,
-            mlflow_manager=mlflow_manager,
+            artifact_mgr=artifact_mgr,
             run_name=run_name,
         )
+        self.mlflow_manager = self.artifact_mgr.mlflow_manager
 
     def run(
         self,
@@ -65,11 +61,10 @@ class LogTrainingArtifact(LogArtifact):
 
 
 class LogChecksArtifacts(LogArtifact):
-    def __init__(self, sqlite_path: str, mlflow_manager: MLflowManager, run_name: str):
+    def __init__(self, artifact_mgr: ArtifactsManager, run_name: str):
         super().__init__(
             artifact_key=ArtifactPath.DEEPCHECKS,
-            sqlite_path=sqlite_path,
-            mlflow_manager=mlflow_manager,
+            artifact_mgr=artifact_mgr,
             run_name=run_name,
         )
     def run(
@@ -93,15 +88,13 @@ class LogChecksArtifacts(LogArtifact):
 class LogDatasetMetadata(LogArtifact):
     def __init__(
         self,
-        sqlite_path: str,
-        mlflow_manager: MLflowManager,
+        artifact_mgr: ArtifactsManager,
         run_name: str,
         data_type: DataType,
     ):
         super().__init__(
             artifact_key=ArtifactPath.DATASET,
-            sqlite_path=sqlite_path,
-            mlflow_manager=mlflow_manager,
+            artifact_mgr=artifact_mgr,
             run_name=run_name,
         )
         self.data_type = data_type
@@ -142,13 +135,11 @@ class LogModelCheckpoint(LogArtifact):
     def __init__(
         self,
         run_name: str,
-        sqlite_path: str,
-        mlflow_manager: MLflowManager,
+        artifact_mgr: ArtifactsManager,
     ):
         super().__init__(
             artifact_key=ArtifactPath.MODEL_CHECKPOINT,
-            sqlite_path=sqlite_path,
-            mlflow_manager=mlflow_manager,
+            artifact_mgr=artifact_mgr,
             run_name=run_name,
         )
 
