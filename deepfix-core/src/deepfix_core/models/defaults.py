@@ -11,43 +11,72 @@ from platformdirs import (
     user_log_dir,
 )
 from pathlib import Path
+import logging
 
 
 
 # Defaults
+logger = logging.getLogger(__name__)
+
+
 def _get_base_dirs() -> Dict[str, Path]:
     """Resolve base directories with precedence:
     1) DEEPFIX_HOME env var
     2) platform-appropriate user dirs (via platformdirs)
     3) fallback to ~/.deepfix
-
-    Ensures directories exist.
+    4) temporary fallback to /tmp/deepfix (container environments)
+    
+    Ensures directories exist and are writable; skips to next candidate on permission errors.
     """
+    def _try_dirs(base_path: Path | None, label: str, dirs_dict: Dict[str, Path] | None = None) -> Dict[str, Path] | None:
+        """Try to create and verify writability of directory structure."""
+        try:
+            if dirs_dict is None:
+                dirs_dict = {"data": base_path / "data", "cache": base_path / "cache", "log": base_path / "logs"}
+            for d in dirs_dict.values():
+                d.mkdir(parents=True, exist_ok=True)
+                # Check writability with os.access()
+                if not os.access(d, os.W_OK):
+                    raise OSError(f"Directory not writable: {d}")
+            return dirs_dict
+        except OSError as exc:
+            logger.debug("%s not writable: %s", label, exc)
+            return None
+    
+    # Try DEEPFIX_HOME if set
     env_home = os.environ.get("DEEPFIX_HOME")
     if env_home:
-        base = Path(env_home).expanduser()
-        data_dir = base / "data"
-        cache_dir = base / "cache"
-        log_dir = base / "logs"
-    else:
-        try:
-            data_dir = Path(user_data_dir("deepfix", "deepfix"))
-            cache_dir = Path(user_cache_dir("deepfix", "deepfix"))
-            log_dir = Path(user_log_dir("deepfix", "deepfix"))
-        except:
-            base = Path("~/.deepfix").expanduser()
-            data_dir = base / "data"
-            cache_dir = base / "cache"
-            log_dir = base / "logs"
+        dirs = _try_dirs(Path(env_home).expanduser(), "DEEPFIX_HOME")
+        if dirs:
+            return dirs
 
-    for d in (data_dir, cache_dir, log_dir):
-        d.mkdir(parents=True, exist_ok=True)
+    # Try platformdirs (platform-appropriate user dirs)
+    try:
+        platformdirs_dict = {
+            "data": Path(user_data_dir("deepfix", "deepfix")),
+            "cache": Path(user_cache_dir("deepfix", "deepfix")),
+            "log": Path(user_log_dir("deepfix", "deepfix")),
+        }
+        dirs = _try_dirs(None, "platformdirs", platformdirs_dict)
+        if dirs:
+            return dirs
+    except Exception as exc:
+        logger.debug("platformdirs failed: %s", exc)
 
-    return {
-        "data": data_dir,
-        "cache": cache_dir,
-        "log": log_dir,
-    }
+    # Try ~/.deepfix
+    dirs = _try_dirs(Path("~/.deepfix").expanduser(), "~/.deepfix")
+    if dirs:
+        return dirs
+
+    # Fallback to /tmp/deepfix (container environments)
+    dirs = _try_dirs(Path("/tmp/deepfix"), "/tmp/deepfix")
+    if dirs:
+        logger.warning(
+            "Using temporary directory /tmp/deepfix; data may not persist across sessions."
+        )
+        return dirs
+    
+    raise RuntimeError("Unable to create any writable directories for Deepfix.")
 
 
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
