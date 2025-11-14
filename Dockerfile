@@ -54,6 +54,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
+# Install runtime dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
 EXPOSE 8844 5000
 RUN mkdir -p /logs && mkdir -p /mlflow
 VOLUME /logs /mlflow
