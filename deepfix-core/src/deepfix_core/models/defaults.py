@@ -46,7 +46,7 @@ def _get_base_dirs() -> Dict[str, Path]:
     # Try DEEPFIX_HOME if set
     env_home = os.environ.get("DEEPFIX_HOME")
     if env_home:
-        dirs = _try_dirs(Path(env_home).expanduser(), "DEEPFIX_HOME")
+        dirs = _try_dirs(Path(env_home), "DEEPFIX_HOME")
         if dirs:
             return dirs
 
