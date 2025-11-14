@@ -14,15 +14,15 @@ services:
       - ./server_mlflow_data:/mlflow
     restart: always
 
-  cursor-agent:
-    build: ./cursor_wrapper
-    image: cursor-agent:latest
-    ports:
-      - "8841:8841"
-    env_file:
-      - cursor_wrapper/.env
-    volumes:
-      - ./cursor_agent_logs:/logs
+  #cursor-agent:
+  #  build: ./cursor_wrapper
+  #  image: cursor-agent:latest
+  #  ports:
+  #    - "8841:8841"
+  #  env_file:
+  #    - cursor_wrapper/.env
+  #  volumes:
+  #    - ./cursor_agent_logs:/logs
 
 
 
