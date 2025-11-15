@@ -6,15 +6,14 @@ and return valid DeepchecksArtifacts without errors.
 """
 
 import pytest
-from deepfix.client.zoo.datasets.deepchecks_vision import load_mnist_classification
-from deepfix.client.zoo.datasets.deepchecks_tabular import load_adult_classification
-from deepfix.client.zoo.datasets.deepchecks_nlp import load_tweet_emotion_classification
-from deepfix_core.models import DeepchecksConfig, DeepchecksArtifacts
-
 from deepfix.client.integrations.deepchecks import (
-    DeepchecksRunnerForVision,
     DeepchecksRunnerForTabular,
+    DeepchecksRunnerForVision,
 )
+from deepfix.client.zoo.datasets.deepchecks_nlp import load_tweet_emotion_classification
+from deepfix.client.zoo.datasets.deepchecks_tabular import load_adult_classification
+from deepfix.client.zoo.datasets.deepchecks_vision import load_mnist_classification
+from deepfix_core.models import DeepchecksArtifacts, DeepchecksConfig
 
 
 class TestDeepchecksRunnerForVision:

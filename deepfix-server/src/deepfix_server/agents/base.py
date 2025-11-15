@@ -1,13 +1,14 @@
-from typing import List, Optional, Any
 from contextlib import contextmanager, nullcontext
+from typing import Any, List, Optional
+
 import dspy
-from ..config import PromptConfig, LLMConfig
-from ..prompt_builders import PromptBuilder
-from ..models import AgentContext, AgentResult, Artifacts
-from .signatures import ArtifactAnalysisSignature
 from deepfix_core.models import Artifacts
 
+from ..config import LLMConfig, PromptConfig
 from ..logging import get_logger
+from ..models import AgentContext, AgentResult, Artifacts
+from ..prompt_builders import PromptBuilder
+from .signatures import ArtifactAnalysisSignature
 
 LOGGER = get_logger(__name__)
 

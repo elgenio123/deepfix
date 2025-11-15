@@ -1,6 +1,8 @@
-import dspy
 import traceback
 from typing import Dict, Optional
+
+import dspy
+
 from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent, AgentResult
@@ -19,7 +21,11 @@ class CrossArtifactReasoningAgent(Agent):
         )
         self.llm = dspy.ChainOfThought(signature)
 
-    def run(self, previous_analyses: Dict[str, AgentResult], output_language: str = "english") -> AgentResult:
+    def run(
+        self,
+        previous_analyses: Dict[str, AgentResult],
+        output_language: str = "english",
+    ) -> AgentResult:
         try:
             return self(previous_analyses, output_language)
         except Exception as e:
@@ -28,8 +34,12 @@ class CrossArtifactReasoningAgent(Agent):
             )
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
-    def forward(self, previous_analyses: Dict[str, AgentResult],output_language: str = "english") -> AgentResult:
-        LOGGER.info(f"Running cross-artifact reasoning agent...")
+    def forward(
+        self,
+        previous_analyses: Dict[str, AgentResult],
+        output_language: str = "english",
+    ) -> AgentResult:
+        LOGGER.info("Running cross-artifact reasoning agent...")
 
         assert len(previous_analyses) > 0, "At least one analysis must be provided"
         with self._llm_context():

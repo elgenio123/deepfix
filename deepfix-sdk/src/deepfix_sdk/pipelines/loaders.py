@@ -1,30 +1,27 @@
-
 from deepfix_core.models import (
     ArtifactPath,
+    Artifacts,
     DatasetArtifacts,
     DeepchecksArtifacts,
-    Artifacts,
-    TrainingArtifacts,
     ModelCheckpointArtifacts,
+    TrainingArtifacts,
 )
 
 from ..artifacts import ArtifactsManager
-from .base import Step
 from ..utils.logging import get_logger
+from .base import Step
+
 
 class LoadArtifact(Step):
     def __init__(
-        self,
-        artifact_key: ArtifactPath,
-        artifact_mgr: ArtifactsManager,
-        run_id: str
+        self, artifact_key: ArtifactPath, artifact_mgr: ArtifactsManager, run_id: str
     ):
         self.artifact_key = artifact_key
         self.artifact_mgr = artifact_mgr
         self.run_id = run_id
         self.logger = get_logger(self.__class__.__name__)
 
-    def run(self,context: dict, **kwargs) -> Artifacts:
+    def run(self, context: dict, **kwargs) -> Artifacts:
         self.logger.info(
             f"Loading artifact: {self.artifact_key} for run_id: {self.run_id}"
         )
@@ -46,7 +43,7 @@ class LoadTrainingArtifact(LoadArtifact):
             run_id=run_name,
         )
 
-    def run(self,context: dict, **kwargs) -> TrainingArtifacts:
+    def run(self, context: dict, **kwargs) -> TrainingArtifacts:
         return super().run(context=context)
 
 
@@ -58,7 +55,7 @@ class LoadDeepchecksArtifacts(LoadArtifact):
             run_id=run_name,
         )
 
-    def run(self,context: dict, **kwargs) -> DeepchecksArtifacts:
+    def run(self, context: dict, **kwargs) -> DeepchecksArtifacts:
         return super().run(context=context)
 
 
@@ -70,7 +67,7 @@ class LoadModelCheckpoint(LoadArtifact):
             run_id=run_name,
         )
 
-    def run(self,context: dict, **kwargs) -> ModelCheckpointArtifacts:
+    def run(self, context: dict, **kwargs) -> ModelCheckpointArtifacts:
         return super().run(context=context)
 
 
@@ -86,5 +83,5 @@ class LoadDatasetArtifact(LoadArtifact):
             run_id=run_name,
         )
 
-    def run(self,context: dict, **kwargs) -> DatasetArtifacts:
+    def run(self, context: dict, **kwargs) -> DatasetArtifacts:
         return super().run(context=context)

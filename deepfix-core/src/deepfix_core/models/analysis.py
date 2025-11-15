@@ -1,8 +1,10 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+
 from enum import StrEnum
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
+from pydantic import BaseModel, Field
 
 
 # ============================================================================

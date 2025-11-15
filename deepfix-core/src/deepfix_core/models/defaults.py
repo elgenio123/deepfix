@@ -1,39 +1,35 @@
 from __future__ import annotations
-from typing import Dict, Any
-from enum import StrEnum
-import os
-from pydantic import BaseModel, Field
-from typing import Optional, Union
-from omegaconf import DictConfig, OmegaConf
-from platformdirs import (
-    user_data_dir,
-    user_cache_dir,
-    user_log_dir,
-)
-import tempfile
-from pathlib import Path
+
 import logging
+import os
+import tempfile
+from enum import StrEnum
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
-
+from omegaconf import DictConfig, OmegaConf
+from pydantic import BaseModel, Field
 
 # Defaults
 logger = logging.getLogger(__name__)
 
+
 def get_workdir():
     candidates = [
         Path.home() / ".deepfix",
-        Path("/content/.deepfix"), # for Google Colab
+        Path("/content/.deepfix"),  # for Google Colab
         Path(tempfile.gettempdir()) / ".deepfix",
     ]
-    
+
     for path in candidates:
-        parent = path.parent        
+        parent = path.parent
         # Check if parent exists and is writable
         if parent.exists() and os.access(parent, os.W_OK):
             path.mkdir(parents=True, exist_ok=True)
             return path
-    
+
     raise RuntimeError("No writable directory found")
+
 
 def _get_base_dirs() -> Dict[str, Path]:
     env_home = os.environ.get("DEEPFIX_HOME", get_workdir())
@@ -44,10 +40,11 @@ def _get_base_dirs() -> Dict[str, Path]:
             "log": env_home / "logs",
         }
 
+
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
     mlruns_dir = data_dir / "deepfix_mlflow"
     mlruns_dir.parent.mkdir(parents=True, exist_ok=True)
-    return mlruns_dir.resolve().as_uri() #.replace("file://", "sqlite://")
+    return mlruns_dir.resolve().as_uri()  # .replace("file://", "sqlite://")
 
 
 def _default_mlflow_downloads_dir(data_dir: Path) -> str:
@@ -96,10 +93,12 @@ def _default_knowledge_base_documents_dir(data_dir: Path) -> str:
 
 _BASE_DIRS = _get_base_dirs()
 
+
 class DataType(StrEnum):
     VISION = "vision"
     TABULAR = "tabular"
     NLP = "nlp"
+
 
 class TaskType(StrEnum):
     # tabular tasks
@@ -112,6 +111,7 @@ class TaskType(StrEnum):
     # NLP tasks
     TEXT_CLASSIFICATION = "text_classification"
     TEXT_TOKEN_CLASSIFICATION = "text_token_classification"
+
 
 class DeepchecksConfig(BaseModel):
     train_test_validation: bool = Field(

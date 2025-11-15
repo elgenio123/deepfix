@@ -5,13 +5,15 @@ This module provides the DeepchecksPromptBuilder for creating prompts
 from DeepchecksArtifacts instances.
 """
 
-from typing import Optional, Dict, Any
-from .base import BasePromptBuilder
+from typing import Any, Dict, Optional
+
 from deepfix_core.models import (
-    DeepchecksArtifacts,
     Artifacts,
+    DeepchecksArtifacts,
 )
 from omegaconf import OmegaConf
+
+from .base import BasePromptBuilder
 
 
 class DeepchecksPromptBuilder(BasePromptBuilder):
@@ -37,7 +39,7 @@ class DeepchecksPromptBuilder(BasePromptBuilder):
 
         # Add configuration context if available
         if artifact.config:
-            prompt_parts.append(f"\nValidation configuration:")
+            prompt_parts.append("\nValidation configuration:")
             prompt_parts.append(
                 f"- Train-test validation: {artifact.config.train_test_validation}"
             )

@@ -1,25 +1,23 @@
-import traceback
 import os
-from typing import Any, Tuple, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, Tuple
+
+import lightning as L
 import mlflow
-from omegaconf import OmegaConf
+import torch
+import torch.nn.functional as F
 from lightning import Trainer
 from lightning.pytorch.callbacks import (
-    ModelCheckpoint,
     EarlyStopping,
     LearningRateMonitor,
+    ModelCheckpoint,
 )
 from lightning.pytorch.loggers import MLFlowLogger
-from pathlib import Path
-import torch
-import lightning as L
-import torch.nn.functional as F
-from torchmetrics.classification import Accuracy, Precision, Recall, F1Score, AUROC
 from pydantic import BaseModel, Field
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
+from torchmetrics.classification import AUROC, Accuracy, F1Score, Precision, Recall
 
-from ...utils.logging import get_logger
 from ...integrations.lightning import DeepSightCallback
+from ...utils.logging import get_logger
 
 LOGGER = get_logger(__name__)
 

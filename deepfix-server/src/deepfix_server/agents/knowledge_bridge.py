@@ -1,30 +1,30 @@
 """KnowledgeBridge: Intelligent knowledge retrieval agent"""
 
-from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 import time
-from pathlib import Path
-import dspy
-from functools import partial
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+from pathlib import Path
+from typing import Callable, List, Optional, Tuple
 
+import dspy
 
-from .base import Agent
+from ..config import LLMConfig
+from ..knowledge_base.manager import KnowledgeBaseManager
+from ..logging import get_logger
 from ..models import (
     AgentKnowledgeRequest,
-    KnowledgeResponse,
-    KnowledgeItem,
-    KnowledgeDomain,
     EvidenceValidationResult,
+    KnowledgeDomain,
+    KnowledgeItem,
+    KnowledgeResponse,
     QueryGenerationResult,
 )
+from .base import Agent
 from .signatures import (
-    QueryGenerationSignature,
     EvidenceValidationSignature,
     KnowledgeBridgeReActSignature,
+    QueryGenerationSignature,
 )
-from ..config import LLMConfig
-from ..logging import get_logger
-from ..knowledge_base.manager import KnowledgeBaseManager
 
 LOGGER = get_logger(__name__)
 

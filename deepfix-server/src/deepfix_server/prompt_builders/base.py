@@ -5,7 +5,7 @@ This module provides the abstract base class for all prompt builders.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from deepfix_core.models import Artifacts
 

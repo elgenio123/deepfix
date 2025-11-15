@@ -1,11 +1,12 @@
-from typing import Optional, Dict, Any, List
 import json
+from typing import Any, Dict, Optional
+
+from deepfix_core.models import (
+    Artifacts,
+    ModelCheckpointArtifacts,
+)
 
 from .base import BasePromptBuilder
-from deepfix_core.models import (
-    ModelCheckpointArtifacts,
-    Artifacts,
-)
 
 
 class CheckpointPromptBuilder(BasePromptBuilder):
@@ -25,16 +26,20 @@ class CheckpointPromptBuilder(BasePromptBuilder):
         if artifact.path is not None:
             prompt_parts.append(f"\nModel checkpoint path: {artifact.path}")
         if artifact.config is not None:
-            prompt_parts.append(f"\nModel checkpoint config: {json.dumps(artifact.config, indent=2)}")
+            prompt_parts.append(
+                f"\nModel checkpoint config: {json.dumps(artifact.config, indent=2)}"
+            )
         if artifact.model_type is not None:
             prompt_parts.append(f"\nModel type: {artifact.model_type}")
         if artifact.hyperparameters:
-            prompt_parts.append(f"\nModel hyperparameters: {json.dumps(artifact.hyperparameters, indent=2)}")
+            prompt_parts.append(
+                f"\nModel hyperparameters: {json.dumps(artifact.hyperparameters, indent=2)}"
+            )
         if artifact.context:
             context_str = self._format_context(artifact.context)
             if context_str:
                 prompt_parts.append(f"\nContext:\n{context_str}")
-        
+
         if context:
             context_str = self._format_context(context)
             if context_str:

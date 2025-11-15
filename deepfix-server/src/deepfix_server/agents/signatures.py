@@ -1,16 +1,17 @@
 """DSPy signatures for agent reasoning"""
 
+from typing import List
+
 import dspy
-from typing import List, Optional
+from deepfix_core.models import Analysis
 
 from ..models import (
     AgentKnowledgeRequest,
     AgentResult,
-    QueryGenerationResult,
     EvidenceValidationResult,
     KnowledgeItem,
+    QueryGenerationResult,
 )
-from deepfix_core.models import Analysis
 
 
 class ArtifactAnalysisSignature(dspy.Signature):
@@ -19,9 +20,7 @@ class ArtifactAnalysisSignature(dspy.Signature):
     artifacts: str = dspy.InputField(
         desc="Structured artifacts (dataset, model checkpoint, training artifacts)"
     )
-    output_language: str = dspy.InputField(
-        desc="Language of the output analysis"
-    )
+    output_language: str = dspy.InputField(desc="Language of the output analysis")
     analysis: List[Analysis] = dspy.OutputField(
         desc="Findings and recommendations based on the artifacts"
     )
@@ -33,9 +32,7 @@ class CrossArtifactReasoningSignature(dspy.Signature):
     previous_analyses: List[AgentResult] = dspy.InputField(
         desc="Results from multiple artifact analyzers"
     )
-    output_language: str = dspy.InputField(
-        desc="Language of the output analysis"
-    )
+    output_language: str = dspy.InputField(desc="Language of the output analysis")
 
     analysis: List[Analysis] = dspy.OutputField(
         desc="Consolidated analysis with cross-artifact insights. Findings and recommendations based on the agents results"

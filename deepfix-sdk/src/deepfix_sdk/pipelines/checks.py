@@ -1,13 +1,17 @@
-from typing import Optional, Any
+from typing import Any, Optional
+
 from deepfix_core.models import DeepchecksConfig
 
-from .base import Step
 from ..integrations.deepchecks import get_deepchecks_runner
+from .base import Step
 
 
 class Checks(Step):
     def __init__(
-        self, deepchecks_config: DeepchecksConfig, dataset_name: Optional[str] = None, model_name: Optional[str]=None
+        self,
+        deepchecks_config: DeepchecksConfig,
+        dataset_name: Optional[str] = None,
+        model_name: Optional[str] = None,
     ):
         self.deepchecks_config = deepchecks_config
         self.dataset_name = dataset_name

@@ -1,4 +1,5 @@
-from typing import Optional, Callable
+from typing import Callable, Optional
+
 from ..data.datasets import BaseDataset
 from .base import Step
 

@@ -1,15 +1,23 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-import pandas as pd
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
+
 from io import StringIO
+from typing import Any, Dict, Optional
+
+import pandas as pd
+from pydantic import BaseModel, Field
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 from .analysis import AgentResult, Severity
-from .artifacts import DatasetArtifacts, DeepchecksArtifacts, ModelCheckpointArtifacts, TrainingArtifacts
+from .artifacts import (
+    DatasetArtifacts,
+    DeepchecksArtifacts,
+    ModelCheckpointArtifacts,
+    TrainingArtifacts,
+)
+
 
 # API Models
 class APIResponse(BaseModel):
@@ -39,7 +47,7 @@ class APIResponse(BaseModel):
         summary += "\nSeverity distribution:"
         summary += f"\n{df['finding_severity'].value_counts().to_dict()}"
 
-        summary += f"\nPriority distribution:"
+        summary += "\nPriority distribution:"
         # summary += f"\n{df['recommendation_priority'].value_counts().to_dict()}"
 
         for severity in df["finding_severity"].unique():
@@ -79,9 +87,11 @@ class APIResponse(BaseModel):
         df = self.get_results_as_dataframe()
 
         if not verbose:
-            mask = df["agent_name"].isin(['CrossArtifactReasoningAgent'])
+            mask = df["agent_name"].isin(["CrossArtifactReasoningAgent"])
             if not any(mask):
-                raise ValueError(f"No analysis results found for ``CrossArtifactReasoningAgent``. Available agents: {', '.join(self.agent_results.keys())}")
+                raise ValueError(
+                    f"No analysis results found for ``CrossArtifactReasoningAgent``. Available agents: {', '.join(self.agent_results.keys())}"
+                )
             df = df[mask]
 
         # Header Panel
@@ -146,12 +156,14 @@ class APIResponse(BaseModel):
             df_severity = df[df["finding_severity"] == severity]
 
             # Create a table for issues of this severity
-            issues_table = self._issues_table(df_severity, severity, severity_color, verbose=verbose)
+            issues_table = self._issues_table(
+                df_severity, severity, severity_color, verbose=verbose
+            )
             console.print(issues_table)
             console.print()
 
         # Agent-Specific Analysis
-        #if verbose:
+        # if verbose:
         #    agent_table = self._agent_table(df)
         #    console.print(agent_table)
 
@@ -197,7 +209,11 @@ class APIResponse(BaseModel):
         return stats_table
 
     def _issues_table(
-        self, df_severity: pd.DataFrame, severity: Severity, severity_color: str, verbose: bool = False
+        self,
+        df_severity: pd.DataFrame,
+        severity: Severity,
+        severity_color: str,
+        verbose: bool = False,
     ) -> Table:
         issues_table = Table(
             title=f"{severity.upper()} Severity Issues ({len(df_severity)})",
@@ -216,10 +232,10 @@ class APIResponse(BaseModel):
             if verbose:
                 issues_table.add_row(
                     str(i),
-                        row["agent_name"],
-                        f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
-                        f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
-                    )
+                    row["agent_name"],
+                    f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
+                    f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
+                )
             else:
                 issues_table.add_row(
                     str(i),
@@ -236,7 +252,7 @@ class APIResponse(BaseModel):
             header_style="bold blue",
             border_style="blue",
         )
-        #agent_table.add_column("Agent", style="blue bold", width=30)
+        # agent_table.add_column("Agent", style="blue bold", width=30)
         agent_table.add_column("Findings", justify="center", style="yellow", width=10)
         agent_table.add_column("Artifacts", style="black", width=30)
         agent_table.add_column("Summary", style="black", width=40)
@@ -251,11 +267,11 @@ class APIResponse(BaseModel):
             )
 
             agent_table.add_row(
-                            #agent,
-                            str(len(agent_df)), 
-                            artifacts, 
-                            summary
-                        )
+                # agent,
+                str(len(agent_df)),
+                artifacts,
+                summary,
+            )
         return agent_table
 
 

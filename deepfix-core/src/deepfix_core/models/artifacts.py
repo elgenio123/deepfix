@@ -1,12 +1,13 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any, Union
-from enum import StrEnum
-import os
+
 import math
-from omegaconf import DictConfig
+from enum import StrEnum
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
 import yaml
+from omegaconf import DictConfig
+from pydantic import BaseModel, Field, field_validator
 
 from .defaults import DeepchecksConfig, TaskType
 
@@ -116,7 +117,7 @@ class Artifacts(BaseModel):
     @classmethod
     def from_dict(cls, d: dict):
         return cls(**d)
-    
+
     @classmethod
     def from_file(cls, path: str) -> "Artifacts":
         with open(path, "r", encoding="utf-8") as f:
@@ -152,13 +153,14 @@ class DeepchecksArtifacts(Artifacts):
         if d.get("config"):
             config = DeepchecksConfig.from_dict(d["config"])
         return DeepchecksArtifacts(
-            dataset_name=d["dataset_name"], model_name=d.get("model_name"), results=results, config=config
+            dataset_name=d["dataset_name"],
+            model_name=d.get("model_name"),
+            results=results,
+            config=config,
         )
 
     @classmethod
-    def from_file(
-        cls, file_path: str
-    ) -> "DeepchecksArtifacts":
+    def from_file(cls, file_path: str) -> "DeepchecksArtifacts":
         with open(file_path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
         artifacts = cls.from_dict(d)
@@ -166,7 +168,9 @@ class DeepchecksArtifacts(Artifacts):
 
 
 class ModelCheckpointArtifacts(Artifacts):
-    path: Optional[str] = Field(default=None, description="Path to the model checkpoint")
+    path: Optional[str] = Field(
+        default=None, description="Path to the model checkpoint"
+    )
     config: Optional[Dict[str, Any]] = Field(
         default=None, description="Config of the model"
     )
@@ -179,7 +183,6 @@ class ModelCheckpointArtifacts(Artifacts):
     context: Optional[Dict[str, Any]] = Field(
         default=None, description="Context of the model checkpoint"
     )
-
 
 
 ## Training Artifacts
@@ -225,7 +228,6 @@ class TrainingArtifacts(Artifacts):
 
 
 class BaseDatasetStatistics(BaseModel):
-    
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
         for k in list(dumped_dict.keys()):
@@ -235,30 +237,59 @@ class BaseDatasetStatistics(BaseModel):
 
 
 class ObjectDetectionStatistics(BaseDatasetStatistics):
-    num_negative_samples: int = Field(description="Number of negative samples in the dataset")
-    num_positive_samples: int = Field(description="Number of positive samples in the dataset")
-    negative_positive_ratio: float = Field(description="Ratio of negative to positive samples")
+    num_negative_samples: int = Field(
+        description="Number of negative samples in the dataset"
+    )
+    num_positive_samples: int = Field(
+        description="Number of positive samples in the dataset"
+    )
+    negative_positive_ratio: float = Field(
+        description="Ratio of negative to positive samples"
+    )
     num_boxes: int = Field(description="Number of boxes in the dataset")
-    boxes_per_image: Optional[Dict[str, Any]] = Field(default=None, description="Boxes per image statistics")
-    box_width_stats: Optional[Dict[str, Any]] = Field(default=None, description="Box width statistics")
-    box_height_stats: Optional[Dict[str, Any]] = Field(default=None, description="Box height statistics")
-    box_area_stats: Optional[Dict[str, Any]] = Field(default=None, description="Box area statistics")
+    boxes_per_image: Optional[Dict[str, Any]] = Field(
+        default=None, description="Boxes per image statistics"
+    )
+    box_width_stats: Optional[Dict[str, Any]] = Field(
+        default=None, description="Box width statistics"
+    )
+    box_height_stats: Optional[Dict[str, Any]] = Field(
+        default=None, description="Box height statistics"
+    )
+    box_area_stats: Optional[Dict[str, Any]] = Field(
+        default=None, description="Box area statistics"
+    )
 
 
 class VisionStatistics(BaseDatasetStatistics):
     num_samples: int = Field(description="Number of samples in the dataset")
-    image_color_means: Optional[List[float]] = Field(default=None, description="Mean of the image color channels")
-    image_color_stds: Optional[List[float]] = Field(default=None, description="Standard deviation of the image color channels")
-    class_distribution: Optional[Dict[str, int]] = Field(default=None, description="Class distribution of target variable for classification tasks")
-    pixel_class_ratio: Optional[Dict[str, float]] = Field(default=None, description="Pixel class ratio for semantic segmentation")        
-    object_detection_statistics: Optional[ObjectDetectionStatistics] = Field(default=None, description="Object detection statistics of the dataset")
+    image_color_means: Optional[List[float]] = Field(
+        default=None, description="Mean of the image color channels"
+    )
+    image_color_stds: Optional[List[float]] = Field(
+        default=None, description="Standard deviation of the image color channels"
+    )
+    class_distribution: Optional[Dict[str, int]] = Field(
+        default=None,
+        description="Class distribution of target variable for classification tasks",
+    )
+    pixel_class_ratio: Optional[Dict[str, float]] = Field(
+        default=None, description="Pixel class ratio for semantic segmentation"
+    )
+    object_detection_statistics: Optional[ObjectDetectionStatistics] = Field(
+        default=None, description="Object detection statistics of the dataset"
+    )
 
-    other_statistics: Optional[Dict[str, Any]] = Field(default=None, description="Other statistics of the dataset")
+    other_statistics: Optional[Dict[str, Any]] = Field(
+        default=None, description="Other statistics of the dataset"
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()
         if self.object_detection_statistics is not None:
-            dumped_dict["object_detection_statistics"] = self.object_detection_statistics.to_dict()
+            dumped_dict["object_detection_statistics"] = (
+                self.object_detection_statistics.to_dict()
+            )
         for k in list(dumped_dict.keys()):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
@@ -268,7 +299,8 @@ class VisionStatistics(BaseDatasetStatistics):
 class TabularStatistics(BaseDatasetStatistics):
     # Feature statistics from describe() - nested dict: feature_name -> {stat_name -> value}
     feature_statistics: Optional[Dict[str, Dict[str, Any]]] = Field(
-        default=None, description="Statistical summary for each feature (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary for each feature (count, mean, std, min, 25%, 50%, 75%, max)",
     )
     number_unique_values: Optional[Dict[str, int]] = Field(
         default=None, description="Number of unique values per feature"
@@ -286,11 +318,14 @@ class TabularStatistics(BaseDatasetStatistics):
 
 class TextStatistics(BaseModel):
     """Statistics about text content."""
+
     character_length: Optional[Dict[str, Any]] = Field(
-        default=None, description="Statistical summary of character lengths (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary of character lengths (count, mean, std, min, 25%, 50%, 75%, max)",
     )
     word_count: Optional[Dict[str, Any]] = Field(
-        default=None, description="Statistical summary of word counts (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary of word counts (count, mean, std, min, 25%, 50%, 75%, max)",
     )
     vocabulary_size: Optional[int] = Field(
         default=None, description="Total number of unique words in the dataset"
@@ -309,20 +344,24 @@ class TextStatistics(BaseModel):
 
 class LabelStatistics(BaseModel):
     """Statistics about labels."""
+
     is_multi_label: Optional[bool] = Field(
         default=None, description="Whether the task is multi-label classification"
     )
     labels_per_sample: Optional[Dict[str, Any]] = Field(
-        default=None, description="Statistical summary of labels per sample for multi-label tasks (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary of labels per sample for multi-label tasks (count, mean, std, min, 25%, 50%, 75%, max)",
     )
     class_distribution: Optional[Dict[str, int]] = Field(
-        default=None, description="Distribution of classes for single-label tasks (class -> count)"
+        default=None,
+        description="Distribution of classes for single-label tasks (class -> count)",
     )
     num_classes: Optional[int] = Field(
         default=None, description="Number of classes in the dataset"
     )
     label_distribution_stats: Optional[Dict[str, Any]] = Field(
-        default=None, description="Statistical summary of label distribution (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary of label distribution (count, mean, std, min, 25%, 50%, 75%, max)",
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -335,8 +374,10 @@ class LabelStatistics(BaseModel):
 
 class PropertiesStatistics(BaseModel):
     """Statistics about text properties (similar to TabularStatistics)."""
+
     feature_statistics: Optional[Dict[str, Dict[str, Any]]] = Field(
-        default=None, description="Statistical summary for each property (count, mean, std, min, 25%, 50%, 75%, max)"
+        default=None,
+        description="Statistical summary for each property (count, mean, std, min, 25%, 50%, 75%, max)",
     )
     number_unique_values: Optional[Dict[str, int]] = Field(
         default=None, description="Number of unique values per property"
@@ -356,7 +397,8 @@ class PropertiesStatistics(BaseModel):
 class NLPStatistics(BaseDatasetStatistics):
     num_samples: int = Field(description="Number of samples in the dataset")
     task_type: Optional[str] = Field(
-        default=None, description="Type of NLP task (e.g., text_classification, text_token_classification)"
+        default=None,
+        description="Type of NLP task (e.g., text_classification, text_token_classification)",
     )
     text_statistics: Optional[TextStatistics] = Field(
         default=None, description="Statistics about the text content"
@@ -404,7 +446,6 @@ class DatasetArtifacts(Artifacts):
     test_statistics: Optional[Union[BaseDatasetStatistics, Dict[str, Any]]] = Field(
         default=None, description="Test statistics of the dataset"
     )
-        
 
     def to_dict(self) -> Dict[str, Any]:
         dumped_dict = self.model_dump()

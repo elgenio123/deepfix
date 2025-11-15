@@ -1,9 +1,10 @@
-from lightning.pytorch.callbacks import Callback
-import lightning as L
-from typing import Optional, List
+from typing import List, Optional
 
-from ..utils.logging import get_logger
+import lightning as L
+from lightning.pytorch.callbacks import Callback
+
 from ..pipelines.factory import TrainLoggingPipeline
+from ..utils.logging import get_logger
 
 LOGGER = get_logger(__name__)
 

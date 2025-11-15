@@ -5,8 +5,8 @@ This module provides convenient loaders for pre-built tabular datasets from the 
 supporting classification and regression tasks with automatic categorical feature detection.
 """
 
-from typing import Optional, Tuple
 import logging
+from typing import Optional, Tuple
 
 from deepchecks.tabular import Dataset
 from deepchecks.tabular.datasets import classification, regression

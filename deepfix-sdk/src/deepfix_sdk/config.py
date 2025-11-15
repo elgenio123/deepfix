@@ -6,9 +6,9 @@ including YAML loading, validation, and default value management.
 """
 
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
 
 from deepfix_core.models import DefaultPaths
+from pydantic import BaseModel, Field, field_validator
 
 
 class MLflowConfig(BaseModel):
@@ -54,6 +54,7 @@ class MLflowConfig(BaseModel):
 
 class ArtifactConfig(BaseModel):
     """Configuration for artifact management."""
+
     load_training: bool = Field(
         default=False, description="Whether to load training artifacts"
     )

@@ -1,15 +1,21 @@
-from torch.utils.data import Dataset
-from typing import Optional, Any, Callable, Protocol, Union, List, Dict
-import pandas as pd
+from typing import Any, Callable, Dict, List, Optional, Protocol, Union
+
 import numpy as np
-import torch
-from supervision.dataset.core import DetectionDataset
-from supervision.detection.core import Detections
+import pandas as pd
+from deepchecks.nlp import TextData
 from deepchecks.tabular import Dataset as DeepchecksTabularDataset
 from deepchecks.vision import VisionData
-from deepchecks.nlp import TextData
+from supervision.dataset.core import DetectionDataset
+from supervision.detection.core import Detections
+from torch import Tensor
+from torch.utils.data import Dataset
+
+from ..data.loader import (
+    ClassificationVisionDataLoader,
+    DetectionVisionDataLoader,
+    SegmentationVisionDataLoader,
+)
 from ..utils.logging import get_logger
-from ..data.loader import ClassificationVisionDataLoader, DetectionVisionDataLoader, SegmentationVisionDataLoader
 
 logger = get_logger(__name__)
 
@@ -121,25 +127,30 @@ class ObjectDetectionDataset(VisionDataset):
 
 
 class SemanticSegmentationDataset(VisionDataset):
-
-    def __init__(self, dataset_name: str, dataset: Dataset, label_map: Optional[Dict[int, str]] = None):
-        assert isinstance(dataset, Dataset), f"dataset must be an instance of Dataset. Received: {type(dataset)}"
+    def __init__(
+        self,
+        dataset_name: str,
+        dataset: Dataset,
+        label_map: Optional[Dict[int, str]] = None,
+    ):
+        assert isinstance(dataset, Dataset), (
+            f"dataset must be an instance of Dataset. Received: {type(dataset)}"
+        )
         super().__init__(dataset_name=dataset_name, dataset=dataset)
         self.label_map = label_map
-        
-    
+
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx) -> Dict[str, Union[np.ndarray, np.ndarray]]:
         image, annotation = self.dataset[idx]
-        c = image.shape[0]        
-        if isinstance(image, torch.Tensor):
+        c = image.shape[0]
+        if isinstance(image, Tensor):
             image = image.cpu().numpy()
-        if isinstance(annotation, torch.Tensor):
+        if isinstance(annotation, Tensor):
             annotation = annotation.cpu().long().numpy()
         if c in [1, 3]:
-            image = image.transpose(1, 2, 0) # (c,h,w) -> (h,w,c)
+            image = image.transpose(1, 2, 0)  # (c,h,w) -> (h,w,c)
         return dict(image=image, label=annotation)
 
     def __iter__(self):
@@ -150,12 +161,12 @@ class SemanticSegmentationDataset(VisionDataset):
             return {i: f"class_{i}" for i in range(len(self.dataset))}
         self.label_map = self._build_label_map()
         return self.label_map
-    
+
     def _build_label_map(self) -> Dict[int, str]:
         label_map = set()
         for idx in range(self.__len__()):
-            label = self.dataset[idx]['label']
-            if isinstance(label, torch.Tensor):
+            label = self.dataset[idx]["label"]
+            if isinstance(label, Tensor):
                 label = label.view(-1)
             elif isinstance(label, np.ndarray):
                 label = label.ravel()
@@ -163,7 +174,12 @@ class SemanticSegmentationDataset(VisionDataset):
             label_map = label_map.union(set(label.flatten()))
         return {int(i): f"class_{i}" for i in label_map}
 
-    def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8, shuffle: bool = False) -> VisionData:
+    def to_loader(
+        self,
+        model: Optional[Callable] = None,
+        batch_size: int = 8,
+        shuffle: bool = False,
+    ) -> VisionData:
         if isinstance(self.dataset, VisionData):
             return self.dataset
         else:
@@ -209,21 +225,21 @@ class TabularDataset(BaseDataset):
 
     def get_data(self) -> pd.DataFrame:
         return self.dataset.data.copy()
-    
+
     @property
     def X(self) -> pd.DataFrame:
         x = self.get_data().drop(columns=[self.dataset.label_name])
         x[self.cat_features] = x[self.cat_features].astype("category")
         return x
-    
+
     @property
     def y(self) -> pd.Series:
         return self.dataset.label_col.copy()
-    
+
     @property
     def cat_features(self) -> List[str]:
         return self.dataset.cat_features
-    
+
     @property
     def num_features(self) -> List[str]:
         return self.dataset.numerical_features
@@ -239,6 +255,6 @@ class NLPDataset(BaseDataset):
 
     def to_loader(self, *args, **kwargs) -> TextData:
         return self.dataset
-    
+
     def __len__(self):
         return len(self.dataset)

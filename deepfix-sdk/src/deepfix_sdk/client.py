@@ -1,14 +1,15 @@
 from __future__ import annotations
-from typing import Any, Optional, TYPE_CHECKING, Union
+
 import os
+from typing import TYPE_CHECKING, Any, Optional, Union
+
 import requests
-from rich.console import Console
-from rich.spinner import Spinner
-from rich.live import Live
-
 from deepfix_core.models import APIRequest, APIResponse, ArtifactPath, DataType
+from rich.console import Console
+from rich.live import Live
+from rich.spinner import Spinner
 
-from .config import MLflowConfig, ArtifactConfig
+from .config import ArtifactConfig, MLflowConfig
 
 if TYPE_CHECKING:
     from .data.datasets import BaseDataset
@@ -56,7 +57,12 @@ class DeepFixClient:
 
         self._analyze_endpoint = f"{self.api_url}/v1/analyse"
 
-    def diagnose(self, dataset_name: str, language: str = "english", model_name: Optional[str] = None) -> APIResponse:
+    def diagnose(
+        self,
+        dataset_name: str,
+        language: str = "english",
+        model_name: Optional[str] = None,
+    ) -> APIResponse:
         """Analyze a run and return diagnostic results with recommendations.
 
         This method performs a comprehensive analysis of the specified run to identify
@@ -84,6 +90,7 @@ class DeepFixClient:
             >>> print(response.to_text())
         """
         from .pipelines import ArtifactLoadingPipeline
+
         artifact_config = ArtifactConfig(
             load_dataset_metadata=True,
             load_checks=True,
@@ -96,10 +103,14 @@ class DeepFixClient:
             dataset_name=dataset_name,
             model_name=model_name,
         ).run()
-        request = self._create_request(dataset_name=dataset_name, model_name=model_name, language=language, loaded_artifacts=loaded_artifacts)
+        request = self._create_request(
+            dataset_name=dataset_name,
+            model_name=model_name,
+            language=language,
+            loaded_artifacts=loaded_artifacts,
+        )
         response = self._send_request(request)
         return response
-            
 
     def ingest(
         self,
@@ -108,7 +119,7 @@ class DeepFixClient:
         train_data: BaseDataset,
         test_data: Optional[BaseDataset] = None,
         model: Any = None,
-        model_name:Optional[str]=None,
+        model_name: Optional[str] = None,
         batch_size: int = 8,
         overwrite: bool = False,
     ) -> None:
@@ -157,7 +168,8 @@ class DeepFixClient:
             ...     batch_size=16
             ... )
         """
-        from .pipelines import  IngestionPipeline
+        from .pipelines import IngestionPipeline
+
         dataset_logging_pipeline = IngestionPipeline(
             dataset_name=dataset_name,
             data_type=data_type,
@@ -169,12 +181,16 @@ class DeepFixClient:
             model_name=model_name,
         )
         dataset_logging_pipeline.run(
-            train_data=train_data,
-            test_data=test_data,
-            model=model
+            train_data=train_data, test_data=test_data, model=model
         )
 
-    def _create_request(self, dataset_name: str, model_name: str, language: str = "english", loaded_artifacts: dict = None):
+    def _create_request(
+        self,
+        dataset_name: str,
+        model_name: str,
+        language: str = "english",
+        loaded_artifacts: dict = None,
+    ):
         """Create an API request for analysis.
 
         Internal method that loads dataset artifacts and constructs an APIRequest
@@ -191,11 +207,21 @@ class DeepFixClient:
         Raises:
             ValueError: If dataset artifacts are not found or have unexpected format.
         """
-        cfg = {"dataset_name": dataset_name, "language": language, "model_name": model_name}
+        cfg = {
+            "dataset_name": dataset_name,
+            "language": language,
+            "model_name": model_name,
+        }
         request = APIRequest(**cfg)
-        request.dataset_artifacts = loaded_artifacts.get(ArtifactPath.DATASET.value, None)
-        request.deepchecks_artifacts = loaded_artifacts.get(ArtifactPath.DEEPCHECKS.value, None)
-        request.model_checkpoint_artifacts = loaded_artifacts.get(ArtifactPath.MODEL_CHECKPOINT.value, None)
+        request.dataset_artifacts = loaded_artifacts.get(
+            ArtifactPath.DATASET.value, None
+        )
+        request.deepchecks_artifacts = loaded_artifacts.get(
+            ArtifactPath.DEEPCHECKS.value, None
+        )
+        request.model_checkpoint_artifacts = loaded_artifacts.get(
+            ArtifactPath.MODEL_CHECKPOINT.value, None
+        )
         return request
 
     def _send_request(self, request: APIRequest) -> APIResponse:
@@ -224,7 +250,10 @@ class DeepFixClient:
             payload = request.model_dump()
             headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
             response = requests.post(
-                self._analyze_endpoint, json=payload, timeout=self.timeout, headers=headers
+                self._analyze_endpoint,
+                json=payload,
+                timeout=self.timeout,
+                headers=headers,
             )
 
             if response.status_code != 200:

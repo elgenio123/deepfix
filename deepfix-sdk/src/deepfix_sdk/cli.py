@@ -1,5 +1,6 @@
 import subprocess
 import sys
+
 import typer
 from deepfix_core.models import DefaultPaths
 
@@ -13,12 +14,12 @@ app = typer.Typer(
 @app.command(name="version")
 def version() -> None:
     """Print the version of the DeepFix SDK."""
-    typer.echo(f"DeepFix SDK version: 0.1.0")
+    typer.echo("DeepFix SDK version: 0.1.0")
 
 
 @app.command(name="launch-mlflow")
 def launch_mlflow_server(
-    port: int = typer.Option(5000,"-port", help="Port to run MLflow server on"),
+    port: int = typer.Option(5000, "-port", help="Port to run MLflow server on"),
     host: str = typer.Option("0.0.0.0", "-host", help="Host to bind MLflow server to"),
 ) -> None:
     """Launch MLflow tracking server."""

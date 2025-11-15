@@ -5,27 +5,28 @@ This module provides utility functions for extracting metadata from various
 machine learning models, particularly scikit-learn compatible models.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from deepfix_core.models import ModelCheckpointArtifacts
 
+
 def get_model_metadata(model: Any) -> ModelCheckpointArtifacts:
-    if not hasattr(model, 'get_params'):
+    if not hasattr(model, "get_params"):
         raise ValueError(
             f"Model of type {type(model).__name__} does not have a 'get_params' method. "
             "Only scikit-learn compatible models (BaseEstimator subclasses) are currently supported."
         )
-    
+
     # Extract model type (class name)
     model_type = type(model).__name__
     class_docstring = model.__class__.__doc__
-    
+
     # Extract hyperparameters using get_params with deep=False to avoid nested objects
     try:
         hyperparameters = model.get_params(deep=False)
     except Exception as e:
         raise ValueError(f"Failed to extract parameters from model: {str(e)}")
-    
+
     # Convert any non-serializable parameter values to strings
     serialized_params = {}
     for key, value in hyperparameters.items():
@@ -36,7 +37,9 @@ def get_model_metadata(model: Any) -> ModelCheckpointArtifacts:
             elif isinstance(value, (list, tuple)):
                 # Try to serialize lists/tuples, convert to string if it fails
                 try:
-                    serialized_params[key] = list(value) if isinstance(value, tuple) else value
+                    serialized_params[key] = (
+                        list(value) if isinstance(value, tuple) else value
+                    )
                 except:
                     serialized_params[key] = str(value)
             elif isinstance(value, dict):
@@ -46,10 +49,9 @@ def get_model_metadata(model: Any) -> ModelCheckpointArtifacts:
                 serialized_params[key] = str(value)
         except Exception:
             serialized_params[key] = str(value)
-    
+
     return ModelCheckpointArtifacts(
         model_type=model_type,
         hyperparameters=serialized_params,
-        context={'class_docstring': class_docstring},
+        context={"class_docstring": class_docstring},
     )
-

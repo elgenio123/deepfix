@@ -5,11 +5,11 @@ This module provides convenient loaders for pre-built vision datasets from the D
 supporting classification, object detection, and segmentation tasks.
 """
 
-from typing import Optional, Tuple, Union
 import logging
-from deepchecks.vision import VisionData
-from deepchecks.vision.datasets import detection, classification
+from typing import Optional, Tuple, Union
+
 import torch
+from deepchecks.vision.datasets import classification, detection
 
 try:
     from deepchecks.vision.datasets.segmentation import segmentation_coco
@@ -53,7 +53,7 @@ def load_mnist_classification(
         - 'DataLoader': torch.utils.data.DataLoader object
         - 'both': Tuple of (train_vision_data, test_vision_data) if train=True
     """
-    
+
     object_type = "DataLoader"
     try:
         train_data = classification.mnist_torch.load_dataset(  # type: ignore
@@ -77,7 +77,7 @@ def load_mnist_classification(
             n_samples=n_samples,
         )
         return train_data, test_data
-        
+
     except Exception as e:
         LOGGER.error("Failed to load MNIST classification dataset: %s", str(e))
         raise e
@@ -110,7 +110,7 @@ def load_coco_detection(
     Returns:
         Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]
     """
-    
+
     if detection is None:
         raise ImportError("DeepChecks vision module not installed")
 
@@ -219,10 +219,10 @@ def load_segmentation_dataset(
     Raises:
         ImportError: If DeepChecks vision module is not installed
     """
-    
+
     if segmentation_coco is None:
         raise ImportError("DeepChecks vision module not installed")
-    
+
     object_type = "DataLoader"
 
     try:

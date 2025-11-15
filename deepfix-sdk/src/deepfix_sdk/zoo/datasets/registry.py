@@ -5,10 +5,10 @@ This module provides a centralized registry for all available datasets (vision, 
 enabling easy discovery and loading of datasets through a unified interface.
 """
 
-from typing import Any, Callable, Dict, List, Optional
 import logging
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
 LOGGER = logging.getLogger(__name__)
 
@@ -273,8 +273,8 @@ class DatasetRegistry:
         """Register tabular regression datasets."""
         from .deepchecks_tabular import (
             load_airbnb_regression,
-            load_wine_quality_regression,
             load_avocado_regression,
+            load_wine_quality_regression,
         )
 
         self.register(
@@ -319,8 +319,8 @@ class DatasetRegistry:
     def _register_nlp_classification(self) -> None:
         """Register NLP classification datasets."""
         from .deepchecks_nlp import (
-            load_tweet_emotion_classification,
             load_just_dance_comment_classification,
+            load_tweet_emotion_classification,
         )
 
         self.register(

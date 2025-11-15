@@ -5,18 +5,19 @@ This module provides the TrainingPromptBuilder for creating prompts
 from TrainingArtifacts instances.
 """
 
-from typing import Optional, Dict, Any, List
+import math
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-import math
+from deepfix_core.models import (
+    Artifacts,
+    TrainingArtifacts,
+)
 
 from .base import BasePromptBuilder
-from deepfix_core.models import (
-    TrainingArtifacts,
-    Artifacts,
-)
 
 
 class CurvePlotter:
@@ -99,12 +100,12 @@ class TrainingPromptBuilder(BasePromptBuilder):
                 .with_stem("training_curves")
             )
             plotter.plot(artifact.metrics_values, save_path=plot_path)
-            prompt_parts.append(f"\nTraining curves:")
+            prompt_parts.append("\nTraining curves:")
             prompt_parts.append(
                 f"- Open the image file to see the training curves: {plot_path}"
             )
         else:
-            prompt_parts.append(f"\nTraining curves:")
+            prompt_parts.append("\nTraining curves:")
             flat_metrics = {}
             for name, df in artifact.metrics_values.groupby("key"):
                 flat_metrics[name] = df.sort_values(by=["step"])["value"].to_list()
@@ -114,7 +115,7 @@ class TrainingPromptBuilder(BasePromptBuilder):
 
         # Add training parameters if available
         if artifact.params:
-            prompt_parts.append(f"\nTraining parameters:")
+            prompt_parts.append("\nTraining parameters:")
             for key, value in artifact.params.items():
                 prompt_parts.append(f"- {key}: {value}")
 

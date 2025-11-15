@@ -1,13 +1,13 @@
-import litserve as ls
-from fastapi import HTTPException
 import traceback
 
+import litserve as ls
 from deepfix_core.models import APIRequest, APIResponse
+from fastapi import HTTPException
 
-from .coordinators import ArtifactAnalysisCoordinator
-from .models import AgentContext
 from .config import LLMConfig
+from .coordinators import ArtifactAnalysisCoordinator
 from .logging import get_logger, setup_dspy_logging
+from .models import AgentContext
 
 LOGGER = get_logger(__name__)
 
@@ -52,15 +52,21 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 dataset_name=request_ctx.dataset_name,
             )
             return response
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=500, detail=traceback.format_exc())
 
 
-def run_analyse_artifacts_api(port:int=4141, host:str="0.0.0.0", workers_per_device:int=1,fast_queue:bool=False):
-    server = ls.LitServer(AnalyseArtifactsAPI(api_path="/v1/analyse"),
-                        workers_per_device=workers_per_device,
-                        fast_queue=fast_queue
-                    )
+def run_analyse_artifacts_api(
+    port: int = 4141,
+    host: str = "0.0.0.0",
+    workers_per_device: int = 1,
+    fast_queue: bool = False,
+):
+    server = ls.LitServer(
+        AnalyseArtifactsAPI(api_path="/v1/analyse"),
+        workers_per_device=workers_per_device,
+        fast_queue=fast_queue,
+    )
     server.run(
         host=host,
         port=port,

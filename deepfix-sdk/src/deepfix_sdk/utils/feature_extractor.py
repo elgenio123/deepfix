@@ -5,16 +5,14 @@ This module provides feature extraction capabilities for clustering
 and filtering algorithms in object detection training data selection.
 """
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from contextlib import nullcontext
+from typing import List, Union
 
-import torch
-from PIL import Image
 import timm
+import torch
 import torch.nn as nn
 import torchvision.transforms as T
-
-from contextlib import nullcontext
+from PIL import Image
 
 
 class FeatureExtractor(nn.Module):

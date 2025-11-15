@@ -1,10 +1,12 @@
-from typing import Optional, List
+from typing import List, Optional
+
 import dspy
+
+from ..config import LLMConfig
 from .base import Agent
 from .knowledge_bridge import KnowledgeBridge
 from .models import AgentResult
 from .signatures import OptimizationRecommendationSignature
-from ..config import LLMConfig
 
 
 class OptimizationAdvisorAgent(Agent):

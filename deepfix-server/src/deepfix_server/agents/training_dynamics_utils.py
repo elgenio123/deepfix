@@ -2,9 +2,10 @@
 Training dynamics analysis utilities centered around `TrainingDynamicsAnalyzer`.
 """
 
-import pandas as pd
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
-from typing import Dict, Any, List, Tuple
+import pandas as pd
 from deepfix_core.models import Severity
 
 

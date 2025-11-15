@@ -2,21 +2,23 @@
 Main PromptBuilder class for orchestrating prompt creation from existing Pydantic models.
 """
 
-from typing import Optional, Dict, Any, List
 import traceback
+from typing import Any, Dict, List, Optional
 
-from ..logging import get_logger
 from deepfix_core.models import Artifacts
+
 from ..config import PromptConfig
+from ..logging import get_logger
+from .base import BasePromptBuilder
+from .checkpoint_prompt import CheckpointPromptBuilder
+from .dataset_prompt import DatasetPromptBuilder
 from .deepchecks_prompt import DeepchecksPromptBuilder
 from .training_prompt import TrainingPromptBuilder
-from .dataset_prompt import DatasetPromptBuilder
-from .checkpoint_prompt import CheckpointPromptBuilder
-from .base import BasePromptBuilder
 
 
 class PromptBuilderError(Exception):
     """Base exception for PromptBuilder errors."""
+
     pass
 
 
@@ -89,6 +91,6 @@ class PromptBuilder:
             DeepchecksPromptBuilder(),
             TrainingPromptBuilder(),
             DatasetPromptBuilder(),
-            CheckpointPromptBuilder()
+            CheckpointPromptBuilder(),
         ]
         return builders

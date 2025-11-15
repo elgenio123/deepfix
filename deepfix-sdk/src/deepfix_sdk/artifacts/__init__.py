@@ -1,5 +1,5 @@
 from .manager import ArtifactsManager
-from .repository import ArtifactRepository, ArtifactRecord, ArtifactStatus
+from .repository import ArtifactRecord, ArtifactRepository, ArtifactStatus
 from .services import ChecksumService
 
 __all__ = [

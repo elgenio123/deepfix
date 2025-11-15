@@ -7,9 +7,9 @@ different log levels, formats, and output destinations.
 
 import logging
 import logging.handlers
-from typing import Optional, Dict, Any
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 def setup_logging(

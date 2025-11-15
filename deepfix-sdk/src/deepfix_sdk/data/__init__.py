@@ -1,15 +1,15 @@
-from .loader import ClassificationVisionDataLoader
 from .datasets import (
     BaseDataset,
-    VisionDataset,
     ImageClassificationDataset,
     ObjectDetectionDataset,
     TabularDataset,
+    VisionDataset,
 )
+from .loader import ClassificationVisionDataLoader
 from .utils import (
-    VisionDataStatistics,
-    TabularDataStatistics,
     NLPDataStatistics,
+    TabularDataStatistics,
+    VisionDataStatistics,
     get_data_statistics,
 )
 

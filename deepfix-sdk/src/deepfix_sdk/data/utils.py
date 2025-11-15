@@ -1,21 +1,35 @@
-import torch
+from typing import Any, Dict, List, Optional, Protocol, Union
+
 import numpy as np
-from typing import Optional, Union, List, Dict, Any, Protocol,Literal
-from tqdm import tqdm
 import pandas as pd
-from deepfix_core.models import DataType, BaseDatasetStatistics, VisionStatistics, ObjectDetectionStatistics, TaskType, TabularStatistics, NLPStatistics
-from deepfix_core.models.artifacts import TextStatistics, LabelStatistics, PropertiesStatistics
+import torch
 from deepchecks.nlp import TextData
+from deepfix_core.models import (
+    BaseDatasetStatistics,
+    DataType,
+    NLPStatistics,
+    ObjectDetectionStatistics,
+    TabularStatistics,
+    TaskType,
+    VisionStatistics,
+)
+from deepfix_core.models.artifacts import (
+    LabelStatistics,
+    PropertiesStatistics,
+    TextStatistics,
+)
+from tqdm import tqdm
 
 from .datasets import (
     BaseDataset,
-    VisionDataset,
-    TabularDataset,
-    ObjectDetectionDataset,
     ImageClassificationDataset,
-    SemanticSegmentationDataset,
     NLPDataset,
+    ObjectDetectionDataset,
+    SemanticSegmentationDataset,
+    TabularDataset,
+    VisionDataset,
 )
+
 
 def get_data_statistics(
     data_type: Union[str, DataType],
@@ -51,7 +65,7 @@ class BaseDataStatistics(Protocol):
             assert self.task_type == test_task_type, (
                 f"Task type of train_data and test_data must be the same. Got {self.task_type} and {test_task_type}"
             )
-    
+
     def _get_task_type(self, dataset: BaseDataset) -> TaskType:
         if isinstance(dataset, ImageClassificationDataset):
             return TaskType.IMAGE_CLASSIFICATION
@@ -63,20 +77,26 @@ class BaseDataStatistics(Protocol):
             raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
     def get_statistics(self) -> Dict[str, Any]:
-        stats = {'train': self.get_train_statistics()}
+        stats = {"train": self.get_train_statistics()}
         if self.test_data is not None:
-            stats['test'] = self.get_test_statistics()
+            stats["test"] = self.get_test_statistics()
         stats["task_type"] = self.task_type
         return stats
 
     def get_train_statistics(self) -> BaseDatasetStatistics:
-        raise NotImplementedError("get_train_statistics method must be implemented in the subclass")
+        raise NotImplementedError(
+            "get_train_statistics method must be implemented in the subclass"
+        )
 
     def get_test_statistics(self) -> BaseDatasetStatistics:
-        raise NotImplementedError("get_test_statistics method must be implemented in the subclass")
+        raise NotImplementedError(
+            "get_test_statistics method must be implemented in the subclass"
+        )
 
     def _compute_statistics(self, dataset: BaseDataset) -> BaseDatasetStatistics:
-        raise NotImplementedError("_compute_statistics method must be implemented in the subclass")
+        raise NotImplementedError(
+            "_compute_statistics method must be implemented in the subclass"
+        )
 
 
 class VisionDataStatistics(BaseDataStatistics):
@@ -95,17 +115,13 @@ class VisionDataStatistics(BaseDataStatistics):
         self.train_data = train_data
         self.test_data = test_data
         self.task_type = self._get_task_type(train_data)
-        
 
     def get_statistics(self) -> Dict[str, Any]:
         stats = super().get_statistics()
-        #stats.update({"t-statistic":self.compute_t_statistics(stats)})
+        # stats.update({"t-statistic":self.compute_t_statistics(stats)})
         return stats
 
-    def compute_t_statistics(
-        self, stats: Dict[str, Any]
-    ) -> Dict[str, Any]:
-
+    def compute_t_statistics(self, stats: Dict[str, Any]) -> Dict[str, Any]:
         if "test_stats" not in stats:
             return {}
 
@@ -118,11 +134,14 @@ class VisionDataStatistics(BaseDataStatistics):
         test_n = stats["num_test_samples"]
 
         t = np.abs(np.array(train_color_means) - np.array(test_color_means)) / np.sqrt(
-            np.array(train_color_stds)**2 / train_n + np.array(test_color_stds)**2 / test_n
+            np.array(train_color_stds) ** 2 / train_n
+            + np.array(test_color_stds) ** 2 / test_n
         )
-        t = map(float,t)
+        t = map(float, t)
 
-        return dict(zip([f"color_channel_{i}" for i in range(len(train_color_means))], t))
+        return dict(
+            zip([f"color_channel_{i}" for i in range(len(train_color_means))], t)
+        )
 
     def get_train_statistics(
         self,
@@ -189,8 +208,10 @@ class VisionDataStatistics(BaseDataStatistics):
                 class_ids = set(label.flatten())
                 for class_id in map(int, class_ids):
                     class_counts[class_id] = class_counts.get(class_id, 0) + 1
-                total = max(sum(class_counts.values()),1)
-                pixel_class_ratio = {k:round(v/total,3) for k,v in class_counts.items()}
+                total = max(sum(class_counts.values()), 1)
+                pixel_class_ratio = {
+                    k: round(v / total, 3) for k, v in class_counts.items()
+                }
             else:
                 raise ValueError(f"Unsupported dataset type: {type(dataset)}")
 
@@ -232,7 +253,7 @@ class VisionDataStatistics(BaseDataStatistics):
             image_color_stds=std.tolist(),
             class_distribution={str(k): v for k, v in class_counts.items()},
             pixel_class_ratio={str(k): float(v) for k, v in pixel_class_ratio.items()},
-            num_samples=num_samples
+            num_samples=num_samples,
         )
 
     def _compute_box_statistics(
@@ -316,8 +337,12 @@ class VisionDataStatistics(BaseDataStatistics):
         if len(box_areas) > 0:
             box_area_series = pd.Series(box_areas)
             box_area_stats = box_area_series.describe().to_dict()
-        
-        negative_positive_ratio=num_negative_samples/ (num_samples - num_negative_samples) if (num_samples - num_negative_samples > 0) else 0
+
+        negative_positive_ratio = (
+            num_negative_samples / (num_samples - num_negative_samples)
+            if (num_samples - num_negative_samples > 0)
+            else 0
+        )
 
         return ObjectDetectionStatistics(
             num_negative_samples=num_negative_samples,
@@ -349,40 +374,44 @@ class TabularDataStatistics(BaseDataStatistics):
             self.test_data = test_data
         else:
             self.test_data = None
-        self.task_type = TaskType.TABULAR_CLASSIFICATION if isinstance(train_data, TabularDataset) else TaskType.TABULAR_REGRESSION
+        self.task_type = (
+            TaskType.TABULAR_CLASSIFICATION
+            if isinstance(train_data, TabularDataset)
+            else TaskType.TABULAR_REGRESSION
+        )
 
     def get_train_statistics(self) -> TabularStatistics:
         return self._compute_statistics(
             self.train_data.get_data(),
             self.train_data.cat_features,
-            self.train_data.num_features
+            self.train_data.num_features,
         )
 
     def get_test_statistics(self) -> TabularStatistics:
         return self._compute_statistics(
             self.test_data.get_data(),
             self.test_data.cat_features,
-            self.test_data.num_features
+            self.test_data.num_features,
         )
 
     def _compute_statistics(
-        self, 
-        dataset: pd.DataFrame, 
+        self,
+        dataset: pd.DataFrame,
         categorical_features: List[str],
-        numerical_features: List[str]
+        numerical_features: List[str],
     ) -> TabularStatistics:
         feature_stats = dataset.describe().to_dict()
         number_unique_values = dataset.nunique().to_dict()
         percentage_unique_values = (
             (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
         )
-        
+
         return TabularStatistics(
             feature_statistics=feature_stats,
             number_unique_values=number_unique_values,
             percentage_unique_values=percentage_unique_values,
             categorical_features=categorical_features,
-            numerical_features=numerical_features
+            numerical_features=numerical_features,
         )
 
 
@@ -419,18 +448,18 @@ class NLPDataStatistics(BaseDataStatistics):
         # Basic dataset information
         num_samples = dataset.n_samples
         task_type = dataset.task_type.value if dataset.task_type else None
-        
+
         # Text statistics
         text_stats = self._compute_text_statistics(dataset)
         text_statistics = TextStatistics(**text_stats) if text_stats else None
-        
+
         # Label statistics (if labels exist)
         label_statistics = None
         if dataset.has_label():
             label_stats = self._compute_label_statistics(dataset)
             if label_stats:
                 label_statistics = LabelStatistics(**label_stats)
-        
+
         # Properties statistics (if properties exist)
         properties_statistics = None
         categorical_properties = []
@@ -444,7 +473,7 @@ class NLPDataStatistics(BaseDataStatistics):
                 numerical_properties = dataset.numerical_properties or []
         except (AttributeError, ValueError):
             pass
-        
+
         # Metadata information (if metadata exists)
         categorical_metadata = []
         numerical_metadata = []
@@ -454,57 +483,67 @@ class NLPDataStatistics(BaseDataStatistics):
                 numerical_metadata = dataset.numerical_metadata or []
         except (AttributeError, ValueError):
             pass
-        
+
         return NLPStatistics(
             num_samples=num_samples,
             task_type=task_type,
             text_statistics=text_statistics,
             label_statistics=label_statistics,
             properties_statistics=properties_statistics,
-            categorical_properties=categorical_properties if categorical_properties else None,
+            categorical_properties=categorical_properties
+            if categorical_properties
+            else None,
             numerical_properties=numerical_properties if numerical_properties else None,
             categorical_metadata=categorical_metadata if categorical_metadata else None,
             numerical_metadata=numerical_metadata if numerical_metadata else None,
         )
-    
+
     def _compute_text_statistics(self, dataset: TextData) -> Dict[str, Any]:
         """Compute statistics about the text content."""
         text_lengths = [len(text) for text in dataset.text]
         word_counts = [len(text.split()) for text in dataset.text]
-        
+
         # Vocabulary size (unique words)
         all_words = []
         for text in dataset.text:
             all_words.extend(text.lower().split())
         vocabulary_size = len(set(all_words))
-        
+
         # Character and word count statistics
         text_length_series = pd.Series(text_lengths)
         word_count_series = pd.Series(word_counts)
-        
+
         return {
             "character_length": text_length_series.describe().to_dict(),
             "word_count": word_count_series.describe().to_dict(),
             "vocabulary_size": vocabulary_size,
-            "avg_chars_per_word": float(np.mean([len(word) for word in all_words])) if all_words else 0,
+            "avg_chars_per_word": float(np.mean([len(word) for word in all_words]))
+            if all_words
+            else 0,
         }
-    
+
     def _compute_label_statistics(self, dataset: TextData) -> Dict[str, Any]:
         """Compute statistics about the labels."""
         stats = {}
-        
+
         if not dataset.has_label():
             return stats
-        
+
         # Check if multi-label
         is_multi_label = dataset.is_multi_label_classification()
         stats["is_multi_label"] = is_multi_label
-        
+
         if is_multi_label:
             # Multi-label case: count labels per sample
-            labels_per_sample = [sum(label) if hasattr(label, '__iter__') and not isinstance(label, str) else 1 
-                               for label in dataset.label]
-            stats["labels_per_sample"] = pd.Series(labels_per_sample).describe().to_dict()
+            labels_per_sample = [
+                sum(label)
+                if hasattr(label, "__iter__") and not isinstance(label, str)
+                else 1
+                for label in dataset.label
+            ]
+            stats["labels_per_sample"] = (
+                pd.Series(labels_per_sample).describe().to_dict()
+            )
         else:
             # Single-label case: class distribution
             if isinstance(dataset.label, np.ndarray):
@@ -513,35 +552,38 @@ class NLPDataStatistics(BaseDataStatistics):
             else:
                 # Handle list format
                 from collections import Counter
+
                 class_distribution = dict(Counter(dataset.label))
-            
+
             stats["class_distribution"] = class_distribution
             stats["num_classes"] = len(class_distribution)
-            
+
             # Count label frequency
             label_series = pd.Series(list(class_distribution.values()))
             stats["label_distribution_stats"] = label_series.describe().to_dict()
-        
+
         return stats
-    
-    def _compute_properties_statistics(self, dataset: TextData) -> Optional[Dict[str, Any]]:
+
+    def _compute_properties_statistics(
+        self, dataset: TextData
+    ) -> Optional[Dict[str, Any]]:
         """Compute statistics about text properties (similar to TabularDataStatistics)."""
         properties = dataset.properties
-        
+
         if properties is None or len(properties) == 0:
             return None
-        
+
         # Compute describe statistics
         feature_statistics = properties.describe().to_dict()
-        
+
         # Add unique value counts
         number_unique_values = properties.nunique().to_dict()
-        
+
         # Add percentage of unique values
         percentage_unique_values = (
             (properties.nunique() * 100 / len(properties)).round(2).to_dict()
         )
-        
+
         return {
             "feature_statistics": feature_statistics,
             "number_unique_values": number_unique_values,

@@ -5,8 +5,8 @@ This module provides convenient loaders for pre-built NLP datasets from the Deep
 supporting text classification and token classification (NER) tasks with TextData return types.
 """
 
-from typing import Tuple, Union
 import logging
+from typing import Tuple, Union
 
 from deepchecks.nlp import TextData
 from deepchecks.nlp.datasets import classification, token_classification

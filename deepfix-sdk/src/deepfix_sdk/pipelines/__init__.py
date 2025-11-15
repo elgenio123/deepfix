@@ -1,11 +1,11 @@
+from .base import Pipeline
 from .factory import (
-    TrainLoggingPipeline,
-    IngestionPipeline,
-    ChecksPipeline,
     ArtifactLoadingPipeline,
+    ChecksPipeline,
+    IngestionPipeline,
+    TrainLoggingPipeline,
     create_run_name,
 )
-from .base import Pipeline
 
 __all__ = [
     "TrainLoggingPipeline",

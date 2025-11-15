@@ -1,16 +1,16 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
-from enum import StrEnum
 from datetime import datetime
+from enum import StrEnum
+from typing import Any, Dict, List, Optional
 
 from deepfix_core.models import (
-    Artifacts,
     AgentResult,
+    Artifacts,
     DatasetArtifacts,
-    TrainingArtifacts,
     DeepchecksArtifacts,
     ModelCheckpointArtifacts,
+    TrainingArtifacts,
 )
+from pydantic import BaseModel, Field
 
 
 ## Agent Context

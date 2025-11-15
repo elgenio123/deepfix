@@ -1,9 +1,10 @@
-from deepchecks.vision import VisionData, BatchOutputFormat
-from torch.utils.data import DataLoader, Dataset
-import torch
-from supervision.dataset.core import DetectionDataset
-from typing import Dict, Optional, Callable, Any, Iterable
 from functools import partial
+from typing import Callable, Dict, Optional
+
+import torch
+from deepchecks.vision import BatchOutputFormat, VisionData
+from supervision.dataset.core import DetectionDataset
+from torch.utils.data import DataLoader, Dataset
 
 
 def classification_collate(data) -> BatchOutputFormat:
@@ -71,12 +72,13 @@ def segmentation_collate_without_model(data) -> BatchOutputFormat:
     for item in data:
         image, mask = item
         if isinstance(image, torch.Tensor):
-            image = image.permute(1, 2, 0).cpu().numpy() # HWC to CHW
+            image = image.permute(1, 2, 0).cpu().numpy()  # HWC to CHW
         if isinstance(mask, torch.Tensor):
-            mask = mask.cpu().long().numpy()        
+            mask = mask.cpu().long().numpy()
         images.append(image)
         labels.append(mask)
     return BatchOutputFormat(images=images, labels=labels)
+
 
 class ClassificationVisionDataLoader:
     def __init__(
@@ -182,7 +184,6 @@ class SegmentationVisionDataLoader:
         batch_size: int = 8,
         shuffle: bool = False,
     ) -> VisionData:
-        
         dataloader = DataLoader(
             dataset,
             batch_size=batch_size,
@@ -206,4 +207,3 @@ class SegmentationVisionDataLoader:
         )
         vision_data.head()
         return vision_data
-

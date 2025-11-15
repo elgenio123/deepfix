@@ -1,11 +1,12 @@
-from typing import Optional, Dict, Any, List
 import json
+from typing import Any, Dict, Optional
+
+from deepfix_core.models import (
+    Artifacts,
+    DatasetArtifacts,
+)
 
 from .base import BasePromptBuilder
-from deepfix_core.models import (
-    DatasetArtifacts,
-    Artifacts,
-)
 
 
 class DatasetPromptBuilder(BasePromptBuilder):
@@ -23,7 +24,7 @@ class DatasetPromptBuilder(BasePromptBuilder):
         """Build structured prompt from TrainingArtifacts."""
         prompt_parts = []
         prompt_parts.append(f"\nDataset name: {artifact.dataset_name}")
-        prompt_parts.append(f"\nDataset statistics:")
+        prompt_parts.append("\nDataset statistics:")
         prompt_parts.append(f"- {json.dumps(artifact.statistics, indent=2)}")
 
         # Add context if provided

@@ -1,20 +1,19 @@
-from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, List
 import traceback
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional
 
 from deepfix_core.models import Artifacts
 
-from .models import AgentResult, AgentContext, ArtifactAnalysisResult
 from .agents.artifact_analyzers import (
-    DeepchecksArtifactsAnalyzer,
     DatasetArtifactsAnalyzer,
+    DeepchecksArtifactsAnalyzer,
     ModelCheckpointArtifactsAnalyzer,
 )
 from .agents.base import ArtifactAnalyzer
+from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
 from .config import LLMConfig
 from .logging import get_logger
-from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
-
+from .models import AgentContext, AgentResult, ArtifactAnalysisResult
 
 LOGGER = get_logger(__name__)
 
@@ -59,10 +58,9 @@ class ArtifactAnalysisCoordinator:
                 context.agent_results[result.agent_name] = result
 
         # 2. Cross-artifact reasoning
-        LOGGER.info(f"Cross-artifact reasoning...")
+        LOGGER.info("Cross-artifact reasoning...")
         out = self.cross_artifact_reasoning_agent.run(
-            previous_analyses=context.agent_results,
-            output_language=context.language
+            previous_analyses=context.agent_results, output_language=context.language
         )
         context.agent_results[out.agent_name] = out
 

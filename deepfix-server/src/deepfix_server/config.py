@@ -1,7 +1,8 @@
-from typing import Optional, Dict, Any, Union, List
-from pydantic import BaseModel, Field, field_validator
 import os
+from typing import Dict, List, Optional
+
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, field_validator
 
 
 class PromptConfig(BaseModel):

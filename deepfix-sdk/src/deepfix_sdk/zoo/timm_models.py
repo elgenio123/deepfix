@@ -1,10 +1,10 @@
+from typing import List
+
 import timm
 import torch
 import torch.nn as nn
-from torchvision import transforms as T
 from open_clip import create_model_from_pretrained, get_tokenizer
-import torch.nn.functional as F
-from typing import List
+from torchvision import transforms as T
 
 from ..utils.feature_extractor import FeatureExtractor
 

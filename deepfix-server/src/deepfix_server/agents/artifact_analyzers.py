@@ -1,19 +1,21 @@
-from typing import List, Dict, Any, Optional
-import pandas as pd
+from typing import Any, Dict, List, Optional
+
 import dspy
-from .base import ArtifactAnalyzer
-from ..models import AgentContext, AgentResult
-from ..config import LLMConfig
-from .training_dynamics_utils import TrainingDynamicsAnalyzer
+import pandas as pd
 from deepfix_core.models import (
-    DeepchecksArtifacts,
     DatasetArtifacts,
-    ModelCheckpointArtifacts,
-    TrainingArtifacts,
+    DeepchecksArtifacts,
     Finding,
+    ModelCheckpointArtifacts,
     Severity,
+    TrainingArtifacts,
 )
+
+from ..config import LLMConfig
 from ..logging import get_logger
+from ..models import AgentContext, AgentResult
+from .base import ArtifactAnalyzer
+from .training_dynamics_utils import TrainingDynamicsAnalyzer
 
 LOGGER = get_logger(__name__)
 

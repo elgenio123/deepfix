@@ -1,17 +1,18 @@
-from typing import Optional, List, Any
+from typing import Any, List, Optional
 
-from .base import Step
-from ..utils.logging import get_logger
 from deepfix_core.models import (
     ArtifactPath,
-    DeepchecksArtifacts,
     DatasetArtifacts,
+    DataType,
+    DeepchecksArtifacts,
     TrainingArtifacts,
-    DataType
 )
+
 from ..artifacts import ArtifactsManager
 from ..data import BaseDataset, get_data_statistics
 from ..models import get_model_metadata
+from ..utils.logging import get_logger
+from .base import Step
 
 LOGGER = get_logger(__name__)
 
@@ -67,6 +68,7 @@ class LogChecksArtifacts(LogArtifact):
             artifact_mgr=artifact_mgr,
             run_name=run_name,
         )
+
     def run(
         self,
         context: dict,
@@ -149,7 +151,7 @@ class LogModelCheckpoint(LogArtifact):
         model: Optional[Any] = None,
     ) -> dict:
         model = model or context.get("model")
-        
+
         if model is None:
             LOGGER.warning("model not provided, will not log model metadata")
             return context

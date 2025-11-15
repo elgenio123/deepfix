@@ -5,11 +5,11 @@ This module provides validation functions for user inputs, configurations,
 and external data to ensure data integrity and security.
 """
 
-from typing import Dict, Any, List, Optional, Union
+import os
 import re
 from pathlib import Path
+from typing import Any, Dict, Union
 from urllib.parse import urlparse
-import os
 
 
 class ValidationError(Exception):

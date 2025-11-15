@@ -1,12 +1,13 @@
+import json
+from collections import OrderedDict
+from pathlib import Path
+from typing import Optional, Tuple
+
+import torch
 from datasets import load_dataset
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as T
 from tqdm import tqdm
-from collections import OrderedDict
-from typing import Tuple, Optional
-from pathlib import Path
-import json
-import torch
 
 from ...utils.feature_extractor import FeatureExtractor
 

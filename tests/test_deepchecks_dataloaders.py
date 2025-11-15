@@ -5,12 +5,12 @@ Tests verify that dataloader functions execute successfully and return
 expected object types without errors.
 """
 
-from deepchecks.vision import VisionData
-from deepchecks.tabular import Dataset as TabularDataset
-from deepfix.client.zoo.datasets.deepchecks_vision import load_mnist_classification
-from deepfix.client.zoo.datasets.deepchecks_tabular import load_adult_classification
-from deepfix.client.zoo.datasets.deepchecks_nlp import load_tweet_emotion_classification
 from deepchecks.nlp import TextData
+from deepchecks.tabular import Dataset as TabularDataset
+from deepchecks.vision import VisionData
+from deepfix.client.zoo.datasets.deepchecks_nlp import load_tweet_emotion_classification
+from deepfix.client.zoo.datasets.deepchecks_tabular import load_adult_classification
+from deepfix.client.zoo.datasets.deepchecks_vision import load_mnist_classification
 
 
 class TestVisionDataloaders:

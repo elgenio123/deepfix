@@ -1,15 +1,27 @@
-from .artifacts import (Artifacts, DeepchecksArtifacts, 
-                        ModelCheckpointArtifacts, TrainingArtifacts, 
-                        DatasetArtifacts,ArtifactPath, DeepchecksParsedResult,
-                        DeepchecksCheckResult,DeepchecksResultHeaders,DeepchecksConditionResult,
-                        ObjectDetectionStatistics, VisionStatistics, TabularStatistics, NLPStatistics, BaseDatasetStatistics
-                        )                        
-from .analysis import AgentResult, Severity, Analysis, Finding, Recommendation
+from .analysis import AgentResult, Analysis, Finding, Recommendation, Severity
 from .api import APIRequest, APIResponse
-from .defaults import DefaultPaths, DataType, DeepchecksConfig, TaskType
+from .artifacts import (
+    ArtifactPath,
+    Artifacts,
+    BaseDatasetStatistics,
+    DatasetArtifacts,
+    DeepchecksArtifacts,
+    DeepchecksCheckResult,
+    DeepchecksConditionResult,
+    DeepchecksParsedResult,
+    DeepchecksResultHeaders,
+    ModelCheckpointArtifacts,
+    NLPStatistics,
+    ObjectDetectionStatistics,
+    TabularStatistics,
+    TrainingArtifacts,
+    VisionStatistics,
+)
+from .defaults import DataType, DeepchecksConfig, DefaultPaths, TaskType
 
 __all__ = [
-    "Artifacts","ArtifactPath",
+    "Artifacts",
+    "ArtifactPath",
     "DeepchecksArtifacts",
     "ModelCheckpointArtifacts",
     "TrainingArtifacts",
@@ -34,5 +46,5 @@ __all__ = [
     "VisionStatistics",
     "TabularStatistics",
     "NLPStatistics",
-    "BaseDatasetStatistics"
+    "BaseDatasetStatistics",
 ]

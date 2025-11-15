@@ -1,19 +1,21 @@
 """Knowledge base manager for document loading and indexing"""
 
 import json
-from pathlib import Path
-from typing import List, Dict, Optional, Callable
-from datetime import datetime
-
-from llama_index.core import Document, VectorStoreIndex, StorageContext
-from llama_index.core import load_index_from_storage
-from llama_index.core.node_parser import (
-    HierarchicalNodeParser,
-    SentenceSplitter,
-)
-from deepfix_core.models.defaults import DefaultPaths
-from ..config import KnowledgeDocument, KnowledgeDomain
 import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Dict, List, Optional
+
+from deepfix_core.models.defaults import DefaultPaths
+from llama_index.core import (
+    Document,
+    StorageContext,
+    VectorStoreIndex,
+    load_index_from_storage,
+)
+
+from ..config import KnowledgeDocument, KnowledgeDomain
+
 logger = logging.getLogger(__name__)
 
 

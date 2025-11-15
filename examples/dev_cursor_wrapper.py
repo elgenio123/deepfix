@@ -1,21 +1,20 @@
-import fire
 import dspy
-import os
-from typing import Optional
+import fire
+
 
 def setup_dspy_lm(
-    api_key: str="empty",
+    api_key: str = "empty",
     model: str = "gpt-5",
     temperature: float = 1.0,
     max_tokens: int = 1600,
 ) -> None:
     lm = dspy.LM(
-                model=f"openai/{model}",
-                api_base="http://127.0.0.1:8841/v1",
-                api_key=api_key,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+        model=f"openai/{model}",
+        api_base="http://127.0.0.1:8841/v1",
+        api_key=api_key,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
 
     dspy.configure(lm=lm)
     return lm
@@ -24,9 +23,7 @@ def setup_dspy_lm(
 class SimpleQA(dspy.Signature):
     """Answer a simple question based on context."""
 
-    context: str = dspy.InputField(
-        desc="May contain relevant facts about the question"
-    )
+    context: str = dspy.InputField(desc="May contain relevant facts about the question")
     question: str = dspy.InputField(desc="The question to answer")
     answer: str = dspy.OutputField(
         desc="A concise answer to the question, based on the context"
@@ -49,9 +46,7 @@ class SummarySignature(dspy.Signature):
     """Summarize a given text."""
 
     text: str = dspy.InputField(desc="The text to summarize")
-    summary: str = dspy.OutputField(
-        desc="A concise summary of the provided text"
-    )
+    summary: str = dspy.OutputField(desc="A concise summary of the provided text")
 
 
 class SummaryModule(dspy.Module):
@@ -111,7 +106,9 @@ def example_text_summarization():
     print(f"\nSummary: {prediction.summary}")
 
 
-def setup_and_query_example(model:str="gpt-5",temperature:float=1.0,max_tokens:int=16000):
+def setup_and_query_example(
+    model: str = "gpt-5", temperature: float = 1.0, max_tokens: int = 16000
+):
     """
     Complete example showing how to setup and use DSPy with OpenAI-compatible API.
     """
@@ -125,6 +122,7 @@ def setup_and_query_example(model:str="gpt-5",temperature:float=1.0,max_tokens:i
     # Run examples
     example_simple_qa()
     example_text_summarization()
+
 
 if __name__ == "__main__":
     fire.Fire(setup_and_query_example)

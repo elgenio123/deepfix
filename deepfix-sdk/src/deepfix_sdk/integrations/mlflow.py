@@ -8,24 +8,25 @@ This module provides comprehensive MLflow integration including:
 - Metric aggregation and analysis
 """
 
-from typing import Dict, List, Optional, Any, Union
-import mlflow
-import traceback
-from mlflow.tracking import MlflowClient
-from mlflow.entities import Run, Experiment, RunStatus
-from omegaconf import OmegaConf
-import pandas as pd
-from pathlib import Path
 import os
 import time
+import traceback
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
+import mlflow
+import pandas as pd
 from deepfix_core.models import (
-    DeepchecksArtifacts,
     ArtifactPath,
-    TrainingArtifacts,
     DatasetArtifacts,
+    DeepchecksArtifacts,
     DeepchecksConfig,
+    TrainingArtifacts,
 )
+from mlflow.entities import Experiment, Run
+from mlflow.tracking import MlflowClient
+from omegaconf import OmegaConf
+
 from ..config import DefaultPaths, MLflowConfig
 from ..utils.logging import get_logger
 
@@ -81,7 +82,7 @@ class MLflowManager:
         mlflow.set_tracking_uri(self.tracking_uri)
 
     @classmethod
-    def from_config(cls, config: MLflowConfig, run_name:str) -> "MLflowManager":
+    def from_config(cls, config: MLflowConfig, run_name: str) -> "MLflowManager":
         return cls(
             tracking_uri=config.tracking_uri,
             experiment_name=config.experiment_name,
