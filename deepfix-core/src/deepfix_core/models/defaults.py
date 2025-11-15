@@ -31,7 +31,6 @@ def get_workdir():
         # Check if parent exists and is writable
         if parent.exists() and os.access(parent, os.W_OK):
             path.mkdir(parents=True, exist_ok=True)
-            (path / ".probe").touch(exist_ok=True)
             return path
     
     raise RuntimeError("No writable directory found")
@@ -46,9 +45,9 @@ def _get_base_dirs() -> Dict[str, Path]:
         }
 
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
-    mlruns_dir = data_dir / "deepfix_mlflow.db"
+    mlruns_dir = data_dir / "deepfix_mlflow"
     mlruns_dir.parent.mkdir(parents=True, exist_ok=True)
-    return mlruns_dir.resolve().as_uri().replace("file://", "sqlite://")
+    return mlruns_dir.resolve().as_uri() #.replace("file://", "sqlite://")
 
 
 def _default_mlflow_downloads_dir(data_dir: Path) -> str:
