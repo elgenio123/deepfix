@@ -1,4 +1,5 @@
-from typing import Optional, Union, Any, Optional
+from __future__ import annotations
+from typing import Any, Optional, TYPE_CHECKING, Union
 import os
 import requests
 from rich.console import Console
@@ -7,9 +8,10 @@ from rich.live import Live
 
 from deepfix_core.models import APIRequest, APIResponse, ArtifactPath, DataType
 
-from .pipelines import ArtifactLoadingPipeline, IngestionPipeline
 from .config import MLflowConfig, ArtifactConfig
-from .data.datasets import BaseDataset
+
+if TYPE_CHECKING:
+    from .data.datasets import BaseDataset
 
 
 console = Console()
@@ -81,6 +83,7 @@ class DeepFixClient:
             >>> response = client.diagnose(run_name="my-run")
             >>> print(response.to_text())
         """
+        from .pipelines import ArtifactLoadingPipeline
         artifact_config = ArtifactConfig(
             load_dataset_metadata=True,
             load_checks=True,
@@ -154,6 +157,7 @@ class DeepFixClient:
             ...     batch_size=16
             ... )
         """
+        from .pipelines import  IngestionPipeline
         dataset_logging_pipeline = IngestionPipeline(
             dataset_name=dataset_name,
             data_type=data_type,
