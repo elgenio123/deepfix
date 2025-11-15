@@ -31,6 +31,7 @@ def get_workdir():
         # Check if parent exists and is writable
         if parent.exists() and os.access(parent, os.W_OK):
             path.mkdir(parents=True, exist_ok=True)
+            (path / ".probe").touch(exist_ok=True)
             return path
     
     raise RuntimeError("No writable directory found")
