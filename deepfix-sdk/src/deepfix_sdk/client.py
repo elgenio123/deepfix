@@ -7,7 +7,7 @@ from rich.live import Live
 
 from deepfix_core.models import APIRequest, APIResponse, ArtifactPath, DataType
 
-from .pipelines import ArtifactLoadingPipeline, IngestionPipeline, create_run_name
+from .pipelines import ArtifactLoadingPipeline, IngestionPipeline
 from .config import MLflowConfig, ArtifactConfig
 from .data.datasets import BaseDataset
 
