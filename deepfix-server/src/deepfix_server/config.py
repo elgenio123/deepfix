@@ -57,7 +57,7 @@ class LLMConfig(BaseModel):
     track_usage: bool = Field(default=True, description="Track usage")
 
     @classmethod
-    def load_from_env(cls, env_file: Optional[str] = None):
+    def load_from_env(cls, env_file: Optional[str] = None) -> "LLMConfig":
         """Load LLM configuration from environment variables.
 
         Reads the following environment variables:

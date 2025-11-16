@@ -49,7 +49,7 @@ class MLflowConfig(BaseModel):
 
     @field_validator("tracking_uri")
     @classmethod
-    def validate_tracking_uri(cls, v):
+    def validate_tracking_uri(cls, v: str) -> str:
         """Validate tracking URI format.
 
         Args:

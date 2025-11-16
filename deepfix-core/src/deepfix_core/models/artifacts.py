@@ -374,7 +374,7 @@ class TrainingArtifacts(Artifacts):
         return dumped_dict
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict) -> "TrainingArtifacts":
         """Create TrainingArtifacts from a dictionary.
 
         Args:

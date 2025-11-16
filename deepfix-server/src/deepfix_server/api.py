@@ -20,7 +20,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
     deepchecks, model checkpoints) and returning diagnostic results.
     """
 
-    def setup(self, device):
+    def setup(self, device: str) -> None:
         """Setup the API endpoint.
 
         Initializes logging and creates the artifact analysis coordinator.
@@ -36,7 +36,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         llm_config = LLMConfig.load_from_env()
         self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
 
-    def decode_request(self, request: APIRequest):
+    def decode_request(self, request: APIRequest) -> AgentContext:
         """Decode API request into AgentContext.
 
         Args:
