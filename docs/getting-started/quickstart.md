@@ -27,11 +27,10 @@ The server will start and display: `Starting DeepFix server on 127.0.0.1:8844`
 
 ## Basic Workflow
 
-The typical DeepFix workflow consists of three steps:
+The typical DeepFix workflow consists of two steps:
 
 1. **Initialize Client**: Create a client connection to the server
-2. **Ingest Dataset**: Upload and validate your dataset
-3. **Diagnose**: Run AI-powered analysis and get recommendations
+2. **Get Diagnosis**: Upload your dataset and run AI-powered analysis in one call
 
 ## Example 1: Image Classification Dataset
 
@@ -68,24 +67,15 @@ val_dataset = ImageClassificationDataset(
     dataset=val_data
 )
 
-# Step 3: Ingest dataset with quality checks
-client.ingest(
-    dataset_name=dataset_name,
+# Step 3: Get diagnosis (ingests and diagnoses in one call)
+result = client.get_diagnosis(
     train_data=train_dataset,
     test_data=val_dataset,
-    train_test_validation=True,
-    data_integrity=True,
     batch_size=8,
-    overwrite=False
-)
-
-# Step 4: Diagnose dataset
-result = client.diagnose_dataset(
-    dataset_name=dataset_name,
     language="english"
 )
 
-# Step 5: View results
+# Step 4: View results
 print(result.to_text())
 ```
 
@@ -115,18 +105,11 @@ test_dataset = TabularDataset(
     data=df_test
 )
 
-# Step 4: Ingest dataset
-client.ingest(
-    dataset_name="my-tabular-dataset",
+# Step 4: Get diagnosis (ingests and diagnoses in one call)
+result = client.get_diagnosis(
     train_data=train_dataset,
-    test_data=test_dataset,
-    train_test_validation=True,
-    data_integrity=True,
-    overwrite=False
+    test_data=test_dataset
 )
-
-# Step 5: Diagnose
-result = client.diagnose_dataset(dataset_name="my-tabular-dataset")
 print(result.to_text())
 ```
 
@@ -156,22 +139,18 @@ test_dataset = NLPDataset(
     dataset=test_data
 )
 
-# Step 4: Ingest and diagnose
-client.ingest(
-    dataset_name="imdb-sentiment",
+# Step 4: Get diagnosis (ingests and diagnoses in one call)
+result = client.get_diagnosis(
     train_data=train_dataset,
     test_data=test_dataset,
-    batch_size=16,
-    overwrite=False
+    batch_size=16
 )
-
-result = client.diagnose_dataset(dataset_name="imdb-sentiment")
 print(result.to_text())
 ```
 
 ## Understanding Results
 
-The `diagnose_dataset()` method returns an `APIResponse` object containing:
+The `get_diagnosis()` method returns an `APIResponse` object containing:
 
 - **Agent Results**: Detailed findings from each specialized analyzer agent
 - **Summary**: Cross-artifact summary synthesizing all insights
@@ -218,9 +197,11 @@ client = DeepFixClient(
     mlflow_config=mlflow_config
 )
 
-# Ingest and diagnose - results automatically tracked in MLflow
-client.ingest(...)
-result = client.diagnose_dataset(...)
+# Get diagnosis - results automatically tracked in MLflow
+result = client.get_diagnosis(
+    train_data=train_dataset,
+    test_data=test_dataset
+)
 ```
 
 ### Handling Large Datasets
@@ -233,22 +214,19 @@ client = DeepFixClient(
 )
 
 # Use smaller batch sizes for memory constraints
-client.ingest(
-    dataset_name="large-dataset",
+result = client.get_diagnosis(
     train_data=train_dataset,
-    batch_size=4,  # Reduce batch size
-    overwrite=False
+    batch_size=4  # Reduce batch size
 )
 ```
 
 ### Overwriting Existing Datasets
 
 ```python
-# Overwrite existing dataset with same name
-client.ingest(
-    dataset_name="my-dataset",
+# get_diagnosis automatically overwrites existing datasets with the same name
+result = client.get_diagnosis(
     train_data=train_dataset,
-    overwrite=True  # Allow overwriting
+    test_data=test_dataset
 )
 ```
 
@@ -290,10 +268,11 @@ client = DeepFixClient(
 **Problem**: Dataset name not found
 
 ```python
-# Solution: Ensure dataset was ingested first
-client.ingest(dataset_name="my-dataset", ...)
-# Wait for ingestion to complete before diagnosing
-result = client.diagnose_dataset(dataset_name="my-dataset")
+# Solution: Use get_diagnosis which handles ingestion automatically
+result = client.get_diagnosis(
+    train_data=train_dataset,
+    test_data=test_dataset
+)
 ```
 
 See the [Troubleshooting section](../guides/image-classification.md#troubleshooting) for more issues and solutions.

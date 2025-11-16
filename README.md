@@ -71,19 +71,14 @@ train_data, val_data = load_train_and_val_datasets(
 train_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=train_data)
 val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_data)
 
-# Ingest dataset
-client.ingest(
-    dataset_name=dataset_name,
+# Diagnose dataset
+result = client.get_diagnosis(
     train_data=train_data,
     test_data=val_data,
-    train_test_validation=True,
-    data_integrity=True,
     batch_size=8,
-    overwrite=False
+    language = "english",
 )
 
-# Diagnose dataset
-result = client.diagnose_dataset(dataset_name=dataset_name)
 print(result.to_text())
 ```
 
