@@ -175,11 +175,8 @@ def ingest_nlp_dataset():
     test_data = NLPDataset(dataset_name=dataset_name, dataset=test_data)
     client.ingest(
         dataset_name=dataset_name,
-        data_type="nlp",
         train_data=train_data,
         test_data=test_data,
-        train_test_validation=True,
-        data_integrity=True,
         batch_size=8,
         overwrite=True,
     )
@@ -222,10 +219,8 @@ def ingest_tabular_dataset():
     clf = clf.fit(train_data.X, train_data.y)
 
     client.ingest(
-        dataset_name=dataset_name,
         train_data=train_data,
         test_data=val_data,
-        data_type="tabular",
         model_name=model_name,
         model=clf,
         overwrite=True,
@@ -249,8 +244,6 @@ def ingest_image_classification_dataset():
 
     # Ingest dataset
     client.ingest(
-        dataset_name=dataset_name,
-        data_type="vision",
         train_data=train_data,
         test_data=val_data,
         batch_size=8,
@@ -287,7 +280,6 @@ def ingest_object_detection_dataset():
     )
     client.ingest(
         dataset_name=dataset_name,
-        data_type="vision",
         train_data=train_data,
         test_data=val_data,
         batch_size=8,
@@ -330,8 +322,6 @@ def ingest_semantic_segmentation_dataset():
         dataset_name=dataset_name, dataset=val_data.dataset
     )
     client.ingest(
-        dataset_name=dataset_name,
-        data_type="vision",
         train_data=train_data,
         test_data=val_data,
         batch_size=8,
