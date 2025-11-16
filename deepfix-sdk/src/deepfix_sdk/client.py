@@ -57,6 +57,81 @@ class DeepFixClient:
 
         self._analyze_endpoint = f"{self.api_url}/v1/analyse"
 
+    def get_diagnosis(
+        self,
+        train_data: BaseDataset,
+        test_data: Optional[BaseDataset] = None,
+        model: Any = None,
+        model_name: Optional[str] = None,
+        batch_size: int = 8,
+        language: str = "english",
+    ) -> APIResponse:
+        """Ingest and diagnose a model in a single operation.
+
+        This convenience method combines ingestion and diagnosis into a single call.
+        It first ingests the dataset and model (if provided), then immediately runs
+        diagnosis on them to get analysis results and recommendations.
+
+        Args:
+            train_data (BaseDataset): Training dataset to ingest. Must be an instance
+                of an appropriate dataset class (e.g., ImageClassificationDataset,
+                TabularDataset, NLPDataset).
+            test_data (BaseDataset, optional): Test/validation dataset. If provided,
+                enables cross-dataset validation checks. Defaults to None.
+            model (Any, optional): Model to ingest. Must be an instance of a model class.
+                Defaults to None.
+            model_name (str, optional): Name of the model. Defaults to None.
+            batch_size (int, optional): Batch size for processing the dataset.
+                Defaults to 8.
+            language (str, optional): Language for analysis output. Defaults to "english".
+
+        Returns:
+            APIResponse: Response object containing:
+                - Analysis results and findings
+                - Actionable recommendations
+
+        Raises:
+            ValueError: If dataset with the same name exists and overwrite=False, or
+                if dataset artifacts cannot be found after ingestion.
+            Exception: If ingestion fails, or if the analysis request fails (non-200 status code).
+
+        Example:
+            >>> from deepfix_sdk.data import TabularDataset
+            >>> import pandas as pd
+            >>> df = pd.read_csv("train.csv")
+            >>> label = "target"
+            >>> cat_features = ["cat_feature1", "cat_feature2"]
+            >>> dataset_name = "my-dataset"
+            >>> train_dataset = TabularDataset(dataset=df, dataset_name=dataset_name, label=label, cat_features=cat_features)
+            >>> response = client.get_diagnosis(
+            ...     model_name="my-model",
+            ...     train_data=train_dataset,
+            ...     batch_size=16
+            ... )
+            >>> print(response.to_text())
+        """
+        assert isinstance(train_data, BaseDataset), "train_data must be an instance of BaseDataset"
+        assert test_data is None or isinstance(test_data, BaseDataset), "test_data must be an instance of BaseDataset"
+
+        dataset_name = self.get_dataset_name(train_data, test_data)
+        
+        # First, ingest the dataset and model
+        self.ingest(
+            train_data=train_data,
+            test_data=test_data,
+            model=model,
+            model_name=model_name,
+            batch_size=batch_size,
+            overwrite=True,
+        )
+        # Then, diagnose the ingested dataset/model
+        return self.diagnose(
+            dataset_name=dataset_name,
+            model_name=model_name,
+            language=language,
+        )
+
+
     def diagnose(
         self,
         dataset_name: str,
@@ -114,8 +189,6 @@ class DeepFixClient:
 
     def ingest(
         self,
-        dataset_name: str,
-        data_type: Union[str, DataType],
         train_data: BaseDataset,
         test_data: Optional[BaseDataset] = None,
         model: Any = None,
@@ -131,11 +204,6 @@ class DeepFixClient:
 
         Args:
             dataset_name (str): Unique name for the dataset.
-            data_type (str | DataType): Type of data to ingest. Valid values:
-                - "image": Image classification datasets
-                - "tabular": Structured tabular/DataFrame data
-                - "nlp": Natural language processing datasets
-                - "vision": General vision/computer vision datasets
             train_data (BaseDataset): Training dataset to ingest. Must be an instance
                 of an appropriate dataset class (e.g., ImageClassificationDataset,
                 TabularDataset, NLPDataset).
@@ -162,13 +230,14 @@ class DeepFixClient:
             ...     data=df
             ... )
             >>> client.ingest(
-            ...     dataset_name="my-dataset",
-            ...     data_type="tabular",
             ...     train_data=train_dataset,
             ...     batch_size=16
             ... )
         """
         from .pipelines import IngestionPipeline
+
+        data_type = self._get_data_type(train_data, test_data)
+        dataset_name = self.get_dataset_name(train_data, test_data)
 
         dataset_logging_pipeline = IngestionPipeline(
             dataset_name=dataset_name,
@@ -264,3 +333,18 @@ class DeepFixClient:
 
         console.print("[green]✓[/green] Analysis complete!", style="bold green")
         return APIResponse(**response.json())
+
+    def _get_data_type(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> DataType:
+        data_type = train_data.data_type
+        if test_data is not None:
+            test_data_type = test_data.data_type
+            if test_data_type != data_type:
+                raise ValueError(f"Test data type {test_data_type} does not match train data type {data_type}")
+        return data_type
+
+    def get_dataset_name(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> str:
+        dataset_name = train_data.name
+        if test_data is not None:
+            if test_data.name != dataset_name:
+                dataset_name = f"{dataset_name}_vs_{test_data.name}"
+        return dataset_name

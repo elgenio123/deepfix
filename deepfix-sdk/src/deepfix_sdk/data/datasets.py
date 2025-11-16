@@ -1,14 +1,17 @@
-from typing import Any, Callable, Dict, List, Optional, Protocol, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Union
 
 import numpy as np
 import pandas as pd
 from deepchecks.nlp import TextData
 from deepchecks.tabular import Dataset as DeepchecksTabularDataset
 from deepchecks.vision import VisionData
+from deepchecks.nlp.task_type import TTextLabel
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from torch import Tensor
 from torch.utils.data import Dataset
+
+from deepfix_core.models import DataType
 
 from ..data.loader import (
     ClassificationVisionDataLoader,
@@ -17,13 +20,20 @@ from ..data.loader import (
 )
 from ..utils.logging import get_logger
 
+
 logger = get_logger(__name__)
 
 
 class BaseDataset(Protocol):
     def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
-
+    @property
+    def data_type(self) -> DataType:
+        raise NotImplementedError("Subclasses must implement this method")
+    
+    @property
+    def name(self) -> str:
+        raise NotImplementedError("Subclasses must implement this method")
 
 class VisionDataset(BaseDataset):
     def __init__(self, dataset_name: str, dataset: Union[Dataset, DetectionDataset]):
@@ -38,6 +48,14 @@ class VisionDataset(BaseDataset):
 
     def __iter__(self):
         return iter(self.dataset)
+    
+    @property
+    def data_type(self) -> DataType:
+        return DataType.VISION
+    
+    @property
+    def name(self) -> str:
+        return self.dataset_name
 
 
 class ImageClassificationDataset(VisionDataset):
@@ -225,6 +243,18 @@ class TabularDataset(BaseDataset):
 
     def get_data(self) -> pd.DataFrame:
         return self.dataset.data.copy()
+    
+    @property
+    def data_type(self) -> DataType:
+        return DataType.TABULAR
+    
+    @property
+    def data(self) -> pd.DataFrame:
+        return self.get_data()
+    
+    @property
+    def name(self) -> str:
+        return self.dataset_name
 
     @property
     def X(self) -> pd.DataFrame:
@@ -258,3 +288,27 @@ class NLPDataset(BaseDataset):
 
     def __len__(self):
         return len(self.dataset)
+
+    @property
+    def data_type(self) -> DataType:
+        return DataType.NLP
+    
+    @property
+    def data(self) -> TextData:
+        return self.dataset
+    
+    @property
+    def embeddings(self) -> np.ndarray:
+        return self.dataset.embeddings
+    
+    @property
+    def X(self) -> Sequence[str]:
+        return self.dataset.text
+
+    @property
+    def y(self) -> TTextLabel:
+        return self.dataset.label
+    
+    @property
+    def name(self) -> str:
+        return self.dataset_name
