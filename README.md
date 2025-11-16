@@ -76,7 +76,7 @@ result = client.get_diagnosis(
     train_data=train_data,
     test_data=val_data,
     batch_size=8,
-    language = "english",
+    language="english",
 )
 
 print(result.to_text())
