@@ -1,25 +1,56 @@
+import os
+from typing import Optional
+
 import fire
-from tqdm import tqdm
-from deepfix_sdk.zoo.datasets import (
-    load_adult_classification,
-    load_tweet_emotion_classification,
-    load_segmentation_dataset
-)
-from deepfix_sdk.data.datasets import TabularDataset, NLPDataset
-from deepfix_sdk.integrations.deepchecks import get_deepchecks_runner
 from deepfix_sdk.client import DeepFixClient
+from deepfix_sdk.data.datasets import (
+    ImageClassificationDataset,
+    NLPDataset,
+    ObjectDetectionDataset,
+    SemanticSegmentationDataset,
+    TabularDataset,
+)
+from deepfix_sdk.integrations.deepchecks import get_deepchecks_runner
+from deepfix_sdk.zoo.datasets import (
+    load_segmentation_dataset,
+    load_tweet_emotion_classification,
+)
 from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
-from deepfix_sdk.data.datasets import ImageClassificationDataset, ObjectDetectionDataset, SemanticSegmentationDataset
+from tqdm import tqdm
 
-url = "http://deepfix.delcaux.com"
-client = DeepFixClient(timeout=60,api_url=url)
+url = "http://127.0.0.1:8844"
+client = DeepFixClient(timeout=60, api_url=url)
+os.environ["DEEPFIX_API_KEY"] = "DEEPFIX-IS-AMAZING"
 
-def diagnose_dataset(name: str):
+
+def diagnose(dataset_name: str, model_name: Optional[str] = None):
     # Diagnose dataset
-    result = client.diagnose_dataset(dataset_name=name)
+    result = client.diagnose(dataset_name=dataset_name, model_name=model_name)
 
     # Visualize results
-    print(result.to_text())
+    print(result.to_text(verbose=True))
+
+
+def load_artifacts(dataset_name: str, model_name: Optional[str] = None):
+    from deepfix_sdk.config import ArtifactConfig, MLflowConfig
+    from deepfix_sdk.pipelines import ArtifactLoadingPipeline
+
+    artifact_config = ArtifactConfig(
+        load_dataset_metadata=True,
+        load_checks=True,
+        load_model_checkpoint=True,
+        load_training=False,
+    )
+    loaded_artifacts = ArtifactLoadingPipeline(
+        mlflow_config=MLflowConfig(),
+        artifact_config=artifact_config,
+        dataset_name=dataset_name,
+        model_name=model_name,
+    ).run()
+
+    for key, value in loaded_artifacts.items():
+        print(key, type(value))
+
 
 ## Run Deepchecks
 def run_deepchecks_image_classification():
@@ -38,17 +69,49 @@ def run_deepchecks_image_classification():
     )
     print(out)
 
+
 def run_deepchecks_tabular():
-    train, test = load_adult_classification(as_train_test=True)
-    dataset_name = "adult-classification"
+    from sklearn.datasets import load_breast_cancer
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    from sklearn.model_selection import train_test_split
 
-    runner = get_deepchecks_runner(data_type="tabular", config=None)
-
-    train_data = TabularDataset(dataset=train, dataset_name=dataset_name)
-    test_data = TabularDataset(dataset=test, dataset_name=dataset_name)
-    runner.run_suites(
-        dataset_name=dataset_name, train_data=train_data, test_data=test_data
+    X, y = load_breast_cancer(as_frame=True, return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
+    dataset_name = "breast_cancer_classification"
+
+    label = "target"
+    train = X_train.copy()
+    train[label] = y_train
+    cat_features = X_train.select_dtypes(
+        include=["object", "string", "category"]
+    ).columns.tolist()
+
+    test = X_test.copy()
+    test[label] = y_test
+
+    train_data = TabularDataset(
+        dataset=train, dataset_name=dataset_name, label=label, cat_features=cat_features
+    )
+    val_data = TabularDataset(
+        dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features
+    )
+
+    # Fit model
+    clf = HistGradientBoostingClassifier(max_depth=3)
+    clf = clf.fit(train_data.X, train_data.y)
+
+    runner = get_deepchecks_runner(
+        data_type="tabular",
+        model_evaluation=True,
+        data_integrity=True,
+        train_test_validation=True,
+    )
+    checks_artifact = runner.run_suites(
+        dataset_name=dataset_name, model=clf, train_data=train_data, test_data=val_data
+    )
+
 
 def run_deepchecks_object_detection():
     dataset_name = "general_dataset"
@@ -62,12 +125,13 @@ def run_deepchecks_object_detection():
         images_directory_path=r"D:\workspace\general_dataset\coco\val",
         annotations_path=r"D:\workspace\general_dataset\coco\annotations\annotations_val.json",
     )
-    runner = get_deepchecks_runner(data_type="vision", config=None)
+    runner = get_deepchecks_runner(data_type="vision")
     runner.run_suites(
         dataset_name=dataset_name,
         train_data=train_data.to_loader(),
         test_data=val_data.to_loader() if val_data is not None else None,
     )
+
 
 def run_deepchecks_nlp():
     train_data, test_data = load_tweet_emotion_classification(
@@ -79,6 +143,7 @@ def run_deepchecks_nlp():
         dataset_name=dataset_name, train_data=train_data, test_data=test_data
     )
 
+
 def run_deepchecks_semantic_segmentation():
     dataset_name = "coco_segmentation"
     train_data, val_data = load_segmentation_dataset(
@@ -86,11 +151,17 @@ def run_deepchecks_semantic_segmentation():
         shuffle=False,
         pin_memory=False,
     )
-    train_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=train_data.dataset)
-    val_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=val_data.dataset)
+    train_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=train_data.dataset
+    )
+    val_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=val_data.dataset
+    )
     runner = get_deepchecks_runner(data_type="vision", config=None)
     runner.run_suites(
-        dataset_name=dataset_name, train_data=train_data.to_loader(), test_data=val_data.to_loader()
+        dataset_name=dataset_name,
+        train_data=train_data.to_loader(),
+        test_data=val_data.to_loader(),
     )
 
 
@@ -102,7 +173,7 @@ def ingest_nlp_dataset():
     dataset_name = "tweet_emotion_classification"
     train_data = NLPDataset(dataset_name=dataset_name, dataset=train_data)
     test_data = NLPDataset(dataset_name=dataset_name, dataset=test_data)
-    client.ingest_dataset(
+    client.ingest(
         dataset_name=dataset_name,
         data_type="nlp",
         train_data=train_data,
@@ -113,25 +184,53 @@ def ingest_nlp_dataset():
         overwrite=True,
     )
 
+
 ## Tabular
 def ingest_tabular_dataset():
-    train, test = load_adult_classification(as_train_test=True)
-    dataset_name = "adult-classification"
+    from sklearn.datasets import load_breast_cancer
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    from sklearn.model_selection import train_test_split
 
-    label = "income"
-    cat_features = train.select_dtypes(include=['object','string','category']).columns.tolist()
-    cat_features.remove(label)
+    X, y = load_breast_cancer(as_frame=True, return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    dataset_name = "breast_cancer_classification"
 
-    train_data = TabularDataset(dataset=train, dataset_name=dataset_name, label=label, cat_features=cat_features)
-    test_data = TabularDataset(dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features)
+    label = "target"
+    train = X_train.copy()
+    train[label] = y_train
+    cat_features = X_train.select_dtypes(
+        include=["object", "string", "category"]
+    ).columns.tolist()
+    if len(cat_features) > 0:
+        cat_features = None
 
-    client.ingest_dataset(
+    test = X_test.copy()
+    test[label] = y_test
+
+    train_data = TabularDataset(
+        dataset=train, dataset_name=dataset_name, label=label, cat_features=cat_features
+    )
+    val_data = TabularDataset(
+        dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features
+    )
+
+    # Fit model
+    model_name = "HistGradientBoostingClassifier"
+    clf = HistGradientBoostingClassifier(max_depth=3)
+    clf = clf.fit(train_data.X, train_data.y)
+
+    client.ingest(
         dataset_name=dataset_name,
         train_data=train_data,
-        test_data=test_data,
+        test_data=val_data,
         data_type="tabular",
+        model_name=model_name,
+        model=clf,
         overwrite=True,
     )
+
 
 ## Image Classification
 def ingest_image_classification_dataset():
@@ -149,16 +248,15 @@ def ingest_image_classification_dataset():
     val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_data)
 
     # Ingest dataset
-    client.ingest_dataset(
+    client.ingest(
         dataset_name=dataset_name,
         data_type="vision",
         train_data=train_data,
         test_data=val_data,
-        train_test_validation=True,
-        data_integrity=True,
         batch_size=8,
         overwrite=True,
     )
+
 
 ## Object Detection
 def load_object_detection_dataset():
@@ -174,6 +272,7 @@ def load_object_detection_dataset():
     for _ in tqdm(loader, desc="Iterating over train data"):
         pass
 
+
 def ingest_object_detection_dataset():
     dataset_name = "general_dataset"
     train_data = ObjectDetectionDataset.from_coco(
@@ -186,18 +285,17 @@ def ingest_object_detection_dataset():
         images_directory_path=r"D:\workspace\general_dataset\coco\val",
         annotations_path=r"D:\workspace\general_dataset\coco\annotations\annotations_val.json",
     )
-    client.ingest_dataset(
+    client.ingest(
         dataset_name=dataset_name,
         data_type="vision",
         train_data=train_data,
         test_data=val_data,
-        train_test_validation=val_data is not None,
-        data_integrity=True,
         batch_size=8,
         overwrite=True,
     )
 
-## Semantic Segmentation    
+
+## Semantic Segmentation
 def load_semantic_segmentation_dataset():
     train_data, val_data = load_segmentation_dataset(
         batch_size=8,
@@ -205,13 +303,18 @@ def load_semantic_segmentation_dataset():
         pin_memory=False,
     )
     dataset_name = "coco_segmentation"
-    train_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=train_data.dataset)
-    val_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=val_data.dataset)
+    train_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=train_data.dataset
+    )
+    val_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=val_data.dataset
+    )
 
     for _ in tqdm(train_data, desc="Iterating over train data"):
         pass
     for _ in tqdm(val_data, desc="Iterating over val data"):
         pass
+
 
 def ingest_semantic_segmentation_dataset():
     dataset_name = "coco_segmentation"
@@ -220,15 +323,17 @@ def ingest_semantic_segmentation_dataset():
         shuffle=False,
         pin_memory=False,
     )
-    train_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=train_data.dataset)
-    val_data = SemanticSegmentationDataset(dataset_name=dataset_name, dataset=val_data.dataset)
-    client.ingest_dataset(
+    train_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=train_data.dataset
+    )
+    val_data = SemanticSegmentationDataset(
+        dataset_name=dataset_name, dataset=val_data.dataset
+    )
+    client.ingest(
         dataset_name=dataset_name,
         data_type="vision",
         train_data=train_data,
         test_data=val_data,
-        train_test_validation=True,
-        data_integrity=True,
         batch_size=8,
         overwrite=True,
     )
