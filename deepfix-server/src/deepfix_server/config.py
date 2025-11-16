@@ -6,7 +6,15 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class PromptConfig(BaseModel):
-    """Configuration for query generation."""
+    """Configuration for prompt generation.
+
+    Attributes:
+        custom_instructions: Optional custom instructions to append to prompts.
+        dataset_analysis: Whether to include dataset analysis in prompts.
+            Defaults to True.
+        training_results_analysis: Whether to include training results analysis
+            in prompts. Defaults to False.
+    """
 
     custom_instructions: Optional[str] = Field(
         default=None, description="Custom instructions to append to created prompts"
@@ -20,6 +28,18 @@ class PromptConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
+    """Configuration for LLM provider settings.
+
+    Attributes:
+        api_key: Optional API key for the LLM provider.
+        base_url: Optional base URL for the LLM API endpoint.
+        model_name: Name of the LLM model to use.
+        temperature: Sampling temperature for text generation. Defaults to 0.7.
+        max_tokens: Maximum number of tokens to generate. Defaults to 8000.
+        cache: Whether to cache LLM requests. Defaults to True.
+        track_usage: Whether to track LLM usage. Defaults to True.
+    """
+
     api_key: Optional[str] = Field(
         default=None, description="API key for the LLM provider"
     )
@@ -38,6 +58,23 @@ class LLMConfig(BaseModel):
 
     @classmethod
     def load_from_env(cls, env_file: Optional[str] = None):
+        """Load LLM configuration from environment variables.
+
+        Reads the following environment variables:
+        - DEEPFIX_LLM_API_KEY
+        - DEEPFIX_LLM_BASE_URL
+        - DEEPFIX_LLM_MODEL_NAME
+        - DEEPFIX_LLM_TEMPERATURE
+        - DEEPFIX_LLM_MAX_TOKENS
+        - DEEPFIX_LLM_CACHE
+        - DEEPFIX_LLM_TRACK_USAGE
+
+        Args:
+            env_file: Optional path to .env file to load.
+
+        Returns:
+            LLMConfig instance populated from environment variables.
+        """
         if env_file is not None:
             load_dotenv(env_file)
         api_key = os.getenv("DEEPFIX_LLM_API_KEY")
@@ -59,7 +96,14 @@ class LLMConfig(BaseModel):
 
 
 class OutputConfig(BaseModel):
-    """Configuration for output management."""
+    """Configuration for output management.
+
+    Attributes:
+        save_prompt: Whether to save generated prompts to disk. Defaults to False.
+        save_response: Whether to save AI responses to disk. Defaults to True.
+        output_dir: Directory to save outputs. Defaults to "deepfix_output".
+        format: Output format. Must be one of: txt, json, yaml. Defaults to "txt".
+    """
 
     save_prompt: bool = Field(
         default=False, description="Whether to save generated prompts"
@@ -76,6 +120,17 @@ class OutputConfig(BaseModel):
     @field_validator("format")
     @classmethod
     def validate_format(cls, v):
+        """Validate output format.
+
+        Args:
+            v: Format string to validate.
+
+        Returns:
+            Lowercased format string if valid.
+
+        Raises:
+            ValueError: If format is not one of: txt, json, yaml.
+        """
         allowed_formats = ["txt", "json", "yaml"]
         if v.lower() not in allowed_formats:
             raise ValueError(f"format must be one of {allowed_formats}")
@@ -83,6 +138,25 @@ class OutputConfig(BaseModel):
 
 
 class TrainingDynamicsConfig(BaseModel):
+    """Configuration for training dynamics analysis.
+
+    Attributes:
+        enabled_analyzers: List of analyzer names to enable. Defaults to:
+            ["overfitting_detection", "training_stability", "gradient_analysis",
+            "performance_trends"].
+        overfitting_thresholds: Dictionary of thresholds for overfitting detection.
+            Keys: train_val_divergence, val_loss_plateau_epochs, early_stopping_patience.
+        stability_thresholds: Dictionary of thresholds for stability analysis.
+            Keys: loss_variance_threshold, metric_volatility_window,
+            gradient_norm_std_threshold.
+        gradient_thresholds: Dictionary of thresholds for gradient analysis.
+            Keys: exploding_gradient_threshold, vanishing_gradient_threshold,
+            gradient_clip_threshold.
+        lightweight_mode: Enable lightweight mode with <10% overhead. Defaults to True.
+        max_analysis_time: Maximum analysis time in seconds. Defaults to 30.0.
+        small_model_optimized: Optimize for models <100M parameters. Defaults to True.
+    """
+
     # Analysis Configuration
     enabled_analyzers: List[str] = [
         "overfitting_detection",

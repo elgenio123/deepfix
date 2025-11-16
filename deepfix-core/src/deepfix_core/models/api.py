@@ -21,6 +21,16 @@ from .artifacts import (
 
 # API Models
 class APIResponse(BaseModel):
+    """Response from the DeepFix analysis API.
+
+    Attributes:
+        agent_results: Dictionary mapping agent names to their analysis results.
+        summary: Optional overall summary of the analysis.
+        additional_outputs: Dictionary of additional outputs from agents.
+        error_messages: Optional dictionary mapping agent names to error messages
+            if they failed.
+    """
+
     agent_results: Dict[str, AgentResult] = Field(
         default={}, description="Results of the agents"
     )
@@ -33,10 +43,21 @@ class APIResponse(BaseModel):
     )
 
     def get_results_as_dataframe(self) -> pd.DataFrame:
+        """Convert all agent results to a single pandas DataFrame.
+
+        Returns:
+            DataFrame containing all findings and recommendations from all agents.
+        """
         dfs = [result.to_dataframe() for result in self.agent_results.values()]
         return pd.concat(dfs).reset_index(drop=True)
 
     def get_results_as_text(self) -> str:
+        """Convert all agent results to a formatted text string.
+
+        Returns:
+            Formatted text report with summary statistics, findings by severity,
+            and agent-specific analysis.
+        """
         df = self.get_results_as_dataframe()
         summary = "=" * 80
         summary += "\nSUMMARY STATISTICS"
@@ -79,7 +100,19 @@ class APIResponse(BaseModel):
         return summary
 
     def to_text(self, verbose: bool = False) -> str:
-        """Generate a beautifully formatted analysis report using Rich."""
+        """Generate a beautifully formatted analysis report using Rich.
+
+        Args:
+            verbose: If False, only show results from CrossArtifactReasoningAgent.
+                If True, show results from all agents.
+
+        Returns:
+            Formatted text report with Rich formatting for terminal display.
+
+        Raises:
+            ValueError: If verbose=False and no CrossArtifactReasoningAgent results
+                are found.
+        """
         # Create a string buffer to capture Rich output
         buffer = StringIO()
         console = Console(file=buffer, width=120, force_terminal=True)
@@ -171,6 +204,15 @@ class APIResponse(BaseModel):
         return buffer.getvalue()
 
     def _summary_table(self, df: pd.DataFrame, verbose: bool = False) -> Table:
+        """Create a Rich table with summary statistics.
+
+        Args:
+            df: DataFrame containing agent results.
+            verbose: If True, include agents involved in the summary.
+
+        Returns:
+            Rich Table object with summary statistics.
+        """
         stats_table = Table(
             title="Summary Statistics",
             show_header=True,
@@ -215,6 +257,17 @@ class APIResponse(BaseModel):
         severity_color: str,
         verbose: bool = False,
     ) -> Table:
+        """Create a Rich table for issues of a specific severity.
+
+        Args:
+            df_severity: DataFrame filtered to issues of the given severity.
+            severity: Severity level (high, medium, low).
+            severity_color: Color to use for the table border and headers.
+            verbose: If True, include agent name column.
+
+        Returns:
+            Rich Table object with issues of the specified severity.
+        """
         issues_table = Table(
             title=f"{severity.upper()} Severity Issues ({len(df_severity)})",
             show_header=True,
@@ -245,6 +298,14 @@ class APIResponse(BaseModel):
         return issues_table
 
     def _agent_table(self, df: pd.DataFrame) -> Table:
+        """Create a Rich table with agent-specific analysis summary.
+
+        Args:
+            df: DataFrame containing agent results.
+
+        Returns:
+            Rich Table object with agent-specific statistics.
+        """
         # Agent-Specific Analysis
         agent_table = Table(
             title="Agent-Specific Analysis",
@@ -276,6 +337,18 @@ class APIResponse(BaseModel):
 
 
 class APIRequest(BaseModel):
+    """Request model for the DeepFix analysis API.
+
+    Attributes:
+        dataset_artifacts: Optional dataset statistics and metadata.
+        training_artifacts: Optional training metrics and parameters.
+        deepchecks_artifacts: Optional Deepchecks validation results.
+        model_checkpoint_artifacts: Optional model checkpoint information.
+        dataset_name: Optional name of the dataset being analyzed.
+        model_name: Optional name of the model being analyzed.
+        language: Language for the analysis output. Defaults to "english".
+    """
+
     dataset_artifacts: Optional[DatasetArtifacts] = Field(
         default=None, description="Dataset artifacts"
     )

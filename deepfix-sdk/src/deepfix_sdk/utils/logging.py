@@ -18,14 +18,20 @@ def setup_logging(
     format_string: Optional[str] = None,
     config: Optional[Dict[str, Any]] = None,
 ) -> None:
-    """
-    Setup logging configuration for the application.
+    """Setup logging configuration for the application.
+
+    Configures both console and optional file logging with rotating file handler.
+    Also configures external library loggers to reduce noise.
 
     Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Optional path to log file
-        format_string: Custom log format string
-        config: Configuration dictionary for logging settings
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+            Defaults to "INFO".
+        log_file: Optional path to log file. If provided, creates a rotating
+            file handler with max 10MB per file and 5 backups.
+        format_string: Custom log format string. If not provided, uses default
+            format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s".
+        config: Optional configuration dictionary with 'logging' key containing
+            level, file, and format settings.
     """
     # Get logging config if provided
     if config:
@@ -74,7 +80,11 @@ def setup_logging(
 
 
 def _configure_external_loggers() -> None:
-    """Configure logging levels for external libraries."""
+    """Configure logging levels for external libraries.
+
+    Sets external library loggers to WARNING level to reduce noise in logs.
+    Affects: urllib3, requests, matplotlib, PIL, asyncio, aiohttp.
+    """
     # Reduce noise from external libraries
     external_loggers = {
         "urllib3.connectionpool": logging.WARNING,
@@ -90,13 +100,12 @@ def _configure_external_loggers() -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Get a logger instance with the specified name.
+    """Get a logger instance with the specified name.
 
     Args:
-        name: Logger name (typically __name__)
+        name: Logger name (typically __name__ from the calling module).
 
     Returns:
-        Logger instance
+        Logger instance configured with the application's logging settings.
     """
     return logging.getLogger(name)

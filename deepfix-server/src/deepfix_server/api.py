@@ -14,9 +14,20 @@ LOGGER = get_logger(__name__)
 
 # Analyse Artifacts API
 class AnalyseArtifactsAPI(ls.LitAPI):
-    """Analyse Artifacts API."""
+    """API endpoint for artifact analysis.
+
+    Provides a LitServe API for analyzing ML artifacts (datasets, training,
+    deepchecks, model checkpoints) and returning diagnostic results.
+    """
 
     def setup(self, device):
+        """Setup the API endpoint.
+
+        Initializes logging and creates the artifact analysis coordinator.
+
+        Args:
+            device: Device specification (unused, kept for LitAPI compatibility).
+        """
         try:
             setup_dspy_logging()
         except Exception:
@@ -26,6 +37,17 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
 
     def decode_request(self, request: APIRequest):
+        """Decode API request into AgentContext.
+
+        Args:
+            request: APIRequest containing artifacts and configuration.
+
+        Returns:
+            AgentContext with artifacts and settings.
+
+        Raises:
+            HTTPException: If request decoding fails (status 400).
+        """
         try:
             return AgentContext(
                 dataset_artifacts=request.dataset_artifacts,
@@ -42,6 +64,17 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             )
 
     def predict(self, request_ctx: AgentContext) -> APIResponse:
+        """Run artifact analysis and return results.
+
+        Args:
+            request_ctx: AgentContext containing artifacts to analyze.
+
+        Returns:
+            APIResponse with analysis results from all agents.
+
+        Raises:
+            HTTPException: If analysis fails (status 500).
+        """
         try:
             results = self.coordinator.run(request_ctx)
             response = APIResponse(
@@ -62,6 +95,14 @@ def run_analyse_artifacts_api(
     workers_per_device: int = 1,
     fast_queue: bool = False,
 ):
+    """Run the artifact analysis API server.
+
+    Args:
+        port: Port number to listen on. Defaults to 4141.
+        host: Host address to bind to. Defaults to "0.0.0.0".
+        workers_per_device: Number of workers per device. Defaults to 1.
+        fast_queue: Enable fast queue mode. Defaults to False.
+    """
     server = ls.LitServer(
         AnalyseArtifactsAPI(api_path="/v1/analyse"),
         workers_per_device=workers_per_device,

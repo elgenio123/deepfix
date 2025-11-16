@@ -14,6 +14,12 @@ from .defaults import DeepchecksConfig, TaskType
 
 # Artifacts models
 class ArtifactPath(StrEnum):
+    """Enumeration of artifact path identifiers.
+
+    Defines standard paths for different types of artifacts used in the system,
+    including training artifacts, deepchecks results, and dataset metadata.
+    """
+
     # training artifacts
     TRAINING = "training_artifacts"
     TRAINING_METRICS = "metrics.csv"
@@ -27,6 +33,12 @@ class ArtifactPath(StrEnum):
 
 ## Deepchecks
 class DeepchecksResultHeaders(StrEnum):
+    """Enumeration of Deepchecks result header names.
+
+    Defines standard header names for Deepchecks validation and integrity checks,
+    including train-test validation checks and data integrity checks.
+    """
+
     # Train-Test Validation
     LabelDrift = "Label Drift"
     ImageDatasetDrift = "Image Dataset Drift"
@@ -42,12 +54,33 @@ class DeepchecksResultHeaders(StrEnum):
 
 
 class DeepchecksConditionResult(BaseModel):
+    """Result of a Deepchecks condition evaluation.
+
+    Attributes:
+        status: Status of the condition (e.g., "pass", "fail", "warning").
+        condition: Description of the condition that was evaluated.
+        more_info: Additional information about the condition result.
+    """
+
     status: str = Field(description="Status of the condition")
     condition: str = Field(description="Condition of the condition")
     more_info: str = Field(description="More info of the condition")
 
 
 class DeepchecksCheckResult(BaseModel):
+    """Result of a Deepchecks validation check.
+
+    Attributes:
+        check: Name of the check that was performed.
+        params: Parameters used for the check.
+        summary: Summary description of the check result.
+        value: Result value of the check (can be numeric, dict, or list).
+        conditions_results: List of condition evaluation results.
+        link_in_summary: Optional link to additional information.
+        display_text: Human-readable text for display.
+        display_images: Base64-encoded images for visualization.
+    """
+
     check: Optional[str] = Field(default=None, description="Name of the check")
     params: Optional[dict] = Field(default=None, description="Parameters of the check")
     summary: Optional[str] = Field(default=None, description="Summary of the check")
@@ -69,7 +102,17 @@ class DeepchecksCheckResult(BaseModel):
     @field_validator("value", mode="before")
     @classmethod
     def convert_nan_infinity_to_string(cls, v):
-        """Convert NaN and Infinity values to string representations."""
+        """Convert NaN and Infinity values to string representations.
+
+        Recursively processes values to convert float NaN and Infinity values
+        to string representations for JSON serialization.
+
+        Args:
+            v: Value to convert, can be float, dict, list, or other types.
+
+        Returns:
+            Converted value with NaN/Infinity as strings, or original value if not applicable.
+        """
         if v is None:
             return v
 
@@ -86,6 +129,15 @@ class DeepchecksCheckResult(BaseModel):
         return v
 
     def to_dict(self, exclude: list[str] = []) -> dict:
+        """Convert the check result to a dictionary.
+
+        Args:
+            exclude: List of keys to exclude from the output. None values are
+                automatically excluded.
+
+        Returns:
+            Dictionary representation of the check result with None values removed.
+        """
         dumped = self.model_dump()
         keys_to_remove = set(exclude + [k for k, v in dumped.items() if v is None])
         for key in keys_to_remove:
@@ -94,10 +146,25 @@ class DeepchecksCheckResult(BaseModel):
 
 
 class DeepchecksParsedResult(BaseModel):
+    """Parsed Deepchecks result with header and check result.
+
+    Attributes:
+        header: Header/title of the result.
+        result: The check result containing all validation information.
+    """
+
     header: str = Field(description="Header of the result")
     result: DeepchecksCheckResult = Field(description="Result of the check")
 
     def to_dict(self, exclude_images: bool = False) -> Dict[str, Any]:
+        """Convert the parsed result to a dictionary.
+
+        Args:
+            exclude_images: If True, exclude display_images from the output.
+
+        Returns:
+            Dictionary representation of the parsed result.
+        """
         dumped_dict = self.model_dump()
         if exclude_images:
             dumped_dict.pop("display_images")
@@ -107,25 +174,73 @@ class DeepchecksParsedResult(BaseModel):
     def from_dict(
         cls, d: Union[Dict[str, Any], DictConfig]
     ) -> "DeepchecksParsedResult":
+        """Create a DeepchecksParsedResult from a dictionary.
+
+        Args:
+            d: Dictionary or DictConfig containing the parsed result data.
+
+        Returns:
+            DeepchecksParsedResult instance created from the dictionary.
+        """
         return cls(**d)
 
 
 class Artifacts(BaseModel):
+    """Base class for all artifact types.
+
+    Provides common functionality for serialization and deserialization
+    of artifacts from dictionaries and YAML files.
+    """
+
     def to_dict(self) -> Dict[str, Any]:
+        """Convert the artifact to a dictionary.
+
+        Returns:
+            Dictionary representation of the artifact.
+        """
         return self.model_dump()
 
     @classmethod
     def from_dict(cls, d: dict):
+        """Create an artifact instance from a dictionary.
+
+        Args:
+            d: Dictionary containing artifact data.
+
+        Returns:
+            Artifact instance created from the dictionary.
+        """
         return cls(**d)
 
     @classmethod
     def from_file(cls, path: str) -> "Artifacts":
+        """Load an artifact from a YAML file.
+
+        Args:
+            path: Path to the YAML file containing artifact data.
+
+        Returns:
+            Artifact instance loaded from the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            yaml.YAMLError: If the file contains invalid YAML.
+        """
         with open(path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
         return cls.from_dict(d)
 
 
 class DeepchecksArtifacts(Artifacts):
+    """Artifacts containing Deepchecks validation results.
+
+    Attributes:
+        dataset_name: Name of the dataset that was validated.
+        model_name: Optional name of the model used in validation.
+        results: Dictionary mapping check categories to lists of parsed results.
+        config: Optional Deepchecks configuration used for validation.
+    """
+
     dataset_name: str = Field(description="Name of the dataset")
     model_name: Optional[str] = Field(default=None, description="Name of the model")
     results: Dict[str, List[DeepchecksParsedResult]] = Field(
@@ -136,6 +251,11 @@ class DeepchecksArtifacts(Artifacts):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert Deepchecks artifacts to a dictionary.
+
+        Returns:
+            Dictionary representation with nested results and config serialized.
+        """
         dumped_dict = self.model_dump()
         dumped_dict["results"] = {
             k: [r.to_dict() for r in v] for k, v in self.results.items()
@@ -145,6 +265,14 @@ class DeepchecksArtifacts(Artifacts):
 
     @classmethod
     def from_dict(self, d: Union[Dict[str, Any], DictConfig]) -> "DeepchecksArtifacts":
+        """Create DeepchecksArtifacts from a dictionary.
+
+        Args:
+            d: Dictionary or DictConfig containing artifact data.
+
+        Returns:
+            DeepchecksArtifacts instance with parsed results and config.
+        """
         results = {
             k: [DeepchecksParsedResult.from_dict(r) for r in v]
             for k, v in d["results"].items()
@@ -161,6 +289,18 @@ class DeepchecksArtifacts(Artifacts):
 
     @classmethod
     def from_file(cls, file_path: str) -> "DeepchecksArtifacts":
+        """Load Deepchecks artifacts from a YAML file.
+
+        Args:
+            file_path: Path to the YAML file containing artifact data.
+
+        Returns:
+            DeepchecksArtifacts instance loaded from the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            yaml.YAMLError: If the file contains invalid YAML.
+        """
         with open(file_path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
         artifacts = cls.from_dict(d)
@@ -168,6 +308,16 @@ class DeepchecksArtifacts(Artifacts):
 
 
 class ModelCheckpointArtifacts(Artifacts):
+    """Artifacts containing model checkpoint information.
+
+    Attributes:
+        path: Path to the model checkpoint file.
+        config: Optional model configuration dictionary.
+        model_type: Optional type or class name of the model.
+        hyperparameters: Optional dictionary of model hyperparameters.
+        context: Optional context information about the checkpoint.
+    """
+
     path: Optional[str] = Field(
         default=None, description="Path to the model checkpoint"
     )
@@ -187,6 +337,14 @@ class ModelCheckpointArtifacts(Artifacts):
 
 ## Training Artifacts
 class TrainingArtifacts(Artifacts):
+    """Artifacts containing training metrics and parameters.
+
+    Attributes:
+        metrics_path: Optional path to a CSV file containing metrics.
+        metrics_values: Optional pandas DataFrame or dictionary containing metrics.
+        params: Optional dictionary of training parameters.
+    """
+
     model_config = {"arbitrary_types_allowed": True}
 
     metrics_path: Optional[str] = Field(
@@ -200,6 +358,13 @@ class TrainingArtifacts(Artifacts):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert training artifacts to a dictionary.
+
+        Converts pandas DataFrame metrics to dictionary format for serialization.
+
+        Returns:
+            Dictionary representation with metrics as lists.
+        """
         dumped_dict = self.model_dump()
         if (
             isinstance(self.metrics_values, pd.DataFrame)
@@ -210,6 +375,16 @@ class TrainingArtifacts(Artifacts):
 
     @classmethod
     def from_dict(cls, d: dict):
+        """Create TrainingArtifacts from a dictionary.
+
+        Args:
+            d: Dictionary containing artifact data. If metrics_values is present,
+                it's converted to a DataFrame. If metrics_path is present, the CSV
+                is loaded.
+
+        Returns:
+            TrainingArtifacts instance with loaded metrics and parameters.
+        """
         if d.get("metrics_values"):
             metrics_values = pd.DataFrame.from_dict(d.get("metrics_values"))
         elif d.get("metrics_path"):
@@ -224,11 +399,34 @@ class TrainingArtifacts(Artifacts):
 
     @classmethod
     def from_file(cls, metrics_path: str) -> "TrainingArtifacts":
+        """Load training artifacts from a metrics CSV file.
+
+        Args:
+            metrics_path: Path to the CSV file containing training metrics.
+
+        Returns:
+            TrainingArtifacts instance with metrics loaded from the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            pd.errors.EmptyDataError: If the CSV file is empty.
+        """
         return cls(metrics_path=metrics_path, metrics_values=pd.read_csv(metrics_path))
 
 
 class BaseDatasetStatistics(BaseModel):
+    """Base class for dataset statistics.
+
+    Provides common functionality for converting statistics to dictionaries
+    with None values removed.
+    """
+
     def to_dict(self) -> Dict[str, Any]:
+        """Convert statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with None values removed.
+        """
         dumped_dict = self.model_dump()
         for k in list(dumped_dict.keys()):
             if dumped_dict[k] is None:
@@ -237,6 +435,19 @@ class BaseDatasetStatistics(BaseModel):
 
 
 class ObjectDetectionStatistics(BaseDatasetStatistics):
+    """Statistics specific to object detection datasets.
+
+    Attributes:
+        num_negative_samples: Number of negative samples (images without objects).
+        num_positive_samples: Number of positive samples (images with objects).
+        negative_positive_ratio: Ratio of negative to positive samples.
+        num_boxes: Total number of bounding boxes in the dataset.
+        boxes_per_image: Optional statistics about boxes per image distribution.
+        box_width_stats: Optional statistics about box widths.
+        box_height_stats: Optional statistics about box heights.
+        box_area_stats: Optional statistics about box areas.
+    """
+
     num_negative_samples: int = Field(
         description="Number of negative samples in the dataset"
     )
@@ -262,6 +473,18 @@ class ObjectDetectionStatistics(BaseDatasetStatistics):
 
 
 class VisionStatistics(BaseDatasetStatistics):
+    """Statistics for vision/image datasets.
+
+    Attributes:
+        num_samples: Total number of samples in the dataset.
+        image_color_means: Optional mean values for each color channel (RGB).
+        image_color_stds: Optional standard deviations for each color channel.
+        class_distribution: Optional class distribution for classification tasks.
+        pixel_class_ratio: Optional pixel class ratios for segmentation tasks.
+        object_detection_statistics: Optional object detection specific statistics.
+        other_statistics: Optional additional custom statistics.
+    """
+
     num_samples: int = Field(description="Number of samples in the dataset")
     image_color_means: Optional[List[float]] = Field(
         default=None, description="Mean of the image color channels"
@@ -285,6 +508,12 @@ class VisionStatistics(BaseDatasetStatistics):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert vision statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with nested object detection statistics
+            serialized and None values removed.
+        """
         dumped_dict = self.model_dump()
         if self.object_detection_statistics is not None:
             dumped_dict["object_detection_statistics"] = (
@@ -297,6 +526,19 @@ class VisionStatistics(BaseDatasetStatistics):
 
 
 class TabularStatistics(BaseDatasetStatistics):
+    """Statistics for tabular datasets.
+
+    Attributes:
+        feature_statistics: Optional nested dictionary mapping feature names to
+            statistical summaries (count, mean, std, min, 25%, 50%, 75%, max).
+        number_unique_values: Optional dictionary mapping feature names to unique
+            value counts.
+        percentage_unique_values: Optional dictionary mapping feature names to
+            percentage of unique values.
+        categorical_features: Optional list of categorical feature names.
+        numerical_features: Optional list of numerical feature names.
+    """
+
     # Feature statistics from describe() - nested dict: feature_name -> {stat_name -> value}
     feature_statistics: Optional[Dict[str, Dict[str, Any]]] = Field(
         default=None,
@@ -317,7 +559,16 @@ class TabularStatistics(BaseDatasetStatistics):
 
 
 class TextStatistics(BaseModel):
-    """Statistics about text content."""
+    """Statistics about text content.
+
+    Attributes:
+        character_length: Optional statistical summary of character lengths
+            (count, mean, std, min, 25%, 50%, 75%, max).
+        word_count: Optional statistical summary of word counts
+            (count, mean, std, min, 25%, 50%, 75%, max).
+        vocabulary_size: Optional total number of unique words in the dataset.
+        avg_chars_per_word: Optional average number of characters per word.
+    """
 
     character_length: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -335,6 +586,11 @@ class TextStatistics(BaseModel):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert text statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with None values removed.
+        """
         dumped_dict = self.model_dump()
         for k in list(dumped_dict.keys()):
             if dumped_dict[k] is None:
@@ -343,7 +599,18 @@ class TextStatistics(BaseModel):
 
 
 class LabelStatistics(BaseModel):
-    """Statistics about labels."""
+    """Statistics about labels.
+
+    Attributes:
+        is_multi_label: Optional flag indicating if the task is multi-label classification.
+        labels_per_sample: Optional statistical summary of labels per sample for
+            multi-label tasks (count, mean, std, min, 25%, 50%, 75%, max).
+        class_distribution: Optional distribution of classes for single-label tasks
+            (class name -> count).
+        num_classes: Optional number of classes in the dataset.
+        label_distribution_stats: Optional statistical summary of label distribution
+            (count, mean, std, min, 25%, 50%, 75%, max).
+    """
 
     is_multi_label: Optional[bool] = Field(
         default=None, description="Whether the task is multi-label classification"
@@ -365,6 +632,11 @@ class LabelStatistics(BaseModel):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert label statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with None values removed.
+        """
         dumped_dict = self.model_dump()
         for k in list(dumped_dict.keys()):
             if dumped_dict[k] is None:
@@ -373,7 +645,16 @@ class LabelStatistics(BaseModel):
 
 
 class PropertiesStatistics(BaseModel):
-    """Statistics about text properties (similar to TabularStatistics)."""
+    """Statistics about text properties (similar to TabularStatistics).
+
+    Attributes:
+        feature_statistics: Optional nested dictionary mapping property names to
+            statistical summaries (count, mean, std, min, 25%, 50%, 75%, max).
+        number_unique_values: Optional dictionary mapping property names to unique
+            value counts.
+        percentage_unique_values: Optional dictionary mapping property names to
+            percentage of unique values.
+    """
 
     feature_statistics: Optional[Dict[str, Dict[str, Any]]] = Field(
         default=None,
@@ -387,6 +668,11 @@ class PropertiesStatistics(BaseModel):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert properties statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with None values removed.
+        """
         dumped_dict = self.model_dump()
         for k in list(dumped_dict.keys()):
             if dumped_dict[k] is None:
@@ -395,6 +681,21 @@ class PropertiesStatistics(BaseModel):
 
 
 class NLPStatistics(BaseDatasetStatistics):
+    """Statistics for NLP/text datasets.
+
+    Attributes:
+        num_samples: Total number of samples in the dataset.
+        task_type: Optional type of NLP task (e.g., text_classification,
+            text_token_classification).
+        text_statistics: Optional statistics about text content.
+        label_statistics: Optional statistics about labels.
+        properties_statistics: Optional statistics about text properties.
+        categorical_properties: Optional list of categorical property names.
+        numerical_properties: Optional list of numerical property names.
+        categorical_metadata: Optional list of categorical metadata column names.
+        numerical_metadata: Optional list of numerical metadata column names.
+    """
+
     num_samples: int = Field(description="Number of samples in the dataset")
     task_type: Optional[str] = Field(
         default=None,
@@ -423,6 +724,12 @@ class NLPStatistics(BaseDatasetStatistics):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert NLP statistics to a dictionary.
+
+        Returns:
+            Dictionary representation with nested statistics serialized and
+            None values removed.
+        """
         dumped_dict = self.model_dump()
         if self.text_statistics is not None:
             dumped_dict["text_statistics"] = self.text_statistics.to_dict()
@@ -438,6 +745,16 @@ class NLPStatistics(BaseDatasetStatistics):
 
 ## Dataset
 class DatasetArtifacts(Artifacts):
+    """Artifacts containing dataset statistics and metadata.
+
+    Attributes:
+        dataset_name: Name of the dataset.
+        train_statistics: Training dataset statistics (can be any BaseDatasetStatistics
+            subclass or a dictionary).
+        task_type: Type of ML task (classification, regression, etc.).
+        test_statistics: Optional test/validation dataset statistics.
+    """
+
     dataset_name: str = Field(..., description="Name of the dataset")
     train_statistics: Union[BaseDatasetStatistics, Dict[str, Any]] = Field(
         ..., description="Train statistics of the dataset"
@@ -448,6 +765,12 @@ class DatasetArtifacts(Artifacts):
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert dataset artifacts to a dictionary.
+
+        Returns:
+            Dictionary representation with statistics serialized and task_type
+            converted to its string value.
+        """
         dumped_dict = self.model_dump()
         dumped_dict["train_statistics"] = self.train_statistics.to_dict()
         if self.test_statistics is not None:
@@ -457,6 +780,18 @@ class DatasetArtifacts(Artifacts):
 
     @classmethod
     def from_file(cls, path: str) -> "DatasetArtifacts":
+        """Load dataset artifacts from a YAML file.
+
+        Args:
+            path: Path to the YAML file containing artifact data.
+
+        Returns:
+            DatasetArtifacts instance loaded from the file.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            yaml.YAMLError: If the file contains invalid YAML.
+        """
         with open(path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
         return cls(**d)
