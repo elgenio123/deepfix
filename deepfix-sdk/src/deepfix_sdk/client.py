@@ -144,10 +144,10 @@ class DeepFixClient:
         improvement.
 
         Args:
-            run_name (str): Name of the run to analyze. Must match a run
+            dataset_name (str): Name of the dataset to analyze. Must match a dataset
                 that has been previously ingested.
             language (str, optional): Language for analysis output. Defaults to "english".
-            dataset_name (str, optional): Name of the dataset. Defaults to None.
+            model_name (str, optional): Name of the model. Defaults to None.
         Returns:
             APIResponse: Response object containing:
                 - Analysis results and findings
@@ -160,7 +160,7 @@ class DeepFixClient:
             Exception: If the analysis request fails (non-200 status code).
 
         Example:
-            >>> response = client.diagnose(run_name="my-run")
+            >>> response = client.diagnose(dataset_name="my-dataset")
             >>> print(response.to_text())
         """
         from .pipelines import ArtifactLoadingPipeline
@@ -202,10 +202,10 @@ class DeepFixClient:
         tabular data, NLP text, and general vision datasets.
 
         Args:
-            dataset_name (str): Unique name for the dataset.
             train_data (BaseDataset): Training dataset to ingest. Must be an instance
                 of an appropriate dataset class (e.g., ImageClassificationDataset,
-                TabularDataset, NLPDataset).
+                TabularDataset, NLPDataset). The dataset name is extracted from the
+                dataset_name attribute of this object.
             test_data (BaseDataset, optional): Test/validation dataset. If provided,
                 enables cross-dataset validation checks. Defaults to None.
             model (Any, optional): Model to ingest. Must be an instance of a model class.
