@@ -1,0 +1,359 @@
+# Configuration
+
+This guide covers configuring DeepFix for your environment, including server configuration, client configuration, and MLflow integration.
+
+## Server Configuration
+
+The DeepFix server requires configuration for the LLM backend used by the analysis agents.
+
+### Environment Variables
+
+Create a `.env` file in the `deepfix-server` directory with the following variables:
+
+```bash
+# LLM Configuration
+DEEPFIX_LLM_API_KEY=sk-...                    # API key for your LLM provider
+DEEPFIX_LLM_BASE_URL=https://api.your-llm.com/v1  # Base URL of the LLM API
+DEEPFIX_LLM_MODEL_NAME=gpt-4o                # Model name (e.g., gpt-4o, llama-3.1)
+DEEPFIX_LLM_TEMPERATURE=0.4                  # Temperature (0.0-2.0)
+DEEPFIX_LLM_MAX_TOKENS=6000                  # Maximum tokens per request
+DEEPFIX_LLM_CACHE=true                       # Enable caching ("true"/"false")
+DEEPFIX_LLM_TRACK_USAGE=true                 # Track token usage ("true"/"false")
+
+# Server Configuration
+LIT_SERVER_API_KEY=ACCESS-TOKEN-TO-BE-DEFINED  # Optional: API key for server
+```
+
+### LLM Provider Configuration
+
+#### OpenAI / Compatible API
+
+```bash
+DEEPFIX_LLM_API_KEY=sk-...
+DEEPFIX_LLM_BASE_URL=https://api.openai.com/v1
+DEEPFIX_LLM_MODEL_NAME=gpt-4o
+DEEPFIX_LLM_TEMPERATURE=0.4
+DEEPFIX_LLM_MAX_TOKENS=6000
+```
+
+#### Anthropic Claude
+
+```bash
+DEEPFIX_LLM_API_KEY=sk-ant-...
+DEEPFIX_LLM_BASE_URL=https://api.anthropic.com/v1
+DEEPFIX_LLM_MODEL_NAME=claude-3-opus-20240229
+DEEPFIX_LLM_TEMPERATURE=0.7
+DEEPFIX_LLM_MAX_TOKENS=8000
+```
+
+#### Local LLM (Ollama, etc.)
+
+```bash
+DEEPFIX_LLM_API_KEY=not-needed
+DEEPFIX_LLM_BASE_URL=http://localhost:11434/v1
+DEEPFIX_LLM_MODEL_NAME=llama3
+DEEPFIX_LLM_TEMPERATURE=0.7
+DEEPFIX_LLM_MAX_TOKENS=4000
+```
+
+### Server Launch Configuration
+
+Launch the server with configuration:
+
+```bash
+# Using .env file
+uv run deepfix-server launch -e deepfix-server/.env -port 8844 -host 127.0.0.1
+
+# Using environment variables directly
+export DEEPFIX_LLM_API_KEY=sk-...
+export DEEPFIX_LLM_BASE_URL=https://api.openai.com/v1
+uv run deepfix-server launch -port 8844 -host 0.0.0.0
+```
+
+### Server Configuration Options
+
+- `-host`: Server host (default: `127.0.0.1`)
+- `-port`: Server port (default: `8844`)
+- `-e`: Path to `.env` file
+- `--version`: Show server version
+
+## Client Configuration
+
+Configure the DeepFix SDK client for your needs.
+
+### Basic Client Configuration
+
+```python
+from deepfix_sdk.client import DeepFixClient
+
+# Minimal configuration
+client = DeepFixClient(api_url="http://localhost:8844")
+
+# With custom timeout
+client = DeepFixClient(
+    api_url="http://localhost:8844",
+    timeout=120  # Request timeout in seconds
+)
+```
+
+### MLflow Configuration
+
+Configure MLflow integration for experiment tracking:
+
+```python
+from deepfix_sdk.client import DeepFixClient
+from deepfix_sdk.config import MLflowConfig
+
+# Create MLflow configuration
+mlflow_config = MLflowConfig(
+    tracking_uri="http://localhost:5000",      # MLflow tracking server URI
+    experiment_name="my-ml-experiment",        # Experiment name
+    run_name="baseline-run"                    # Run name
+)
+
+# Initialize client with MLflow
+client = DeepFixClient(
+    api_url="http://localhost:8844",
+    mlflow_config=mlflow_config
+)
+```
+
+### Artifact Configuration
+
+Configure which artifacts to load:
+
+```python
+from deepfix_sdk.config import ArtifactConfig
+
+artifact_config = ArtifactConfig(
+    load_dataset_metadata=True,    # Load dataset metadata
+    load_checks=True,               # Load deepchecks reports
+    load_model_checkpoint=False,    # Load model checkpoints
+    load_training=False             # Load training artifacts
+)
+
+# Use with pipelines (see API reference)
+```
+
+### Environment Variables for Client
+
+The client can also use environment variables:
+
+```bash
+# Optional: Set API key if needed
+export DEEPFIX_API_KEY=your-api-key
+
+# MLflow configuration
+export MLFLOW_TRACKING_URI=http://localhost:5000
+export MLFLOW_EXPERIMENT_NAME=my-experiment
+```
+
+## MLflow Configuration
+
+DeepFix integrates with MLflow for experiment tracking and artifact storage.
+
+### Setting Up MLflow Server
+
+#### Option 1: Local MLflow Server
+
+```bash
+# Start MLflow tracking server
+mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port 5000
+```
+
+#### Option 2: Docker MLflow Server
+
+```yaml
+# docker-compose.yml
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlruns
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - ./mlruns:/mlruns
+```
+
+#### Option 3: Remote MLflow Server
+
+Use a hosted MLflow server (e.g., Databricks, MLflow on AWS):
+
+```python
+mlflow_config = MLflowConfig(
+    tracking_uri="https://your-mlflow-server.com",
+    experiment_name="my-experiment"
+)
+```
+
+### Configuring MLflow in Code
+
+```python
+from deepfix_sdk.client import DeepFixClient
+from deepfix_sdk.config import MLflowConfig
+
+# Configure MLflow
+mlflow_config = MLflowConfig(
+    tracking_uri="http://localhost:5000",
+    experiment_name="deepfix-analysis",
+    run_name="dataset-diagnosis-1"
+)
+
+client = DeepFixClient(
+    api_url="http://localhost:8844",
+    mlflow_config=mlflow_config
+)
+
+# All operations will be tracked in MLflow
+client.ingest(...)
+result = client.diagnose_dataset(...)
+```
+
+### MLflow Artifact Storage
+
+DeepFix stores artifacts in MLflow:
+
+- **Dataset Metadata**: Dataset statistics and properties
+- **Deepchecks Reports**: Data quality check results
+- **Model Checkpoints**: Model state and configuration
+- **Training Artifacts**: Training metrics and logs
+
+Access artifacts via MLflow UI or Python API:
+
+```python
+import mlflow
+
+# Access MLflow run
+run = mlflow.get_run(run_id="...")
+
+# List artifacts
+artifacts = mlflow.list_artifacts(run_id="...")
+
+# Download artifacts
+mlflow.artifacts.download_artifacts(run_id="...", artifact_path="dataset_metadata")
+```
+
+## Advanced Configuration
+
+### Custom Timeout Settings
+
+```python
+# Increase timeout for large datasets
+client = DeepFixClient(
+    api_url="http://localhost:8844",
+    timeout=300  # 5 minutes
+)
+```
+
+### Batch Size Configuration
+
+```python
+# Adjust batch size based on available memory
+client.ingest(
+    dataset_name="my-dataset",
+    train_data=train_dataset,
+    batch_size=16  # Increase for better throughput, decrease for memory constraints
+)
+```
+
+### Server URL Configuration
+
+```python
+# Local development
+client = DeepFixClient(api_url="http://localhost:8844")
+
+# Remote server
+client = DeepFixClient(api_url="http://deepfix.example.com:8844")
+
+# With authentication (if configured)
+client = DeepFixClient(
+    api_url="https://deepfix.example.com:8844",
+    timeout=120
+)
+```
+
+## Configuration Best Practices
+
+### Security
+
+1. **Never commit `.env` files**: Add `.env` to `.gitignore`
+2. **Use environment variables in production**: Set via deployment system
+3. **Rotate API keys regularly**: Update `DEEPFIX_LLM_API_KEY` periodically
+4. **Use secure connections**: Prefer HTTPS for remote servers
+
+### Performance
+
+1. **Optimize batch sizes**: Balance memory usage and throughput
+2. **Configure appropriate timeouts**: Based on dataset size and network latency
+3. **Enable caching**: Set `DEEPFIX_LLM_CACHE=true` for repeated analyses
+4. **Use local MLflow**: For faster artifact access during development
+
+### Development
+
+1. **Use separate configs**: Different `.env` files for dev/staging/prod
+2. **Version control config templates**: Keep `env.example` updated
+3. **Document configuration**: Note any custom settings
+4. **Test configurations**: Verify settings before production deployment
+
+## Troubleshooting
+
+### Configuration Issues
+
+**Problem**: Server fails to start
+
+```bash
+# Solution: Verify all required environment variables are set
+cat deepfix-server/.env
+
+# Check for missing variables
+DEEPFIX_LLM_API_KEY=...
+DEEPFIX_LLM_BASE_URL=...
+DEEPFIX_LLM_MODEL_NAME=...
+```
+
+**Problem**: LLM connection errors
+
+```bash
+# Solution: Verify API key and base URL
+echo $DEEPFIX_LLM_API_KEY
+echo $DEEPFIX_LLM_BASE_URL
+
+# Test LLM API connectivity
+curl -H "Authorization: Bearer $DEEPFIX_LLM_API_KEY" $DEEPFIX_LLM_BASE_URL/models
+```
+
+**Problem**: MLflow connection errors
+
+```python
+# Solution: Verify MLflow server is running
+import mlflow
+mlflow.set_tracking_uri("http://localhost:5000")
+mlflow.list_experiments()  # Should not raise error
+```
+
+### Configuration Validation
+
+```python
+# Validate client configuration
+client = DeepFixClient(api_url="http://localhost:8844")
+
+# Test connection
+try:
+    # Attempt a simple operation
+    result = client.diagnose_dataset("test-dataset")
+except Exception as e:
+    print(f"Configuration error: {e}")
+```
+
+## Next Steps
+
+- [Quickstart Guide](quickstart.md) - Get started with configured DeepFix
+- [MLflow Integration Guide](../guides/mlflow-integration.md) - Advanced MLflow setup
+- [Deployment Guide](../deployment/docker.md) - Production configuration
+- [API Reference](../api-reference/index.md) - Configuration API details
+
