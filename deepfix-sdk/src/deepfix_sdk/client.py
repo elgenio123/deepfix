@@ -114,7 +114,7 @@ class DeepFixClient:
         assert test_data is None or isinstance(test_data, BaseDataset), "test_data must be an instance of BaseDataset"
 
         dataset_name = self.get_dataset_name(train_data, test_data)
-        
+
         # First, ingest the dataset and model
         self.ingest(
             train_data=train_data,
@@ -130,7 +130,6 @@ class DeepFixClient:
             model_name=model_name,
             language=language,
         )
-
 
     def diagnose(
         self,
