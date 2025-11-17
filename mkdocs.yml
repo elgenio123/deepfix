@@ -78,6 +78,10 @@ nav:
     - getting-started/installation.md
     - getting-started/quickstart.md
     - getting-started/configuration.md
+    - Tutorials:
+      - Computer Vision: tutorials/computer-vision.md
+      - NLP: tutorials/nlp.md
+      - Tabular: tutorials/tabular.md
   - Guides:
     - guides/image-classification.md
     - guides/tabular-data.md

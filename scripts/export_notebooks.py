@@ -10,10 +10,10 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from typing import Iterable, List, Sequence, Tuple
 
 import nbformat
 from nbconvert import MarkdownExporter
-from nbconvert.preprocessors import ExtractOutputPreprocessor
 from traitlets.config import Config
 
 # Configure logging
@@ -24,19 +24,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+CUSTOM_TITLES = {
+    "nlp": "NLP",
+}
+
 
 def setup_exporter() -> MarkdownExporter:
     """Configure and return a MarkdownExporter with figure extraction."""
     # Create configuration to enable ExtractOutputPreprocessor
     c = Config()
-    c.MarkdownExporter.preprocessors = ["nbconvert.preprocessors.ExtractOutputPreprocessor"]
+    c.MarkdownExporter.preprocessors = [
+        "nbconvert.preprocessors.ExtractOutputPreprocessor"
+    ]
 
     # Create exporter with the configuration
     exporter = MarkdownExporter(config=c)
     return exporter
 
 
-def export_notebook(notebook_path: Path, output_dir: Path, exporter: MarkdownExporter) -> bool:
+def export_notebook(
+    notebook_path: Path, output_dir: Path, exporter: MarkdownExporter
+) -> bool:
     """
     Export a single notebook to Markdown.
 
@@ -79,15 +87,122 @@ def export_notebook(notebook_path: Path, output_dir: Path, exporter: MarkdownExp
                     f.write(data)
                 logger.info(f"  ✓ Extracted {filename}")
 
-            logger.info(f"  ✓ Extracted {len(resources['outputs'])} figure(s) to {output_files_dir}/")
+            logger.info(
+                f"  ✓ Extracted {len(resources['outputs'])} figure(s) to {output_files_dir}/"
+            )
         else:
             logger.info("  ℹ No figures to extract")
 
         return True
 
     except Exception as e:
-        logger.error(f"  ✗ Failed to export {notebook_path.name}: {e}", exc_info=True)
+        logger.error(
+            f"  ✗ Failed to export {notebook_path.name}: {e}", exc_info=True
+        )
         return False
+
+
+def humanize_title(stem: str) -> str:
+    """Convert a filename stem to a human-friendly title."""
+    normalized = stem.lower()
+    if normalized in CUSTOM_TITLES:
+        return CUSTOM_TITLES[normalized]
+    return stem.replace("-", " ").replace("_", " ").title()
+
+
+def find_getting_started_block(lines: Sequence[str]) -> Tuple[int, int]:
+    """Locate the Getting Started nav block in mkdocs.yml."""
+    for idx, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("- Getting Started:"):
+            indent_len = len(line) - len(line.lstrip())
+            end_idx = idx + 1
+            while end_idx < len(lines):
+                next_line = lines[end_idx]
+                if not next_line.strip():
+                    end_idx += 1
+                    continue
+                next_indent = len(next_line) - len(next_line.lstrip())
+                if next_indent <= indent_len:
+                    break
+                end_idx += 1
+            return idx, end_idx
+    raise ValueError("Could not find 'Getting Started' section in mkdocs.yml")
+
+
+def remove_existing_tutorial_block(block_lines: List[str]) -> List[str]:
+    """Remove any existing Tutorials block from the Getting Started section."""
+    filtered: List[str] = []
+    i = 0
+    while i < len(block_lines):
+        line = block_lines[i]
+        stripped = line.strip()
+        indent_len = len(line) - len(line.lstrip())
+        if stripped.startswith("- Tutorials:"):
+            tutorial_indent = indent_len
+            i += 1
+            while i < len(block_lines):
+                next_line = block_lines[i]
+                next_indent = len(next_line) - len(next_line.lstrip())
+                if next_indent <= tutorial_indent:
+                    break
+                i += 1
+            continue
+        filtered.append(line)
+        i += 1
+    return filtered
+
+
+def update_getting_started_nav(
+    mkdocs_path: Path, tutorial_paths: Iterable[Path]
+) -> None:
+    """Ensure the Getting Started nav includes the Tutorials subsection."""
+    tutorial_entries: List[Tuple[str, str]] = []
+    docs_dir = Path("docs").resolve()
+
+    for tutorial_path in tutorial_paths:
+        if not tutorial_path.exists():
+            continue
+        tutorial_path = tutorial_path.resolve()
+        try:
+            rel_path = tutorial_path.relative_to(docs_dir)
+        except ValueError:
+            logger.warning(
+                "Skipping %s because it is not inside the docs/ directory",
+                tutorial_path,
+            )
+            continue
+
+        title = humanize_title(tutorial_path.stem)
+        tutorial_entries.append((title, rel_path.as_posix()))
+
+    if not tutorial_entries:
+        logger.info("No tutorials found inside docs/; skipping mkdocs nav update")
+        return
+
+    mkdocs_lines = mkdocs_path.read_text(encoding="utf-8").splitlines()
+
+    try:
+        start_idx, end_idx = find_getting_started_block(mkdocs_lines)
+    except ValueError as exc:
+        logger.error("%s; skipping mkdocs nav update", exc)
+        return
+
+    block_lines = mkdocs_lines[start_idx + 1 : end_idx]
+    block_lines = remove_existing_tutorial_block(block_lines)
+
+    tutorial_block = ["    - Tutorials:"]
+    for title, rel_path in sorted(tutorial_entries, key=lambda item: item[0]):
+        tutorial_block.append(f"      - {title}: {rel_path}")
+
+    updated_lines = (
+        mkdocs_lines[: start_idx + 1]
+        + block_lines
+        + tutorial_block
+        + mkdocs_lines[end_idx:]
+    )
+    mkdocs_path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+    logger.info("Updated Tutorials section in mkdocs.yml")
 
 
 def main():
@@ -143,15 +258,25 @@ def main():
 
     # Process each notebook
     success_count = 0
+    exported_paths: List[Path] = []
     for notebook_path in sorted(notebook_files):
         if export_notebook(notebook_path, args.output_dir, exporter):
             success_count += 1
+            exported_paths.append(args.output_dir / f"{notebook_path.stem}.md")
 
     # Summary
     logger.info("")
     logger.info("=" * 60)
-    logger.info(f"Export complete: {success_count}/{len(notebook_files)} notebook(s) processed successfully")
+    logger.info(
+        f"Export complete: {success_count}/{len(notebook_files)} notebook(s) processed successfully"
+    )
     logger.info("=" * 60)
+
+    mkdocs_path = Path("mkdocs.yml")
+    if mkdocs_path.exists():
+        update_getting_started_nav(mkdocs_path, exported_paths)
+    else:
+        logger.warning("mkdocs.yml not found; skipping nav update")
 
     if success_count < len(notebook_files):
         sys.exit(1)
