@@ -30,6 +30,7 @@ def get_workdir():
     """
     candidates = [
         Path.home() / ".deepfix",
+        Path.cwd() / ".deepfix",
         Path("/content/.deepfix"),  # for Google Colab
         Path(tempfile.gettempdir()) / ".deepfix",
     ]
