@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Optional
 
 import streamlit as st
@@ -40,7 +41,9 @@ def run_diagnosis_ui() -> None:
     st.title("DeepFix Diagnosis")
     st.caption("Visual wrapper around `DeepFixClient.diagnose`.")
 
-    client = get_client()
+    api_url = os.getenv("DEEPFIX_API_URL", "https://deepfix.delcaux.com")
+
+    client = get_client(api_url=api_url)
     datasets = client.list_datasets()
     render_dataset_overview(datasets)
 
