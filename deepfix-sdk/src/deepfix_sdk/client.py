@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
 
+from .artifacts import ArtifactRepository, ArtifactStatus
 from .config import ArtifactConfig, MLflowConfig
 
 if TYPE_CHECKING:
@@ -35,6 +36,7 @@ class DeepFixClient:
         self,
         api_url: str = "http://localhost:8844",
         mlflow_config: Optional[MLflowConfig] = None,
+        artifact_config: Optional[ArtifactConfig] = None,
         timeout: int = 30,
     ):
         """Initialize the DeepFixClient.
@@ -43,6 +45,8 @@ class DeepFixClient:
             api_url (str, optional): URL of the DeepFix server. Defaults to "http://localhost:8844".
             mlflow_config (MLflowConfig, optional): MLflow configuration for experiment tracking.
                 If not provided, a default MLflowConfig is created. Defaults to None.
+            artifact_config (ArtifactConfig, optional): Artifact cache configuration used to discover
+                stored datasets/models. Defaults to None.
             timeout (int, optional): Request timeout in seconds. Defaults to 30.
 
         Example:
@@ -52,10 +56,69 @@ class DeepFixClient:
             ... )
         """
         self.mlflow_config = mlflow_config or MLflowConfig()
+        self.artifact_config = artifact_config or ArtifactConfig()
         self.api_url = api_url
         self.timeout = timeout
 
         self._analyze_endpoint = f"{self.api_url}/v1/analyse"
+        self._artifact_repo: Optional[ArtifactRepository] = None
+
+    def _get_artifact_repository(self) -> ArtifactRepository:
+        if self._artifact_repo is None:
+            self._artifact_repo = ArtifactRepository(
+                sqlite_path=self.artifact_config.sqlite_path
+            )
+        return self._artifact_repo
+
+    def list_datasets(
+        self, status: Optional[Union[str, ArtifactStatus]] = None
+    ) -> list[dict[str, Any]]:
+        """List datasets that have been ingested and are available for diagnosis.
+
+        Args:
+            status (ArtifactStatus | str | None): Optional filter by artifact status.
+
+        Returns:
+            List of dictionaries describing available datasets. Each record contains:
+                - dataset_name: Registered run/dataset name.
+                - status: Artifact registration status.
+                - mlflow_run_id: Associated MLflow run, if any.
+                - local_path: Path to cached artifact on disk, if downloaded.
+                - updated_at / created_at: ISO8601 timestamps for auditing.
+        """
+        repo = self._get_artifact_repository()
+        status_enum: Optional[ArtifactStatus] = None
+        if status is not None:
+            status_enum = (
+                status if isinstance(status, ArtifactStatus) else ArtifactStatus(status)
+            )
+        records = repo.list_records(
+            artifact_key=ArtifactPath.DATASET.value, status=status_enum
+        )
+        datasets = []
+        for record in records:
+            datasets.append(
+                {
+                    "dataset_name": record.run_id,
+                    "status": record.status.value if record.status else None,
+                    "mlflow_run_id": record.mlflow_run_id,
+                    "local_path": record.local_path,
+                    "created_at": record.created_at.isoformat()
+                    if record.created_at
+                    else None,
+                    "updated_at": record.updated_at.isoformat()
+                    if record.updated_at
+                    else None,
+                }
+            )
+        datasets.sort(key=lambda item: item["updated_at"] or "", reverse=True)
+        return datasets
+
+    def get_dataset_names(
+        self, status: Optional[Union[str, ArtifactStatus]] = None
+    ) -> list[str]:
+        """Convenience method returning only dataset names for UI dropdowns."""
+        return [entry["dataset_name"] for entry in self.list_datasets(status=status)]
 
     def get_diagnosis(
         self,
@@ -165,12 +228,11 @@ class DeepFixClient:
         """
         from .pipelines import ArtifactLoadingPipeline
 
-        artifact_config = ArtifactConfig(
-            load_dataset_metadata=True,
-            load_checks=True,
-            load_model_checkpoint=True,
-            load_training=False,
-        )
+        artifact_config = self.artifact_config.model_copy()
+        artifact_config.load_dataset_metadata = True
+        artifact_config.load_checks = True
+        artifact_config.load_model_checkpoint = True
+        artifact_config.load_training = False
         loaded_artifacts = ArtifactLoadingPipeline(
             mlflow_config=self.mlflow_config,
             artifact_config=artifact_config,
@@ -241,6 +303,7 @@ class DeepFixClient:
         dataset_logging_pipeline = IngestionPipeline(
             dataset_name=dataset_name,
             data_type=data_type,
+            mlflow_tracking_uri=self.mlflow_config.tracking_uri,
             train_test_validation=test_data is not None,
             data_integrity=True,
             model_evaluation=model is not None,
@@ -326,7 +389,7 @@ class DeepFixClient:
 
             if response.status_code != 200:
                 console.print("[red]✗[/red] Analysis failed", style="bold red")
-                raise Exception(
+                raise RuntimeError(
                     f"Error during analysis: status code: {response.status_code} \nand message: {response.text}"
                 )
 

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 import os
-import tempfile
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-
+from platformdirs import user_data_dir
 from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel, Field
 
@@ -29,16 +28,16 @@ def get_workdir():
         RuntimeError: If no writable directory is found.
     """
     candidates = [
-        Path.home() / ".deepfix",
+        Path(user_data_dir("deepfix")),
         Path.cwd() / ".deepfix",
-        Path("/content/.deepfix"),  # for Google Colab
-        Path(tempfile.gettempdir()) / ".deepfix",
+        #Path("/content/.deepfix"),  # for Google Colab
+        #Path(tempfile.gettempdir()) / ".deepfix",
     ]
 
     for path in candidates:
         parent = path.parent
         # Check if parent exists and is writable
-        if parent.exists() and os.access(parent, os.W_OK):
+        if parent.exists():
             path.mkdir(parents=True, exist_ok=True)
             return path
 
@@ -54,12 +53,11 @@ def _get_base_dirs() -> Dict[str, Path]:
         Dictionary mapping 'data', 'cache', and 'log' to their respective Path objects.
     """
     env_home = os.environ.get("DEEPFIX_HOME", get_workdir())
-    if env_home:
-        return {
-            "data": env_home / "data",
-            "cache": env_home / "cache",
-            "log": env_home / "logs",
-        }
+    return {
+        "data": env_home / "data",
+        "cache": env_home / "cache",
+        "log": env_home / "logs",
+    }
 
 
 def _default_mlflow_tracking_uri(data_dir: Path) -> str:
@@ -113,7 +111,7 @@ def _default_sqlite_path(data_dir: Path) -> str:
     Returns:
         String path to the SQLite database file.
     """
-    sqlite_path = data_dir / "tmp" / "artifacts.db"
+    sqlite_path = data_dir / "artifacts.db"
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     return str(sqlite_path)
 
@@ -301,8 +299,8 @@ class DefaultPaths(StrEnum):
 
     ADVISOR_OUTPUT_DIR = _default_output_dir(_BASE_DIRS["data"])
 
-    KNOWLEDGE_BASE_DIR = _default_knowledge_base_dir(_BASE_DIRS["data"])
-    KNOWLEDGE_BASE_INDICES_DIR = _default_knowledge_base_indices_dir(_BASE_DIRS["data"])
-    KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(
-        _BASE_DIRS["data"]
-    )
+    #KNOWLEDGE_BASE_DIR = _default_knowledge_base_dir(_BASE_DIRS["data"])
+    #KNOWLEDGE_BASE_INDICES_DIR = _default_knowledge_base_indices_dir(_BASE_DIRS["data"])
+    #KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(
+    #    _BASE_DIRS["data"]
+    #)

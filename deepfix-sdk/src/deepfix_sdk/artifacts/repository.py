@@ -181,6 +181,20 @@ class ArtifactRepository:
                 stmt = stmt.where(ArtifactRecord.status == status)
             return list(s.exec(stmt).all())
 
+    def list_records(
+        self,
+        artifact_key: Optional[str] = None,
+        status: Optional[ArtifactStatus] = None,
+    ) -> List[ArtifactRecord]:
+        """Return artifact records filtered by key and/or status."""
+        with self.session() as s:
+            stmt = select(ArtifactRecord)
+            if artifact_key:
+                stmt = stmt.where(ArtifactRecord.artifact_key == artifact_key)
+            if status:
+                stmt = stmt.where(ArtifactRecord.status == status)
+            return list(s.exec(stmt).all())
+
     def update_local_path(
         self,
         run_id: str,

@@ -5,10 +5,10 @@ This module provides comprehensive configuration classes for the advisor,
 including YAML loading, validation, and default value management.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
-from deepfix_core.models import DefaultPaths
-from pydantic import BaseModel, Field, field_validator
+from deepfix_core.models import DataType, DefaultPaths
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class MLflowConfig(BaseModel):
@@ -110,3 +110,91 @@ class ArtifactConfig(BaseModel):
         default=DefaultPaths.ARTIFACTS_SQLITE_PATH.value,
         description="Path to SQLite database for artifact caching",
     )
+
+
+class IngestionPipelineConfig(BaseModel):
+    """Configuration for ingestion pipeline runs."""
+
+    dataset_name: str = Field(description="Friendly dataset identifier")
+    data_type: Union[str, DataType] = Field(
+        description="Deepfix data type, e.g. tabular, nlp, vision"
+    )
+    batch_size: int = Field(
+        default=16,
+        ge=1,
+        description="Batch size for Deepchecks data ingestion",
+    )
+    mlflow_tracking_uri: Optional[str] = Field(
+        default=None,
+        description="Override MLflow tracking URI; defaults to system setting",
+    )
+    sqlite_path: str = Field(
+        default=DefaultPaths.ARTIFACTS_SQLITE_PATH.value,
+        description="SQLite database path for artifact persistence",
+    )
+    train_test_validation: bool = Field(
+        default=True,
+        description="Enable Deepchecks train/test validation suite",
+    )
+    data_integrity: bool = Field(
+        default=True,
+        description="Enable Deepchecks data integrity suite",
+    )
+    model_evaluation: bool = Field(
+        default=False,
+        description="Run model evaluation checks; requires model_name",
+    )
+    model_name: Optional[str] = Field(
+        default=None,
+        description="Model identifier (required when model_evaluation is enabled)",
+    )
+    max_samples: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Maximum samples for Deepchecks evaluation",
+    )
+    random_state: int = Field(
+        default=42,
+        description="Random seed for Deepchecks sampling routines",
+    )
+    save_results: bool = Field(
+        default=False, description="Persist Deepchecks HTML reports locally"
+    )
+    output_dir: Optional[str] = Field(
+        default=None,
+        description="Directory where Deepchecks artifacts are saved when enabled",
+    )
+    experiment_name: Optional[str] = Field(
+        default=None,
+        description="Override MLflow experiment name; defaults to system setting",
+    )
+    overwrite: bool = Field(
+        default=False,
+        description="Overwrite existing ingestion artifacts if run already exists",
+    )
+    mlflow_config: Optional[MLflowConfig] = Field(
+        default=None,
+        description="Full MLflow configuration. Takes precedence over tracking_uri",
+    )
+
+    @field_validator("data_type", mode="before")
+    @classmethod
+    def validate_data_type(cls, value: Union[str, DataType]) -> DataType:
+        """Ensure data_type is always a DataType enum instance."""
+        if isinstance(value, DataType):
+            return value
+        return DataType(value)
+
+    @model_validator(mode="after")
+    def validate_model_requirements(self) -> "IngestionPipelineConfig":
+        """Ensure model name is provided when model evaluation is enabled."""
+        if self.model_evaluation and not self.model_name:
+            raise ValueError(
+                "model_name must be provided when model_evaluation is enabled"
+            )
+        return self
+
+    def to_pipeline_kwargs(self) -> dict:
+        """Convert config to kwargs expected by `IngestionPipeline`."""
+        data = self.model_dump()
+        return data
