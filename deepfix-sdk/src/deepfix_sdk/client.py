@@ -12,8 +12,7 @@ from rich.spinner import Spinner
 from .artifacts import ArtifactRepository, ArtifactStatus
 from .config import ArtifactConfig, MLflowConfig
 
-if TYPE_CHECKING:
-    from .data.datasets import BaseDataset
+from .data.datasets import BaseDataset
 
 
 console = Console()

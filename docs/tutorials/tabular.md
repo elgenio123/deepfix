@@ -5,7 +5,7 @@ from deepfix_sdk import DeepFixClient
 
 
 ```python
-os.environ["DEEPFIX_API_KEY"] = "sk-empty"
+os.environ["DEEPFIX_API_KEY"] = "DEEPFIX-IS-AMAZING"
 ```
 
 
@@ -54,7 +54,7 @@ val_data = TabularDataset(
 
 
 ```python
-train_data.get_data().head()
+train_data.data.head()
 ```
 
 
