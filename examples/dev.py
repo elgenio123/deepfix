@@ -18,7 +18,7 @@ from deepfix_sdk.zoo.datasets import (
 from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
 from tqdm import tqdm
 
-url = "http://127.0.0.1:8844"
+url = "https://deepfix.delcaux.com"
 client = DeepFixClient(timeout=60, api_url=url)
 os.environ["DEEPFIX_API_KEY"] = "DEEPFIX-IS-AMAZING"
 
@@ -174,7 +174,6 @@ def ingest_nlp_dataset():
     train_data = NLPDataset(dataset_name=dataset_name, dataset=train_data)
     test_data = NLPDataset(dataset_name=dataset_name, dataset=test_data)
     client.ingest(
-        dataset_name=dataset_name,
         train_data=train_data,
         test_data=test_data,
         batch_size=8,
