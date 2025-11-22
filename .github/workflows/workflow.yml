@@ -1,12 +1,37 @@
 name: Publish to TestPyPI
 
 on:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
 
 jobs:
+  detect-deepfix-sdk-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect deepfix-sdk changes
+        id: detect
+        run: |
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- deepfix-sdk; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   publish-testpypi:
+    needs: detect-deepfix-sdk-changes
+    if: needs.detect-deepfix-sdk-changes.outputs.should-run == 'true'
     runs-on: ubuntu-latest
 
     steps:

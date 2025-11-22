@@ -4,7 +4,7 @@ import torch
 from deepfix_core.models import ArtifactPath, DataType, DeepchecksConfig
 
 from ..artifacts import ArtifactRepository, ArtifactsManager
-from ..config import ArtifactConfig, DefaultPaths, MLflowConfig
+from ..config import ArtifactConfig, DefaultPaths, IngestionPipelineConfig, MLflowConfig
 from ..data import BaseDataset
 from ..integrations import MLflowManager
 from ..utils.logging import get_logger
@@ -186,7 +186,7 @@ class IngestionPipeline(Pipeline):
         self.dataset_name = dataset_name
         self.model_name = model_name
 
-        if isinstance(data_type, str):
+        if not isinstance(data_type, DataType):
             data_type = DataType(data_type)
 
         if model_evaluation:
@@ -245,6 +245,10 @@ class IngestionPipeline(Pipeline):
             steps.append(LogModelCheckpoint(**cfg))
 
         super().__init__(steps=steps)
+    
+    @classmethod
+    def from_config(cls, config: IngestionPipelineConfig) -> "IngestionPipeline":
+        return cls(**config.to_pipeline_kwargs())
 
     def delete_artifact(
         self,

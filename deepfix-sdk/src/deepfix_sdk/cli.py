@@ -1,6 +1,5 @@
 import subprocess
 import sys
-
 import typer
 from deepfix_core.models import DefaultPaths
 

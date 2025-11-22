@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Union
-
+from typing_extensions import runtime_checkable
 import numpy as np
 import pandas as pd
 from deepchecks.nlp import TextData
@@ -23,7 +23,7 @@ from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-
+@runtime_checkable
 class BaseDataset(Protocol):
     def to_loader(self, model: Optional[Callable] = None, batch_size: int = 8) -> Any:
         raise NotImplementedError("Subclasses must implement this method")
