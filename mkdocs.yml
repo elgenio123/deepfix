@@ -1,7 +1,7 @@
 site_name: DeepFix Documentation
 site_description: automated testing tool for diagnosing ML bugs and providing prioritized solutions
 site_author: DeepFix Team
-site_url: docs.delcaux.com
+site_url: https://docs.delcaux.com
 
 repo_name: delcaux-labs/deepfix
 repo_url: https://github.com/delcaux-labs/deepfix
