@@ -6,19 +6,11 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'pyproject.toml'
-      - 'deepfix-sdk/src/**'
-      - 'deepfix-server/src/**'
-      - 'deepfix-core/src/**'
   pull_request:
     branches: [main, dev]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'pyproject.toml'
-      - 'deepfix-sdk/src/**'
-      - 'deepfix-server/src/**'
-      - 'deepfix-core/src/**'
 
 jobs:
   build:
