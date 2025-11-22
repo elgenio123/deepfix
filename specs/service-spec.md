@@ -344,43 +344,6 @@ Client                          Server
 
 ---
 
-## Migration Considerations
-
-### Backward Compatibility
-
-**Phase 1 (Current State)**:
-- Monolithic pipeline: Client runs everything locally
-
-**Phase 2 (Transitional)**:
-- Client SDK available but optional
-- Legacy `DeepSightAdvisor` class wraps client (compatibility layer)
-- Users can opt-in to server-based analysis
-
-**Phase 3 (Target State)**:
-- Server-based analysis is default
-- Legacy support deprecated but functional
-- Migration guide provided
-
-### Compatibility Layer
-
-```python
-# src/deepfix/compat/legacy_advisor.py
-class DeepSightAdvisor:
-    """Backward compatibility wrapper using client SDK"""
-    def __init__(self, config):
-        self.config = config
-        self.client = DeepFixClient(server_url=config.get("server_url"))
-    
-    def run_analysis(self, run_id):
-        # Wraps client.analyze() to match old API
-        return self.client.analyze(
-            run_id=run_id,
-            mlflow_uri=self.config.mlflow.tracking_uri
-        )
-```
-
----
-
 ## Security Considerations (Future)
 
 While not required for v1 (local deployment), future versions should consider:
