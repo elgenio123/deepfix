@@ -82,6 +82,7 @@ nav:
       - Computer Vision: tutorials/computer-vision.md
       - NLP: tutorials/nlp.md
       - Tabular: tutorials/tabular.md
+      - Tabular French: tutorials/tabular_french.md
   - Guides:
     - guides/image-classification.md
     - guides/tabular-data.md
