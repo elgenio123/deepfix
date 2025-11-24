@@ -75,10 +75,6 @@ train_data = TabularDataset(dataset=train, dataset_name=dataset_name, label=labe
 val_data = TabularDataset(dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features)
 ```
 
-    WARNING:deepfix_sdk.data.datasets:No categorical features provided, will automatically detect them. (Not Recommended)
-    WARNING:deepfix_sdk.data.datasets:No categorical features provided, will automatically detect them. (Not Recommended)
-    
-
 
 ```python
 # train_data.data.head()
