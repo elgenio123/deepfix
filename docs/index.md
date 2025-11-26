@@ -34,11 +34,15 @@ uv pip install -e .
 
 See the [Installation Guide](getting-started/installation.md) for detailed instructions.
 
-### 2. Start the Server
+#### (Optional) Start the Server
 
 ```bash
 uv run deepfix-server launch -e deepfix-server/.env -port 8844 -host 127.0.0.1
 ```
+
+### 2. Request your API Key
+
+Request a free API Key at https://elearning.delcaux.com/deepcoach/
 
 ### 3. Diagnose Your Dataset
 
@@ -47,7 +51,8 @@ from deepfix_sdk.client import DeepFixClient
 from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
 from deepfix_sdk.data.datasets import ImageClassificationDataset
 
-client = DeepFixClient(api_url="http://localhost:8844", timeout=120)
+os.environ["DEEPFIX_API_KEY"] = ... # insert your API key
+client = DeepFixClient(api_url="https://deepfix.delcaux.com", timeout=120)
 
 # Load and ingest dataset
 dataset_name = "cafetaria-foodwaste"
@@ -60,18 +65,11 @@ train_data, val_data = load_train_and_val_datasets(
 train_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=train_data)
 val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_data)
 
-client.ingest(
-    dataset_name=dataset_name,
+result = client.get_diagnosis(
     train_data=train_data,
     test_data=val_data,
-    train_test_validation=True,
-    data_integrity=True,
-    batch_size=8,
-    overwrite=False
+    language="english",
 )
-
-# Diagnose dataset
-result = client.diagnose_dataset(dataset_name=dataset_name)
 print(result.to_text())
 ```
 
