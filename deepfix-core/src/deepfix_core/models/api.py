@@ -119,6 +119,9 @@ class APIResponse(BaseModel):
 
         df = self.get_results_as_dataframe()
 
+        if 'agent_name' not in df.columns:
+            raise ValueError(f"No analysis results found. Error messages: {self.error_messages}")
+
         if not verbose:
             mask = df["agent_name"].isin(["CrossArtifactReasoningAgent"])
             if not any(mask):
