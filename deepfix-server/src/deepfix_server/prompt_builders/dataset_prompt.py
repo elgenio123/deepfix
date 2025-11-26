@@ -24,12 +24,12 @@ class DatasetPromptBuilder(BasePromptBuilder):
         """Build structured prompt from TrainingArtifacts."""
         prompt_parts = []
         prompt_parts.append(f"\nDataset name: {artifact.dataset_name}")
-        if artifact.train_statistics is not None:
+        if artifact.train_statistics:
             prompt_parts.append("\nDataset statistics:")
-            prompt_parts.append(f"- {json.dumps(artifact.train_statistics, indent=2)}")
-        if artifact.test_statistics is not None:
+            prompt_parts.append(f"- {json.dumps(artifact.train_statistics.to_dict(), indent=2)}")
+        if artifact.test_statistics:
             prompt_parts.append("\nTest dataset statistics:")
-            prompt_parts.append(f"- {json.dumps(artifact.test_statistics, indent=2)}")
+            prompt_parts.append(f"- {json.dumps(artifact.test_statistics.to_dict(), indent=2)}")
 
         # Add context if provided
         if context:
