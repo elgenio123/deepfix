@@ -1,5 +1,5 @@
+import asyncio
 import traceback
-from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 
 from deepfix_core.models import Artifacts
@@ -33,33 +33,35 @@ class ArtifactAnalysisCoordinator:
             llm_config=self.llm_config
         )
 
-    def _analyze_one_artifact(self, artifact: Artifacts) -> AgentResult:
+    async def _analyze_one_artifact(self, artifact: Artifacts) -> AgentResult:
         agent_name = None
         try:
             analyzer_agent = self._get_analyzer_agent(artifact)
             agent_name = analyzer_agent.agent_name
             if analyzer_agent:
                 focused_context = self._create_focused_context(artifact)
-                result = analyzer_agent.run(focused_context)
+                result = await analyzer_agent.arun(focused_context)
                 return result
         except Exception as e:
             LOGGER.error(f"Error with agent {agent_name}:\n {traceback.format_exc()}")
             raise e
 
-    def run(
-        self, context: AgentContext, max_workers: int = 3
+    async def run(
+        self, context: AgentContext
     ) -> ArtifactAnalysisResult:
         # 1. Analyze artifacts
         LOGGER.info(
             f"Analyzing {len(context.artifacts)} artifacts linked to dataset {context.dataset_name}..."
         )
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            for result in executor.map(self._analyze_one_artifact, context.artifacts):
-                context.agent_results[result.agent_name] = result
+        results = await asyncio.gather(
+            *[self._analyze_one_artifact(artifact) for artifact in context.artifacts]
+        )
+        for result in results:
+            context.agent_results[result.agent_name] = result
 
         # 2. Cross-artifact reasoning
         LOGGER.info("Cross-artifact reasoning...")
-        out = self.cross_artifact_reasoning_agent.run(
+        out = await self.cross_artifact_reasoning_agent.arun(
             previous_analyses=context.agent_results, output_language=context.language
         )
         context.agent_results[out.agent_name] = out

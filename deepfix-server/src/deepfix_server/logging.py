@@ -7,29 +7,28 @@ different log levels, formats, and output destinations.
 
 import logging
 import logging.handlers
-import os
+import mlflow
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 
 def setup_dspy_logging(
-    experiment_name: str = "Agents-Tracing",
+    experiment_name: str,
     tracking_uri: Optional[str] = None,
     logger: Optional[logging.Logger] = None,
 ):
-    import mlflow
+    assert isinstance(experiment_name, str), "experiment_name must be a string"
 
-    _tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI")
-    if _tracking_uri is None:
+    if tracking_uri is None:
         if logger is not None:
             logger.warning(
-                "MLFLOW_TRACKING_URI is not set, please set it in the environment variables or provide it as an argument."
+                "tracking_uri is not set, please set it in the environment variables or provide it as an argument."
             )
             logger.warning("Tracing will not be enabled.")
         else:
             print(
-                "MLFLOW_TRACKING_URI is not set, please set it in the environment variables or provide it as an argument."
+                "tracking_uri is not set, please set it in the environment variables or provide it as an argument."
             )
             print("=" * 50)
             print("Tracing will not be enabled.")
@@ -37,7 +36,7 @@ def setup_dspy_logging(
         return
 
     mlflow.dspy.autolog()
-    mlflow.set_tracking_uri(_tracking_uri)
+    mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
     if logger is not None:
         logger.info("DSPy logging setup complete.")

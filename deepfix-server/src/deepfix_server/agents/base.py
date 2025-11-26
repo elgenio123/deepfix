@@ -160,6 +160,20 @@ class ArtifactAnalyzer(Agent):
         except Exception as e:
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
+    async def arun(self, context: AgentContext) -> AgentResult:
+        """Run the analyzer asynchronously with error handling.
+
+        Args:
+            context: Agent context containing artifacts and configuration.
+
+        Returns:
+            AgentResult with analysis or error message if execution fails.
+        """
+        try:
+            return await self.acall(context)
+        except Exception as e:
+            return AgentResult(agent_name=self.agent_name, error_message=str(e))
+
     def forward(self, context: AgentContext) -> AgentResult:
         """Analyze artifacts and return results.
 
@@ -177,6 +191,29 @@ class ArtifactAnalyzer(Agent):
         )
         with self._llm_context():
             response = self.llm(artifacts=prompt, output_language=context.language)
+        return AgentResult(
+            agent_name=self.agent_name,
+            analysis=response.analysis,
+            analyzed_artifacts=[type(a).__name__ for a in context.artifacts],
+        )
+
+    async def aforward(self, context: AgentContext) -> AgentResult:
+        """Analyze artifacts asynchronously and return results.
+
+        Args:
+            context: Agent context containing artifacts and language preference.
+
+        Returns:
+            AgentResult containing analysis results and analyzed artifact types.
+        """
+        LOGGER.info(f"Running {self.agent_name} agent...")
+
+        self._check_artifacts(context.artifacts)
+        prompt = self.prompt_builder.build_prompt(
+            artifacts=context.artifacts, context=None
+        )
+        with self._llm_context():
+            response = await self.llm.acall(artifacts=prompt, output_language=context.language)
         return AgentResult(
             agent_name=self.agent_name,
             analysis=response.analysis,

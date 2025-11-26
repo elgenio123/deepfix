@@ -67,13 +67,4 @@ VOLUME /logs /mlflow
 COPY start_server_docker.sh .
 RUN sed -i 's/\r$//' start_server_docker.sh && chmod +x start_server_docker.sh
 
-# Install cursor-agent using the official installation script
-#RUN apt-get update && apt-get install -y \
-#    curl \
-#    bash \
-#    ca-certificates \
-#    && rm -rf /var/lib/apt/lists/*
-# RUN curl https://cursor.com/install -fsS | bash
-# RUN cursor-agent --version
-
 CMD ["./start_server_docker.sh"]
