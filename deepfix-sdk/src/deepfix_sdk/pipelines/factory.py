@@ -319,18 +319,22 @@ class ArtifactLoadingPipeline(Pipeline):
 
         # Load dataset metadata if configured
         if self.artifact_config.load_dataset_metadata:
+            LOGGER.info("Loading dataset metadata")
             steps.append(LoadDatasetArtifact(**cfg))
 
         # Load deepchecks artifacts if configured
         if self.artifact_config.load_checks:
+            LOGGER.info("Loading deepchecks artifacts")
             steps.append(LoadDeepchecksArtifacts(**cfg))
 
         # Load model checkpoint if configured
         if self.artifact_config.load_model_checkpoint:
+            LOGGER.info("Loading model checkpoint")
             steps.append(LoadModelCheckpoint(**cfg))
 
         # Load training artifacts if configured
         if self.artifact_config.load_training:
+            LOGGER.info("Loading training artifacts")
             steps.append(LoadTrainingArtifact(**cfg))
 
         # Ensure at least one artifact type is configured to load

@@ -221,10 +221,10 @@ class ArtifactsManager:
         return ModelCheckpointArtifacts.from_file(artifacts)
 
     def _load_dataset_artifacts(self, local_path: str) -> DatasetArtifacts:
-        artifacts = os.path.join(
+        path = os.path.join(
             local_path, Path(ArtifactPath.DATASET.value).with_suffix(".yaml")
         )
-        artifacts = DatasetArtifacts.from_file(artifacts)
+        artifacts = DatasetArtifacts.from_file(path)
         return artifacts
 
     def list_artifacts(
