@@ -38,6 +38,7 @@ MANIFEST
 results/
 mlruns/
 census_campaign_results/
+mlartifacts/
 runs/
 models-registry/
 /logs/
