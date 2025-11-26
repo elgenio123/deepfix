@@ -391,9 +391,14 @@ class DeepFixClient:
                 raise RuntimeError(
                     f"Error during analysis: status code: {response.status_code} \nand message: {response.text}"
                 )
+            out = APIResponse(**response.json())
+        
+        if out.error_messages:
+            console.print("[red]✗[/red] Analysis failed", style="bold red")
+            raise RuntimeError(f"Error during analysis: {out.error_messages}")
 
         console.print("[green]✓[/green] Analysis complete!", style="bold green")
-        return APIResponse(**response.json())
+        return out
 
     def _get_data_type(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> DataType:
         data_type = train_data.data_type

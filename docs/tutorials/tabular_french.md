@@ -32,7 +32,7 @@ import os
 
 
 ```python
-os.environ["DEEPFIX_API_KEY"] = "sk-empty"
+os.environ["DEEPFIX_API_KEY"] = ... # Demander une API key at https://elearning.delcaux.com/deepcoach
 ```
 
 

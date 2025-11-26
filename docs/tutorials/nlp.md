@@ -5,7 +5,7 @@ from deepfix_sdk import DeepFixClient
 
 
 ```python
-os.environ["DEEPFIX_API_KEY"] = "sk-empty"
+os.environ["DEEPFIX_API_KEY"] = ... # get your API key at https://elearning.delcaux.com/deepcoach
 ```
 
 
