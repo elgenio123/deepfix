@@ -393,7 +393,7 @@ class DeepFixClient:
                 )
             out = APIResponse(**response.json())
         
-        if out.error_messages:
+        if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
             console.print("[red]✗[/red] Analysis failed", style="bold red")
             raise RuntimeError(f"Error during analysis: {out.error_messages}")
 

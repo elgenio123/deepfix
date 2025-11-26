@@ -219,12 +219,8 @@ class TabularDataset(BaseDataset):
     ):
         if isinstance(dataset, pd.DataFrame):
             assert label is not None, "Label column is required"
-            if len(cat_features) == 0:
-                logger.warning(
-                    "No categorical features provided, will automatically detect them. (Not Recommended)"
-                )
             self.dataset = DeepchecksTabularDataset(
-                dataset, label=label, cat_features=cat_features
+                dataset, label=label, cat_features=cat_features or []
             )
 
         else:
