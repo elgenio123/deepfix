@@ -224,7 +224,16 @@ class DeepFixClient:
         Example:
             >>> response = client.diagnose(dataset_name="my-dataset")
             >>> print(response.to_text())
-        """
+        """        
+        request = self._create_request(
+            dataset_name=dataset_name,
+            model_name=model_name,
+            language=language,
+        )
+        response = self._send_request(request)
+        return response
+    
+    def _load_artifacts(self,dataset_name: str, model_name: str) -> dict:
         from .pipelines import ArtifactLoadingPipeline
 
         artifact_config = self.artifact_config.model_copy()
@@ -232,20 +241,12 @@ class DeepFixClient:
         artifact_config.load_checks = True
         artifact_config.load_model_checkpoint = True
         artifact_config.load_training = False
-        loaded_artifacts = ArtifactLoadingPipeline(
+        return ArtifactLoadingPipeline(
             mlflow_config=self.mlflow_config,
             artifact_config=artifact_config,
             dataset_name=dataset_name,
             model_name=model_name,
         ).run()
-        request = self._create_request(
-            dataset_name=dataset_name,
-            model_name=model_name,
-            language=language,
-            loaded_artifacts=loaded_artifacts,
-        )
-        response = self._send_request(request)
-        return response
 
     def ingest(
         self,
@@ -319,7 +320,6 @@ class DeepFixClient:
         dataset_name: str,
         model_name: str,
         language: str = "english",
-        loaded_artifacts: dict = None,
     ):
         """Create an API request for analysis.
 
@@ -337,15 +337,20 @@ class DeepFixClient:
         Raises:
             ValueError: If dataset artifacts are not found or have unexpected format.
         """
+        loaded_artifacts = self._load_artifacts(dataset_name=dataset_name, model_name=model_name)
+
         cfg = {
             "dataset_name": dataset_name,
             "language": language,
             "model_name": model_name,
         }
         request = APIRequest(**cfg)
-        request.dataset_artifacts = loaded_artifacts.get(
+        dataset_artifacts = loaded_artifacts.get(
             ArtifactPath.DATASET.value, None
         )
+        if dataset_artifacts is not None:
+            request.dataset_artifacts = dataset_artifacts.to_dict()
+        
         request.deepchecks_artifacts = loaded_artifacts.get(
             ArtifactPath.DEEPCHECKS.value, None
         )

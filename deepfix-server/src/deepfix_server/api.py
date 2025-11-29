@@ -1,7 +1,7 @@
 import traceback
 
 import litserve as ls
-from deepfix_core.models import APIRequest, APIResponse
+from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
 from fastapi import HTTPException
 import os
 
@@ -53,8 +53,13 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             HTTPException: If request decoding fails (status 400).
         """
         try:
+            dataset_artifacts = request.dataset_artifacts
+            if isinstance(request.dataset_artifacts, dict):
+                dataset_artifacts = DatasetArtifacts.from_dict(request.dataset_artifacts)
+            elif not isinstance(request.dataset_artifacts, DatasetArtifacts):
+                raise ValueError("Dataset artifacts must be a DatasetArtifacts object")
             return AgentContext(
-                dataset_artifacts=request.dataset_artifacts,
+                dataset_artifacts=dataset_artifacts,
                 training_artifacts=request.training_artifacts,
                 deepchecks_artifacts=request.deepchecks_artifacts,
                 model_checkpoint_artifacts=request.model_checkpoint_artifacts,
