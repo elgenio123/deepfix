@@ -1,0 +1,156 @@
+---
+title: "SDK API Reference"
+description: "Python SDK API reference for DeepFix, including client, configuration, and dataset classes."
+---
+
+> **Note**  
+> This page summarizes the key public classes and modules. For full Python docstrings, see the source in `deepfix-sdk/src/deepfix_sdk/`.
+
+## DeepFixClient
+
+`deepfix_sdk.client.DeepFixClient`
+
+The main entry point for interacting with the DeepFix server.
+
+**Typical usage:**
+
+```python
+from deepfix_sdk.client import DeepFixClient
+
+client = DeepFixClient(
+    api_url="http://localhost:8844",
+    timeout=120,
+    mlflow_config=None  # Optional MLflowConfig
+)
+
+result = client.get_diagnosis(
+    train_data=train_dataset,
+    test_data=test_dataset,
+    language="english"
+)
+print(result.to_text())
+```
+
+### Key methods (high level)
+
+- `get_diagnosis(...)`: Ingest artifacts (if needed) and run a full diagnosis in one call.
+- `ingest(...)`: Ingest artifacts only (datasets, deepchecks, checkpoints, metrics).
+- `diagnose_dataset(...)`: Run diagnosis on an already ingested dataset.
+
+See the Quickstart and guides for end-to-end examples.
+
+## Configuration
+
+### MLflowConfig
+
+`deepfix_sdk.config.MLflowConfig`
+
+Configures MLflow tracking for DeepFix operations.
+
+**Common fields:**
+
+- `tracking_uri`: MLflow tracking URI (e.g. `http://localhost:5000` or `file:./mlruns`).
+- `experiment_name`: Name of the MLflow experiment.
+- `run_name`: Optional run name.
+
+**Example:**
+
+```python
+from deepfix_sdk.config import MLflowConfig
+
+mlflow_config = MLflowConfig(
+    tracking_uri="http://localhost:5000",
+    experiment_name="deepfix-analysis",
+    run_name="baseline-run"
+)
+```
+
+### ArtifactConfig
+
+`deepfix_sdk.config.ArtifactConfig`
+
+Controls which artifact types are loaded and analyzed.
+
+**Typical fields:**
+
+- `load_dataset_metadata`
+- `load_checks`
+- `load_model_checkpoint`
+- `load_training`
+
+## Datasets
+
+All dataset wrappers live in `deepfix_sdk.data.datasets`.
+
+### BaseDataset
+
+`deepfix_sdk.data.datasets.BaseDataset`
+
+Abstract base class for all DeepFix dataset wrappers.
+
+### ImageClassificationDataset
+
+`deepfix_sdk.data.datasets.ImageClassificationDataset`
+
+Wraps an image classification dataset (e.g. PyTorch `DataLoader`) for DeepFix.
+
+```python
+from deepfix_sdk.data.datasets import ImageClassificationDataset
+
+train_dataset = ImageClassificationDataset(
+    dataset_name="my-images",
+    dataset=train_loader
+)
+```
+
+### TabularDataset
+
+`deepfix_sdk.data.datasets.TabularDataset`
+
+Wraps a pandas DataFrame (or similar) for tabular analysis.
+
+```python
+from deepfix_sdk.data.datasets import TabularDataset
+
+train_dataset = TabularDataset(
+    dataset_name="my-tabular-dataset",
+    data=df_train
+)
+```
+
+### NLPDataset
+
+`deepfix_sdk.data.datasets.NLPDataset`
+
+Wraps a Hugging Face `datasets.Dataset` for NLP analysis.
+
+```python
+from deepfix_sdk.data.datasets import NLPDataset
+
+train_dataset = NLPDataset(
+    dataset_name="my-nlp-dataset",
+    dataset=train_hf_dataset
+)
+```
+
+## Pipelines
+
+### ArtifactLoadingPipeline
+
+`deepfix_sdk.pipelines.factory.ArtifactLoadingPipeline`
+
+Internal pipeline used to load artifacts from MLflow and prepare them for analysis.
+
+> **Note**  
+> This is mainly relevant if you are extending DeepFix or integrating with custom artifact backends.
+
+## Examples
+
+For concrete end-to-end usage patterns, see:
+
+- [Quickstart Guide](/getting-started/quickstart)
+- [Image Classification Guide](/guides/image-classification)
+- [Tabular Data Guide](/guides/tabular-data)
+- [NLP Datasets Guide](/guides/nlp-datasets)
+
+

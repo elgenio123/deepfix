@@ -1,0 +1,208 @@
+---
+title: "Local Setup"
+description: "Set up DeepFix for local development and testing."
+---
+
+This guide walks through setting up DeepFix on your local machine for development, testing, and experimentation.
+
+## Prerequisites
+
+- Python 3.11 or higher.
+- `uv` package manager (recommended) or `pip`.
+- Git.
+- (Optional) MLflow tracking server.
+- (Optional) Docker (for running MLflow via container).
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/delcaux-labs/deepfix.git
+cd deepfix
+```
+
+### 2. Create and Activate a Virtual Environment
+
+Using `uv` (recommended):
+
+```bash
+uv venv --python 3.11
+source .venv/bin/activate      # macOS / Linux
+# or
+.venv\Scripts\activate         # Windows
+```
+
+### 3. Install DeepFix
+
+From the monorepo root:
+
+```bash
+uv pip install -e .
+```
+
+This installs:
+
+- `deepfix-core`
+- `deepfix-sdk`
+- `deepfix-server`
+
+### 4. Install Dev Dependencies (Optional)
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+## Verify Installation
+
+```bash
+# SDK version
+uv run python -c "import deepfix_sdk; print(deepfix_sdk.__version__)"
+
+# Server version
+uv run deepfix-server version
+```
+
+## Configure the Server
+
+Create a `.env` file in `deepfix-server/`:
+
+```bash
+cd deepfix-server
+cp env.example .env
+```
+
+Edit `.env` with your configuration:
+
+```bash
+# LLM configuration
+DEEPFIX_LLM_API_KEY=sk-...
+DEEPFIX_LLM_BASE_URL=https://api.your-llm.com/v1
+DEEPFIX_LLM_MODEL_NAME=gpt-4o
+DEEPFIX_LLM_TEMPERATURE=0.4
+DEEPFIX_LLM_MAX_TOKENS=6000
+
+# Server configuration
+LIT_SERVER_API_KEY=ACCESS-TOKEN-TO-BE-DEFINED
+```
+
+## Start MLflow (Optional)
+
+### Option 1: Python
+
+```bash
+mlflow server \
+  --backend-store-uri sqlite:///mlflow.db \
+  --default-artifact-root ./mlruns \
+  --host 0.0.0.0 \
+  --port 5000
+```
+
+### Option 2: Docker
+
+```bash
+docker run -d \
+  -p 5000:5000 \
+  -v $(pwd)/mlruns:/mlruns \
+  -v $(pwd)/mlflow.db:/mlflow.db \
+  ghcr.io/mlflow/mlflow:latest \
+  mlflow server \
+    --backend-store-uri sqlite:///mlflow.db \
+    --default-artifact-root /mlruns \
+    --host 0.0.0.0 \
+    --port 5000
+```
+
+### Option 3: Local File Store
+
+Configure your client to use a local file store instead of a server:
+
+```python
+from deepfix_sdk.config import MLflowConfig
+
+mlflow_config = MLflowConfig(
+    tracking_uri="file:./mlruns",
+    experiment_name="local-experiment"
+)
+```
+
+## Start the DeepFix Server
+
+From `deepfix-server/`:
+
+```bash
+uv run deepfix-server launch -e .env -port 8844 -host 127.0.0.1
+```
+
+You should see something like:
+
+```text
+Starting DeepFix server on 127.0.0.1:8844
+```
+
+## Project Structure
+
+```text
+deepfix/
+├── deepfix-core/       # Core models and types
+├── deepfix-sdk/        # Client SDK
+├── deepfix-server/     # Analysis server
+├── deepfix-kb/         # Knowledge base
+├── docs/               # Legacy mkdocs docs
+├── docs-mint/          # Mintlify docs
+└── pyproject.toml      # Root config
+```
+
+## Running Tests
+
+```bash
+# From repo root
+uv run pytest
+
+# Specific file
+uv run pytest tests/test_deepchecks_runners.py
+```
+
+## Code Quality
+
+### Formatting
+
+```bash
+uv run ruff format .
+```
+
+### Linting
+
+```bash
+uv run ruff check .
+```
+
+### Type Checking
+
+```bash
+uv run mypy deepfix-sdk/src deepfix-server/src deepfix-core/src
+```
+
+## Common Workflows
+
+### Development Loop
+
+1. Create a feature branch.
+2. Make changes in `deepfix-core`, `deepfix-sdk`, or `deepfix-server`.
+3. Run tests with `uv run pytest`.
+4. Format and lint with `ruff`.
+5. Restart the server to test end-to-end.
+
+## Troubleshooting
+
+- **Import errors**: reinstall in editable mode: `uv pip install -e .`.
+- **Server fails to start**: check `.env` and port availability.
+- **MLflow connection errors**: verify server is running and URI is correct.
+
+## Next Steps
+
+- [Docker Deployment](/deployment/docker) – containerized setup.
+- [Quickstart](/getting-started/quickstart) – first DeepFix run.
+- [Configuration](/getting-started/configuration) – configure SDK and server.
+
+

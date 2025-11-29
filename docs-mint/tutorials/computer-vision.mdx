@@ -1,0 +1,169 @@
+---
+title: "Computer Vision Tutorial"
+description: "End-to-end DeepFix workflow for image classification, object detection, and segmentation."
+---
+
+The examples are based on the `deepfix_sdk` zoo datasets.
+
+## Prerequisites
+
+- DeepFix SDK installed.
+- DeepFix server running (local or remote).
+- Access to an API key if using the hosted DeepFix service.
+
+## Setup
+
+```python
+import os
+from deepfix_sdk import DeepFixClient
+
+os.environ["DEEPFIX_API_KEY"] = "..."  # Get your API key from DeepCoach
+
+client = DeepFixClient(
+    api_url="https://deepfix.delcaux.com",
+    timeout=120,
+)
+```
+
+## Image Classification
+
+### Load Dataset
+
+```python
+from deepfix_sdk.data.datasets import ImageClassificationDataset
+from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
+
+dataset_name = "cafetaria-foodwaste"
+
+train_data, val_data = load_train_and_val_datasets(
+    image_size=448,
+    batch_size=8,
+    num_workers=4,
+    pin_memory=False,
+)
+
+train_dataset = ImageClassificationDataset(
+    dataset_name=dataset_name,
+    dataset=train_data,
+)
+
+val_dataset = ImageClassificationDataset(
+    dataset_name=dataset_name,
+    dataset=val_data,
+)
+```
+
+### Run Analysis
+
+```python
+result = client.get_diagnosis(
+    train_data=train_dataset,
+    test_data=val_dataset,
+    language="english",
+)
+
+print(result.to_text())
+```
+
+DeepFix will:
+
+- Compute dataset statistics.
+- Check label balance and drift.
+- Run Deepchecks image checks.
+- Produce a cross-artifact summary and recommendations.
+
+## Object Detection
+
+### Load COCO-Style Dataset
+
+```python
+from deepfix_sdk.data.datasets import ObjectDetectionDataset
+
+dataset_name = "general_dataset"
+
+train_data = ObjectDetectionDataset.from_coco(
+    dataset_name=dataset_name,
+    images_directory_path=r"D:\workspace\general_dataset\coco\train",
+    annotations_path=r"D:\workspace\general_dataset\coco\annotations\annotations_train.json",
+)
+
+val_data = ObjectDetectionDataset.from_coco(
+    dataset_name=dataset_name,
+    images_directory_path=r"D:\workspace\general_dataset\coco\val",
+    annotations_path=r"D:\workspace\general_dataset\coco\annotations\annotations_val.json",
+)
+```
+
+### Run Analysis
+
+```python
+result = client.get_diagnosis(
+    train_data=train_data,
+    test_data=val_data,
+    language="english",
+)
+
+print(result.to_text())
+```
+
+The analysis highlights:
+
+- Class and box statistics.
+- Distribution shifts between train and validation.
+- Data quality issues in annotations.
+
+## Semantic Segmentation
+
+### Load Segmentation Dataset
+
+```python
+from deepfix_sdk.data.datasets import SemanticSegmentationDataset
+from deepfix_sdk.zoo.datasets import load_segmentation_dataset
+
+dataset_name = "coco_segmentation"
+
+train_loader, val_loader = load_segmentation_dataset(
+    batch_size=8,
+    shuffle=False,
+    pin_memory=False,
+)
+
+train_data = SemanticSegmentationDataset(
+    dataset_name=dataset_name,
+    dataset=train_loader.dataset,
+)
+
+val_data = SemanticSegmentationDataset(
+    dataset_name=dataset_name,
+    dataset=val_loader.dataset,
+)
+```
+
+### Run Analysis
+
+```python
+result = client.get_diagnosis(
+    train_data=train_data,
+    test_data=val_data,
+    language="english",
+)
+
+print(result.to_text())
+```
+
+## Interpreting Results
+
+For each tutorial scenario, DeepFix will provide:
+
+- A high-level summary.
+- Severity-ranked issues.
+- Recommendations per issue.
+- Underlying evidence from dataset and Deepchecks artifacts.
+
+## Next Steps
+
+- [Image Classification Guide](/guides/image-classification)
+- [Tabular Data Guide](/guides/tabular-data)
+- [NLP Datasets Guide](/guides/nlp-datasets)
+
+
