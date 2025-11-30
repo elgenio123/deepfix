@@ -33,8 +33,8 @@ Responsibilities:
 - Detect dataset anomalies.
 - Identify data quality issues.
 
-Input: `DatasetArtifacts`  
-Output: findings on dataset quality, balance, and anomalies.  
+Input: `DatasetArtifacts`\
+Output: findings on dataset quality, balance, and anomalies.\
 Execution: in parallel with other artifact analyzers.
 
 ### DeepchecksArtifactsAnalyzer
@@ -48,8 +48,8 @@ Responsibilities:
 - Examine integrity checks.
 - Highlight critical data issues.
 
-Input: `DeepchecksArtifacts`  
-Output: findings on data quality, drift, and integrity.  
+Input: `DeepchecksArtifacts`\
+Output: findings on data quality, drift, and integrity.\
 Execution: in parallel with other artifact analyzers.
 
 ### ModelCheckpointArtifactsAnalyzer
@@ -63,8 +63,8 @@ Responsibilities:
 - Assess deployment readiness.
 - Identify model-related issues.
 
-Input: `ModelCheckpointArtifacts`  
-Output: findings on checkpoint quality and deployment readiness.  
+Input: `ModelCheckpointArtifacts`\
+Output: findings on checkpoint quality and deployment readiness.\
 Execution: in parallel with other artifact analyzers.
 
 ### TrainingArtifactsAnalyzer
@@ -78,8 +78,8 @@ Responsibilities:
 - Identify training issues and instabilities.
 - Assess model convergence.
 
-Input: `TrainingArtifacts`  
-Output: findings on training quality and dynamics.  
+Input: `TrainingArtifacts`\
+Output: findings on training quality and dynamics.\
 Execution: in parallel with other artifact analyzers.
 
 ### CrossArtifactReasoningAgent
@@ -93,8 +93,8 @@ Responsibilities:
 - Create prioritized recommendations.
 - Produce a natural-language summary.
 
-Input: results from all artifact analyzers.  
-Output: cross-artifact summary, recommendations, and citations.  
+Input: results from all artifact analyzers.\
+Output: cross-artifact summary, recommendations, and citations.\
 Execution: runs **after** the parallel agents complete.
 
 ## Agent Execution Flow
@@ -219,5 +219,3 @@ To add a new agent:
 - [Architecture Overview](/architecture/overview)
 - [Client–Server Architecture](/architecture/client-server)
 - [Server API Reference](/api-reference/server)
-
-
