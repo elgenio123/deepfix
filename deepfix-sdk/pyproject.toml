@@ -12,7 +12,6 @@ dependencies = [
     "kaleido>=1.1.0",
     "mlflow>=3.3.2",
     "notebook>=7.4.5",
-    "numpy>=2.3.4",
     "omegaconf>=2.3.0",
     "open-clip-torch",
     "opencv-python-headless>=4.11.0.86",
