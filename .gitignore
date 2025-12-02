@@ -40,6 +40,7 @@ mlruns/
 census_campaign_results/
 runs/
 models-registry/
+mlartifacts/
 /logs/
 advisor_output/
 uv.lock
