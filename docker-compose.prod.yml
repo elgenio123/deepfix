@@ -70,7 +70,7 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.deepfix.rule=Host(`localhost`) && PathPrefix(`/`)"
       - "traefik.http.routers.deepfix.entrypoints=websecure"
       - "traefik.http.routers.deepfix.tls=true"
       - "traefik.http.routers.deepfix.middlewares=rate-limit@file"
@@ -82,7 +82,7 @@ services:
   # MLflow Server
   # ===================
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.16.0
+    image: ghcr.io/mlflow/mlflow:v3.6.0
     container_name: mlflow
     restart: unless-stopped
     command: >
@@ -91,6 +91,7 @@ services:
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
+      --allowed-hosts mlflow:5000,localhost:5000,localhost,mlflow,172.20.0.0/16
     volumes:
       - ./server_mlflow_data:/mlflow
     networks:
@@ -111,7 +112,7 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mlflow.rule=PathPrefix(`/mlflow`)"
+      - "traefik.http.routers.mlflow.rule=Host(`localhost`) && PathPrefix(`/mlflow`)"
       - "traefik.http.routers.mlflow.entrypoints=websecure"
       - "traefik.http.routers.mlflow.tls=true"
       - "traefik.http.routers.mlflow.middlewares=mlflow-strip@file"
@@ -184,7 +185,7 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.rule=Host(`localhost`) && PathPrefix(`/grafana`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"

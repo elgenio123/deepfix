@@ -71,7 +71,7 @@ http:
   routers:
     # Dashboard router (protected)
     dashboard:
-      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      rule: "Host(`localhost`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
       entryPoints:
         - websecure
       service: api@internal
@@ -90,7 +90,7 @@ tls:
   options:
     default:
       minVersion: VersionTLS12
-      sniStrict: true
+      sniStrict: false
       cipherSuites:
         - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
         - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
