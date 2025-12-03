@@ -24,9 +24,9 @@ warn() {
     echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARN:${NC} $1" | tee -a "$LOG_DIR/server.log"
 }
 
-echo "Starting MLflow server..."
-mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////$MLFLOW_DATA_DIR/mlflow.db --default-artifact-root $MLFLOW_DATA_DIR/artifacts \
-    > "$LOG_DIR/mlflow.log" 2>&1 &
+#echo "Starting MLflow server..."
+#mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////$MLFLOW_DATA_DIR/mlflow.db --default-artifact-root $MLFLOW_DATA_DIR/artifacts \
+#    > "$LOG_DIR/mlflow.log" 2>&1 &
 
 echo "Starting deepfix server..."
 deepfix-server launch -port 8844 -host 0.0.0.0 \

@@ -14,6 +14,21 @@ services:
       - ./server_mlflow_data:/mlflow
     restart: always
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.0
+    container_name: mlflow
+    restart: unless-stopped
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - ./server_mlflow_data:/mlflow
+    networks:
+      - deepfix-network
+
   #cursor-agent:
   #  build: ./cursor_wrapper
   #  image: cursor-agent:latest
