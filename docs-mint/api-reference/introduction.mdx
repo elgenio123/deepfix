@@ -1,0 +1,115 @@
+---
+title: "API Reference"
+description: "Complete API documentation for DeepFix SDK, Server, and Core components."
+---
+
+## Overview
+
+The DeepFix API is organized into three main components:
+
+1. **SDK API**: Python client library for interacting with the DeepFix server.
+2. **Server API**: REST API endpoints and server-side configuration.
+3. **Core API**: Shared data models and types.
+
+## SDK API
+
+The DeepFix SDK provides a Python client for interacting with the DeepFix server.
+
+**Main Components:**
+
+- `DeepFixClient`: Main client class for analysis requests.
+- `MLflowConfig`: Configuration for MLflow integration.
+- `ArtifactConfig`: Configuration for artifact loading.
+- Dataset classes: `ImageClassificationDataset`, `TabularDataset`, `NLPDataset`.
+
+**Location**: `deepfix-sdk/src/deepfix_sdk/`
+
+See the [SDK Reference](/api-reference/sdk) for full details.
+
+## Server API
+
+The DeepFix Server provides REST API endpoints for artifact analysis.
+
+**Main Components:**
+
+- `AnalyseArtifactsAPI`: Main API endpoint for analysis.
+- `ArtifactAnalysisCoordinator`: Coordinates agent execution.
+- Agent classes: Specialized analyzers for different artifact types.
+
+**Location**: `deepfix-server/src/deepfix_server/`
+
+See the [Server Reference](/api-reference/server) for full details.
+
+## Core API
+
+DeepFix Core provides shared data models and types used across components.
+
+**Main Components:**
+
+- `APIRequest`: Request model for analysis.
+- `APIResponse`: Response model for analysis results.
+- `AgentResult`: Agent analysis results.
+- Artifact models: Dataset, Deepchecks, Model Checkpoint, Training.
+
+**Location**: `deepfix-core/src/deepfix_core/`
+
+See the [Core Reference](/api-reference/core) for full details.
+
+## Quick Links
+
+- [SDK: DeepFixClient](/api-reference/sdk) – Main client class.
+- [SDK: Configuration](/api-reference/sdk) – Configuration classes.
+- [SDK: Datasets](/api-reference/sdk) – Dataset wrapper classes.
+- [Server: API Endpoints](/api-reference/server) – REST API.
+- [Server: Coordinators](/api-reference/server) – Analysis coordination.
+- [Core: Models](/api-reference/core) – Data models.
+- [Core: Types](/api-reference/core) – Type definitions.
+
+## Usage Examples
+
+### SDK Usage
+
+```python
+from deepfix_sdk.client import DeepFixClient
+
+# Initialize client
+client = DeepFixClient(api_url="http://localhost:8844")
+
+# Diagnose dataset
+result = client.diagnose(dataset_name="my-dataset",
+                        model_name=None,
+                        language="english")
+print(result.to_text())
+```
+
+### Server Usage
+
+```bash
+# Server runs via CLI
+uv run deepfix-server launch -e .env -port 8844
+```
+
+### Core Models
+
+```python
+from deepfix_core.models import APIRequest, APIResponse
+
+# Create request
+request = APIRequest(
+    dataset_name="my-dataset",
+    dataset_artifacts={...},
+    language="english"
+)
+
+# Process response (pseudo-code)
+response: APIResponse = analyze(request)
+print(response.summary)
+```
+
+## Related Documentation
+
+- [Quickstart Guide](/getting-started/quickstart) – Get started with DeepFix.
+- [Architecture](/architecture/overview) – System architecture.
+- [Guides](/guides/image-classification) – Usage guides.
+
+

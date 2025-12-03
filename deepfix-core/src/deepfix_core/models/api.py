@@ -352,7 +352,7 @@ class APIRequest(BaseModel):
         language: Language for the analysis output. Defaults to "english".
     """
 
-    dataset_artifacts: Optional[DatasetArtifacts] = Field(
+    dataset_artifacts: Optional[Dict[str, Any]] = Field(
         default=None, description="Dataset artifacts"
     )
     training_artifacts: Optional[TrainingArtifacts] = Field(

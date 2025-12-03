@@ -1,0 +1,85 @@
+---
+title: "Server API Reference"
+description: "REST API and internal coordination used by the DeepFix server."
+---
+
+## REST API
+
+### POST `/v1/analyse`
+
+Analyze ML artifacts and return diagnostic results.
+
+**Request body:**
+
+```json
+{
+  "dataset_name": "my-dataset",
+  "dataset_artifacts": {},
+  "deepchecks_artifacts": {},
+  "model_checkpoint_artifacts": {},
+  "training_artifacts": {},
+  "language": "english"
+}
+```
+
+**Response:**
+
+```json
+{
+  "agent_results": {},
+  "summary": "Cross-artifact summary...",
+  "additional_outputs": {},
+  "error_messages": {}
+}
+```
+
+### Error Responses
+
+- `400 Bad Request` – invalid request payload.
+- `404 Not Found` – referenced artifacts not found.
+- `500 Internal Server Error` – server-side error.
+- `503 Service Unavailable` – server is overloaded or unavailable.
+
+## Python API (Server-Side)
+
+> These classes live in the server codebase and are not typically used by SDK users, but are useful if you extend DeepFix.
+
+### AnalyseArtifactsAPI
+
+`deepfix_server.api.AnalyseArtifactsAPI`
+
+Entry-point handler that:
+
+- Validates incoming `APIRequest`.
+- Delegates to `ArtifactAnalysisCoordinator`.
+- Returns an `APIResponse`.
+
+### ArtifactAnalysisCoordinator
+
+`deepfix_server.coordinators.ArtifactAnalysisCoordinator`
+
+Coordinates the multi-agent analysis pipeline:
+
+- Decodes requests into an `AgentContext`.
+- Runs artifact analyzers in parallel.
+- Runs cross-artifact reasoning.
+- Builds the final `APIResponse`.
+
+### LLMConfig
+
+`deepfix_server.config.LLMConfig`
+
+Configuration for the server-side LLM:
+
+- Model name and base URL.
+- Temperature, max tokens.
+- Caching and telemetry settings.
+
+## Related Documentation
+
+- [Architecture Overview](/architecture/overview)
+- [Client–Server Architecture](/architecture/client-server)
+- [Agent System](/architecture/agents)
+- [SDK API Reference](/api-reference/sdk)
+
+

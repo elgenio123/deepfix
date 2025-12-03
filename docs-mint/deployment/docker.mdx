@@ -1,0 +1,261 @@
+---
+title: "Docker Deployment"
+description: "Deploy DeepFix and MLflow using Docker and Docker Compose."
+---
+
+This guide covers deploying DeepFix using Docker and Docker Compose for a reproducible, containerized setup.
+
+## Overview
+
+Docker deployment provides:
+
+- A consistent, isolated environment.
+- Easier setup on new machines.
+- A good base for staging/production.
+
+## Prerequisites
+
+- Docker installed (see Docker docs).
+- Docker Compose installed.
+- Docker daemon running.
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/delcaux-labs/deepfix.git
+cd deepfix
+```
+
+### 2. Configure Environment
+
+```bash
+cp env.example .env
+```
+
+Edit `.env` with your configuration:
+
+- LLM API key and base URL.
+- LLM model name and parameters.
+- Optional MLflow tracking URI.
+
+```bash
+# LLM configuration
+DEEPFIX_LLM_API_KEY=sk-...
+DEEPFIX_LLM_BASE_URL=https://api.your-llm.com/v1
+DEEPFIX_LLM_MODEL_NAME=gpt-4o
+DEEPFIX_LLM_TEMPERATURE=0.4
+DEEPFIX_LLM_MAX_TOKENS=6000
+```
+
+### 3. Start with Docker Compose
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+## Docker Compose Configuration
+
+### Example `docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  deepfix-server:
+    build: .
+    ports:
+      - "8844:8844"
+    environment:
+      - DEEPFIX_LLM_API_KEY=${DEEPFIX_LLM_API_KEY}
+      - DEEPFIX_LLM_BASE_URL=${DEEPFIX_LLM_BASE_URL}
+      - DEEPFIX_LLM_MODEL_NAME=${DEEPFIX_LLM_MODEL_NAME}
+      - DEEPFIX_LLM_TEMPERATURE=${DEEPFIX_LLM_TEMPERATURE}
+      - DEEPFIX_LLM_MAX_TOKENS=${DEEPFIX_LLM_MAX_TOKENS}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./server_logs:/app/logs
+      - ./documents:/app/documents
+    depends_on:
+      - mlflow
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlruns
+      --host 0.0.0.0
+      --port 5000
+    volumes:
+      - ./mlruns:/mlruns
+      - ./mlflow.db:/mlflow.db
+```
+
+### Customization
+
+You can parameterize host/ports:
+
+```yaml
+services:
+  deepfix-server:
+    ports:
+      - "${DEEPFIX_PORT:-8844}:8844"
+    environment:
+      - DEEPFIX_HOST=${DEEPFIX_HOST:-0.0.0.0}
+      - DEEPFIX_PORT=${DEEPFIX_PORT:-8844}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+```
+
+## Dockerfile
+
+### Example `Dockerfile`
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y \
+    curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Copy project files
+COPY pyproject.toml uv.lock ./
+COPY deepfix-server/ ./deepfix-server/
+COPY deepfix-core/ ./deepfix-core/
+COPY deepfix-kb/ ./deepfix-kb/
+
+# Install packages
+RUN uv pip install --system -e ./deepfix-core
+RUN uv pip install --system -e ./deepfix-kb
+RUN uv pip install --system -e ./deepfix-server
+
+EXPOSE 8844
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8844/health || exit 1
+
+CMD ["deepfix-server", "launch", "--host", "0.0.0.0", "--port", "8844"]
+```
+
+## Environment Variables
+
+### Required
+
+```bash
+DEEPFIX_LLM_API_KEY=sk-...
+DEEPFIX_LLM_BASE_URL=https://api.your-llm.com/v1
+DEEPFIX_LLM_MODEL_NAME=gpt-4o
+```
+
+### Optional
+
+```bash
+DEEPFIX_LLM_TEMPERATURE=0.4
+DEEPFIX_LLM_MAX_TOKENS=6000
+DEEPFIX_LLM_CACHE=true
+DEEPFIX_HOST=0.0.0.0
+DEEPFIX_PORT=8844
+MLFLOW_TRACKING_URI=http://mlflow:5000
+LOG_LEVEL=INFO
+```
+
+## Deployment Scenarios
+
+### Development
+
+```bash
+docker-compose up
+```
+
+Mount local directories for faster iteration:
+
+```yaml
+services:
+  deepfix-server:
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./server_logs:/app/logs
+      - ./documents:/app/documents
+```
+
+### Production
+
+```bash
+docker build -t deepfix-server:latest .
+
+docker run -d \
+  --name deepfix-server \
+  -p 8844:8844 \
+  --env-file .env.production \
+  -v ./mlruns:/app/mlruns \
+  deepfix-server:latest
+```
+
+## Networking
+
+Use an internal Docker network for services:
+
+```yaml
+networks:
+  deepfix-network:
+    driver: bridge
+
+services:
+  deepfix-server:
+    networks: [deepfix-network]
+  mlflow:
+    networks: [deepfix-network]
+```
+
+## Health Checks & Monitoring
+
+### Health Check
+
+```yaml
+services:
+  deepfix-server:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8844/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+### Logs & Stats
+
+```bash
+docker-compose logs -f deepfix-server
+docker stats deepfix-server
+```
+
+## Troubleshooting
+
+- **Container fails to start**: check logs with `docker-compose logs deepfix-server`.
+- **Port already in use**: change the host port mapping in `docker-compose.yml`.
+- **Cannot connect to MLflow**: verify the `mlflow` service is running and `MLFLOW_TRACKING_URI` is correct.
+
+## Next Steps
+
+- [Local Setup](/deployment/local-setup) – run DeepFix locally without Docker.
+- [Configuration Guide](/getting-started/configuration) – configure SDK and server.
+- [Architecture Overview](/architecture/overview) – understand the system design.
+
+

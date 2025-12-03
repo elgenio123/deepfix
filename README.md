@@ -109,6 +109,11 @@ We welcome contributions! Please see the [Contributing Guidelines](docs/contribu
 - **Issues**: [GitHub Issues](https://github.com/delcaux-labs/deepfix/issues)
 - **Email**: Contact us at fadel.seydou@delcaux.com
 
+## Acknowledgements
+
+The project on which this publication is based was funded by the Federal Ministry of Research, Technology and Space under the funding code “KI-Servicezentrum Berlin-Brandenburg” **16IS22092**. Responsibility for the content of this publication remains with the author.
+
+
 ---
 
 **Built with ❤️ for the ML community**

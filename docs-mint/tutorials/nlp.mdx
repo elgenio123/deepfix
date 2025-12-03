@@ -1,0 +1,90 @@
+---
+title: "NLP Tutorial"
+description: "End-to-end DeepFix workflow for NLP datasets and models."
+---
+
+<Card title="Try it in Google Colab" icon="file-code" href="https://colab.research.google.com/drive/1h3T0mETGQ0sBleQtga0Uf9l0E9uabwcU?usp=sharing">
+Run this tutorial interactively in Google Colab. The notebook includes all the code examples and allows you to experiment with DeepFix on NLP datasets.
+</Card>
+
+## Setup
+
+```python
+import os
+from deepfix_sdk import DeepFixClient
+
+os.environ["DEEPFIX_API_KEY"] = "..."  # Get your API key from DeepCoach
+
+client = DeepFixClient(
+    api_url="https://deepfix.delcaux.com",
+    timeout=120,
+)
+```
+
+## Sentence Classification
+
+### Load Dataset
+
+```python
+from deepfix_sdk.data.datasets import NLPDataset
+from deepfix_sdk.zoo.datasets import load_tweet_emotion_classification
+
+train_data, test_data = load_tweet_emotion_classification(
+    as_train_test=True,
+    include_embeddings=True,
+)
+
+dataset_name = "tweet_emotion_classification"
+
+train_dataset = NLPDataset(
+    dataset_name=dataset_name,
+    dataset=train_data,
+)
+
+val_dataset = NLPDataset(
+    dataset_name=dataset_name,
+    dataset=test_data,
+)
+```
+
+### Run Analysis
+
+```python
+result = client.get_diagnosis(
+    train_data=train_dataset,
+    test_data=val_dataset,
+    language="english",
+)
+
+print(result.to_text())
+```
+
+The analysis will surface:
+
+- Label distribution drift between train and test.
+- Text outliers (e.g. toxicity).
+- Unknown token issues.
+- Embedding drift between splits.
+
+## Interpreting Findings
+
+Typical issues for NLP datasets include:
+
+- **Label drift**: different label distributions in train vs test.
+- **Outliers**: extreme values in text toxicity or length.
+- **Unknown tokens**: gaps in tokenizer vocabulary.
+- **Embedding drift**: domain shift between data splits.
+
+DeepFix presents:
+
+- A high-level summary section.
+- High/medium/low severity issue tables.
+- Recommendations and rationale.
+
+## Next Steps
+
+- [NLP Datasets Guide](/guides/nlp-datasets)
+- [MLflow Integration](/guides/mlflow-integration)
+- [SDK API Reference](/api-reference/sdk)
+
+

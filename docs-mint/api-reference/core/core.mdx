@@ -1,0 +1,94 @@
+---
+title: "Core API Reference"
+description: "Data models and types provided by DeepFix Core."
+---
+
+> **Note**  
+> This page summarizes key public classes. For full Python docstrings, see `deepfix-core/src/deepfix_core/`.
+
+## Models
+
+### APIRequest
+
+Represents a full analysis request.
+
+Key fields:
+
+- `dataset_name`: name of the dataset.
+- `dataset_artifacts`: dataset-related artifacts.
+- `deepchecks_artifacts`: Deepchecks reports and checks.
+- `model_checkpoint_artifacts`: model checkpoint info.
+- `training_artifacts`: training metrics and logs.
+- `language`: output language.
+
+### APIResponse
+
+Represents the response returned by the server.
+
+Key fields:
+
+- `agent_results`: mapping from agent name to `AgentResult`.
+- `summary`: cross-artifact natural-language summary.
+- `additional_outputs`: extra information (e.g. recommendations, citations).
+- `error_messages`: per-agent or global error messages.
+
+### AgentResult
+
+Result from an individual analysis agent.
+
+Contains:
+
+- `findings`: list of issues or observations.
+- `severity`: severity level.
+- `confidence`: confidence score.
+- `recommendations`: recommended actions.
+- `metadata`: optional agent-specific metadata.
+
+### DatasetArtifacts
+
+Encapsulates dataset-related artifacts and statistics.
+
+### DeepchecksArtifacts
+
+Encapsulates Deepchecks reports and results.
+
+### ModelCheckpointArtifacts
+
+Encapsulates model checkpoint metadata and configuration.
+
+### TrainingArtifacts
+
+Encapsulates training metrics, logs, and related artifacts.
+
+## Types
+
+### DataType
+
+Enum or type describing the kind of data (e.g. tabular, image, NLP).
+
+### ArtifactPath
+
+Represents where an artifact is stored (e.g. path in MLflow or local filesystem).
+
+## Usage Example
+
+```python
+from deepfix_core.models import APIRequest
+
+request = APIRequest(
+    dataset_name="my-dataset",
+    dataset_artifacts={},
+    deepchecks_artifacts={},
+    model_checkpoint_artifacts={},
+    training_artifacts={},
+    language="english",
+)
+```
+
+For end-to-end examples, see:
+
+- [Quickstart](/getting-started/quickstart)
+- [Image Classification Guide](/guides/image-classification)
+- [Tabular Data Guide](/guides/tabular-data)
+
+

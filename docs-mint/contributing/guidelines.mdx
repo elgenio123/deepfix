@@ -1,0 +1,145 @@
+---
+title: "Contributing Guidelines"
+description: "How to report bugs, propose features, and contribute code or docs to DeepFix."
+---
+
+Thanks for your interest in contributing to DeepFix! This guide explains how to get started.
+
+## Ways to Contribute
+
+- Report bugs and issues.
+- Request and discuss features.
+- Contribute code changes.
+- Improve documentation and examples.
+- Add tests and tooling improvements.
+
+## Getting Started
+
+### 1. Fork and Clone
+
+```bash
+git clone https://github.com/your-username/deepfix.git
+cd deepfix
+
+git remote add upstream https://github.com/delcaux-labs/deepfix.git
+```
+
+### 2. Set Up Dev Environment
+
+See the [Development Guide](/contributing/development) for full details.
+
+```bash
+uv venv --python 3.11
+source .venv/bin/activate   # macOS / Linux
+.venv\Scripts\activate      # Windows
+
+uv pip install -e ".[dev]"
+```
+
+### 3. Create a Branch
+
+```bash
+# Feature
+git checkout -b feature/your-feature-name
+
+# Bugfix
+git checkout -b fix/short-bug-description
+```
+
+## Workflow
+
+1. Make changes with clear, readable code.
+2. Add or update tests.
+3. Run tests, linters, and type checkers.
+4. Update docs where appropriate.
+5. Commit with a meaningful message.
+6. Push and open a pull request.
+
+### Testing & Quality
+
+```bash
+# Tests
+uv run pytest
+
+# Lint
+uv run ruff check .
+
+# Type check
+uv run mypy deepfix-sdk/src deepfix-server/src
+```
+
+### Commit Messages
+
+Use conventional-style prefixes:
+
+- `feat: ...` – new feature.
+- `fix: ...` – bug fix.
+- `docs: ...` – documentation only.
+- `test: ...` – tests only.
+- `refactor: ...` – internal refactor.
+- `chore: ...` – maintenance / tooling.
+
+Example:
+
+```bash
+git commit -m "feat: add new dataset analyzer"
+```
+
+## Code Style
+
+DeepFix uses `ruff` for formatting and linting.
+
+```bash
+uv run ruff format .
+uv run ruff check .
+```
+
+Use type hints and docstrings for public APIs.
+
+```python
+def analyze_dataset(dataset_name: str) -> AnalysisResult:
+    """Analyze dataset and return results."""
+    ...
+```
+
+## Pull Requests
+
+Before opening a PR:
+
+- Ensure tests pass.
+- Ensure lint and type checks pass.
+- Update docs and changelog where relevant.
+
+Include in your PR description:
+
+- What changed and why.
+- How it was tested.
+- Any follow-up work.
+
+## Reporting Issues
+
+When opening an issue, include:
+
+- Clear description of the problem.
+- Steps to reproduce.
+- Expected vs actual behavior.
+- Environment (Python version, OS, DeepFix version).
+- Minimal reproducible example if possible.
+
+## Code of Conduct
+
+We expect contributors to:
+
+- Be respectful and inclusive.
+- Welcome constructive feedback.
+- Focus on what is best for the community.
+
+If you encounter unacceptable behavior, please report it to the maintainers.
+
+## Next Steps
+
+- [Development Guide](/contributing/development) – dev workflows.
+- [Local Setup](/deployment/local-setup) – run DeepFix locally.
+- [Architecture Overview](/architecture/overview) – system design.
+
+

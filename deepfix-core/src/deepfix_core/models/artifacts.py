@@ -432,6 +432,10 @@ class BaseDatasetStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "BaseDatasetStatistics":
+        raise NotImplementedError("from_dict is not implemented for BaseDatasetStatistics")
 
 
 class ObjectDetectionStatistics(BaseDatasetStatistics):
@@ -470,6 +474,10 @@ class ObjectDetectionStatistics(BaseDatasetStatistics):
     box_area_stats: Optional[Dict[str, Any]] = Field(
         default=None, description="Box area statistics"
     )
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "ObjectDetectionStatistics":
+        return cls(**d)
 
 
 class VisionStatistics(BaseDatasetStatistics):
@@ -523,6 +531,12 @@ class VisionStatistics(BaseDatasetStatistics):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "VisionStatistics":
+        if "object_detection_statistics" in d:
+            d["object_detection_statistics"] = ObjectDetectionStatistics.from_dict(d["object_detection_statistics"])
+        return cls(**d)
 
 
 class TabularStatistics(BaseDatasetStatistics):
@@ -556,6 +570,10 @@ class TabularStatistics(BaseDatasetStatistics):
     numerical_features: Optional[List[str]] = Field(
         default=None, description="List of numerical feature names"
     )
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "TabularStatistics":
+        return cls(**d)
 
 
 class TextStatistics(BaseModel):
@@ -596,6 +614,10 @@ class TextStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "TextStatistics":
+        return cls(**d)
 
 
 class LabelStatistics(BaseModel):
@@ -642,6 +664,10 @@ class LabelStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "LabelStatistics":
+        return cls(**d)
 
 
 class PropertiesStatistics(BaseModel):
@@ -678,6 +704,10 @@ class PropertiesStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PropertiesStatistics":
+        return cls(**d)
 
 
 class NLPStatistics(BaseDatasetStatistics):
@@ -742,7 +772,15 @@ class NLPStatistics(BaseDatasetStatistics):
                 dumped_dict.pop(k)
         return dumped_dict
 
-
+    @classmethod
+    def from_dict(cls, d: dict) -> "NLPStatistics":
+        if "text_statistics" in d:
+            d["text_statistics"] = TextStatistics.from_dict(d["text_statistics"])
+        if "label_statistics" in d:
+            d["label_statistics"] = LabelStatistics.from_dict(d["label_statistics"])
+        if "properties_statistics" in d:
+            d["properties_statistics"] = PropertiesStatistics.from_dict(d["properties_statistics"])
+        return cls(**d)
 ## Dataset
 class DatasetArtifacts(Artifacts):
     """Artifacts containing dataset statistics and metadata.
@@ -756,11 +794,11 @@ class DatasetArtifacts(Artifacts):
     """
 
     dataset_name: str = Field(..., description="Name of the dataset")
-    train_statistics: Union[BaseDatasetStatistics, Dict[str, Any]] = Field(
+    train_statistics: BaseDatasetStatistics = Field(
         ..., description="Train statistics of the dataset"
     )
     task_type: TaskType = Field(..., description="Task type of the dataset")
-    test_statistics: Optional[Union[BaseDatasetStatistics, Dict[str, Any]]] = Field(
+    test_statistics: Optional[BaseDatasetStatistics] = Field(
         default=None, description="Test statistics of the dataset"
     )
 
@@ -794,4 +832,27 @@ class DatasetArtifacts(Artifacts):
         """
         with open(path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
+        #print("d", d)
+        return cls.from_dict(d)
+    
+    @classmethod
+    def from_dict(cls, d: dict) -> "DatasetArtifacts":
+        task_type = TaskType(d["task_type"])
+        d['task_type'] = task_type
+
+        def load_statistics(d: dict) -> BaseDatasetStatistics:
+            if task_type in [TaskType.OBJECT_DETECTION, TaskType.IMAGE_CLASSIFICATION, TaskType.IMAGE_SEGMENTATION]:
+                return ObjectDetectionStatistics.from_dict(d)
+            elif task_type in [TaskType.TABULAR_CLASSIFICATION, TaskType.TABULAR_REGRESSION]:
+                return TabularStatistics.from_dict(d)
+            elif task_type in [TaskType.TEXT_CLASSIFICATION, TaskType.TEXT_TOKEN_CLASSIFICATION]:
+                return NLPStatistics.from_dict(d)
+            else:
+                raise ValueError(f"Invalid task type: {task_type.value}")
+
+        if "train_statistics" in d:
+            d["train_statistics"] = load_statistics(d["train_statistics"])
+        if "test_statistics" in d:
+            d["test_statistics"] = load_statistics(d["test_statistics"])
+
         return cls(**d)
