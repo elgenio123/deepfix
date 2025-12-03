@@ -1,0 +1,4 @@
+# Placeholder for TLS certificates
+# Run ./scripts/generate-certs.sh to generate self-signed certificates for testing
+# For production, use Let's Encrypt or your organization's CA
+
