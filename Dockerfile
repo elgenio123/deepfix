@@ -35,7 +35,8 @@ RUN . /opt/venv/bin/activate \
 # Install project into the venv (non-editable)
 RUN . /opt/venv/bin/activate \
     && uv pip install ./deepfix-server \
-    && uv pip install ./deepfix-core
+    && uv pip install pip \
+    && uv pip install ./deepfix-core && opentelemetry-bootstrap --action=install 
 
 ###############
 # Runtime stage
