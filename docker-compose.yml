@@ -7,10 +7,7 @@ services:
     ports:
       - "8844:8844"
     env_file:
-      - .env 
-    environment:
-      # Configure OpenTelemetry to use Jaeger service in Docker network
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - .env
     volumes:
       - ./server_logs:/logs
     restart: unless-stopped
