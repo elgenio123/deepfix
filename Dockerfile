@@ -72,10 +72,10 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 
 # Create directories with proper ownership
-RUN mkdir -p /logs /mlflow \
-    && chown -R deepfix:deepfix /logs /mlflow /app
+RUN mkdir -p /logs \
+    && chown -R deepfix:deepfix /logs /app
 
-VOLUME /logs /mlflow
+VOLUME /logs
 
 # Copy startup script and fix permissions
 COPY --chown=deepfix:deepfix start_server_docker.sh .
