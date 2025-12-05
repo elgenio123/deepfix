@@ -8,7 +8,6 @@ dependencies = [
     "dspy>=3.0.3",
     "httpx>=0.28.1",
     "litserve>=0.2.16",
-    "llama-index-retrievers-bm25>=0.6.5",
     "mlflow>=3.3.2",
     "pydantic>=2.11.7",
     "pytest>=8.4.1",
@@ -17,7 +16,10 @@ dependencies = [
     "structlog>=25.4.0",
     "typer",
     "deepfix-core",
-    "seaborn"
+    "seaborn",
+    "opentelemetry-distro>=0.60b0",
+    "opentelemetry-exporter-otlp>=1.39.0",
+    "platformdirs>=4.5.0",
 ]
 
 [tool.ruff]
