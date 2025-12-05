@@ -8,12 +8,17 @@ services:
       - "8844:8844"
     env_file:
       - .env 
+    environment:
+      # Configure OpenTelemetry to use Jaeger service in Docker network
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
     volumes:
       - ./server_logs:/logs
     restart: unless-stopped
     depends_on:
       mlflow:
         condition: service_healthy
+      jaeger:
+        condition: service_started
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.6.0
@@ -36,6 +41,19 @@ services:
       --allowed-hosts localhost:5000,localhost,mlflow:5000
     volumes:
       - ./server_mlflow_data:/mlflow
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "5778:5778"
+      - "9411:9411"
+    environment:
+      - LOG_LEVEL=debug
+    restart: unless-stopped
 
   #cursor-agent:
   #  build: ./cursor_wrapper

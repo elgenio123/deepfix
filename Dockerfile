@@ -36,7 +36,7 @@ RUN . /opt/venv/bin/activate \
 RUN . /opt/venv/bin/activate \
     && uv pip install ./deepfix-server \
     && uv pip install pip \
-    && uv pip install ./deepfix-core && opentelemetry-bootstrap --action=install 
+    && uv pip install ./deepfix-core && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement - 
 
 ###############
 # Runtime stage
