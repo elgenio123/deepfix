@@ -8,6 +8,7 @@ different log levels, formats, and output destinations.
 import logging
 import logging.handlers
 import mlflow
+import httpx
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -34,6 +35,21 @@ def setup_dspy_logging(
             print("Tracing will not be enabled.")
             print("=" * 50)
         return
+    
+    if tracking_uri.startswith("http"):
+        try:
+            httpx.get(tracking_uri, timeout=2.0)
+        except httpx.TimeoutException:
+            msg = f"Could not connect to tracking URI: {tracking_uri}"
+            if logger:
+                logger.warning(msg)
+            else:
+                print(msg)
+                if logger is not None:
+                    logger.warning("Tracing will not be enabled.")
+                else:
+                    print("Tracing will not be enabled.")
+            return
 
     mlflow.dspy.autolog()
     mlflow.set_tracking_uri(tracking_uri)
