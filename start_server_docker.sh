@@ -24,10 +24,7 @@ warn() {
 }
 
 echo "Starting deepfix server..."
-OTEL_RESOURCE_ATTRIBUTES=$OTEL_RESOURCE_ATTRIBUTES \
-OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT \
-OTEL_EXPORTER_OTLP_HEADERS=$OTEL_EXPORTER_OTLP_HEADERS \
-OTEL_EXPORTER_OTLP_PROTOCOL=$OTEL_EXPORTER_OTLP_PROTOCOL \
+# Use environment variables if set, otherwise defaults will be used
 opentelemetry-instrument deepfix-server launch -port 8844 -host 0.0.0.0 \
     -workers 2 -fast-queue > "$LOG_DIR/server.log" 2>&1 &
 
