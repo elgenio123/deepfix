@@ -51,21 +51,6 @@ This production deployment provides:
 └───────────────┘   └───────────────┘   └───────────────┘
         │                   │                   │
         └───────────────────┴───────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              │                           │
-              ▼                           ▼
-      ┌───────────────┐           ┌───────────────┐
-      │  Prometheus   │◄──────────│    Loki       │
-      │   (9090)      │           │   (3100)      │
-      └───────────────┘           └───────────────┘
-                                          ▲
-                                          │
-                                  ┌───────────────┐
-                                  │   Promtail    │
-                                  │ (log shipper) │
-                                  └───────────────┘
-```
 
 ## Requirements
 
@@ -584,12 +569,6 @@ deepfix/
 │   └── certs/
 │       ├── server.crt           # TLS certificate
 │       └── server.key           # TLS private key
-├── monitoring/
-│   ├── prometheus.yml           # Prometheus config
-│   ├── loki-config.yml          # Loki config
-│   ├── promtail-config.yml      # Promtail config
-│   └── grafana/
-│       └── provisioning/        # Grafana auto-provisioning
 ├── scripts/
 │   └── deploy.sh                # Zero-downtime deploy script
 ├── server_logs/                 # Mounted log volume
