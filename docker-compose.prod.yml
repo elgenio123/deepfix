@@ -1,5 +1,5 @@
 # Production Docker Compose for DeepFix Server
-# Includes: Traefik reverse proxy, Prometheus, Grafana, Loki, Promtail
+# Includes: Traefik reverse proxy, Grafana OTEL LGTM Stack (Grafana, Loki, Mimir, Tempo, OpenTelemetry Collector)
 
 services:
   # ===================
@@ -119,65 +119,29 @@ services:
       - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
 
   # ===================
-  # Monitoring - Prometheus
+  # Monitoring - Grafana OTEL LGTM Stack
+  # (All-in-one: Grafana, Loki, Mimir, Tempo, OpenTelemetry Collector)
   # ===================
-  prometheus:
-    image: prom/prometheus:v2.47.0
-    container_name: prometheus
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=15d'
-      - '--web.enable-lifecycle'
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - deepfix-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # ===================
-  # Monitoring - Grafana
-  # ===================
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: grafana
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.12.0
+    container_name: otel-lgtm
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ENABLE_LOGS_ALL=True
+    ports:
+      - "4317:4317"  # OTLP gRPC receiver
+      - "4318:4318"  # OTLP HTTP receiver
+      - "3000:3000"
     networks:
       - deepfix-network
-    depends_on:
-      - prometheus
-      - loki
     deploy:
       resources:
         limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -189,58 +153,6 @@ services:
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-  # ===================
-  # Logging - Loki
-  # ===================
-  loki:
-    image: grafana/loki:2.9.2
-    container_name: loki
-    restart: unless-stopped
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - loki_data:/loki
-    networks:
-      - deepfix-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # ===================
-  # Logging - Promtail
-  # ===================
-  promtail:
-    image: grafana/promtail:2.9.2
-    container_name: promtail
-    restart: unless-stopped
-    command: -config.file=/etc/promtail/config.yml
-    volumes:
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    networks:
-      - deepfix-network
-    depends_on:
-      - loki
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 128M
-        reservations:
-          cpus: '0.05'
-          memory: 32M
 
 # ===================
 # Networks
@@ -254,10 +166,6 @@ networks:
 # Volumes
 # ===================
 volumes:
-  prometheus_data:
-    name: deepfix_prometheus_data
-  grafana_data:
-    name: deepfix_grafana_data
-  loki_data:
-    name: deepfix_loki_data
+  otel_lgtm_data:
+    name: deepfix_otel_lgtm_data
 
