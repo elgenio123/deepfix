@@ -1,0 +1,96 @@
+"""
+API Key management routes
+"""
+import secrets
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+from api.database import get_db
+from api.models import APIKey, User
+from api.schemas import APIKeyCreate, APIKeyResponse
+from api.dependencies import get_current_user
+
+router = APIRouter()
+
+
+@router.get("/", response_model=List[APIKeyResponse])
+async def list_api_keys(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    List all API keys for the current user
+    """
+    # Get API keys for current user
+    api_keys = db.query(APIKey).filter(
+        APIKey.user_id == current_user.id,
+        APIKey.is_active == True
+    ).all()
+    return api_keys
+
+
+@router.post("/", response_model=APIKeyResponse)
+async def create_api_key(
+    key_data: APIKeyCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a new API key for the current user
+    """
+    # Generate secure API key
+    api_key = f"df_live_{secrets.token_urlsafe(32)}"
+    
+    # Create API key record
+    new_key = APIKey(
+        user_id=current_user.id,
+        key=api_key,
+        name=key_data.name
+    )
+    db.add(new_key)
+    db.commit()
+    db.refresh(new_key)
+    return new_key
+
+
+@router.delete("/{key_id}")
+async def revoke_api_key(
+    key_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Revoke (deactivate) an API key
+    """
+    # Find and deactivate API key
+    api_key = db.query(APIKey).filter(
+        APIKey.id == key_id,
+        APIKey.user_id == current_user.id
+    ).first()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    
+    api_key.is_active = False
+    db.commit()
+    return {"message": "API key revoked successfully"}
+
+
+@router.get("/{key_id}", response_model=APIKeyResponse)
+async def get_api_key(
+    key_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get details of a specific API key
+    """
+    # Get API key
+    api_key = db.query(APIKey).filter(
+        APIKey.id == key_id,
+        APIKey.user_id == current_user.id
+    ).first()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    return api_key
+
