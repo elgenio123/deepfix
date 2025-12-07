@@ -7,7 +7,7 @@ This directory contains Alembic database migrations.
 If this is a fresh setup, you may need to initialize Alembic:
 
 ```bash
-cd api
+cd deepfix-portal/src/deepfix_portal
 alembic init migrations
 ```
 
