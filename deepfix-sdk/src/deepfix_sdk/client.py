@@ -383,7 +383,8 @@ class DeepFixClient:
             refresh_per_second=10,
         ):
             payload = request.model_dump()
-            headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
+            #headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
+            headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
             response = requests.post(
                 self._analyze_endpoint,
                 json=payload,
