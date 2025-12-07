@@ -59,9 +59,9 @@ async def verify_service_token(
     """
     Verify the shared service token for server-to-server requests.
     """
-    PORTAL_SERVICE_TOKEN = os.getenv("PORTAL_SERVICE_TOKEN")
+    PORTAL_SERVICE_TOKEN = os.getenv("DEEPFIX_PORTAL_SERVICE_TOKEN")
 
-    if PORTAL_SERVICE_TOKEN is None:
+    if PORTAL_SERVICE_TOKEN is None or PORTAL_SERVICE_TOKEN == "":
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Service token is not configured",

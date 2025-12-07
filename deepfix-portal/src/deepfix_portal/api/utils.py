@@ -19,18 +19,18 @@ def get_secret_key() -> str:
     """
     Get the secret key from the environment
     """
-    SECRET_KEY = os.getenv("SECRET_KEY")
-    if SECRET_KEY is None:
-        raise ValueError("SECRET_KEY is not set")
+    SECRET_KEY = os.getenv("DEEPFIX_PORTAL_SECRET_KEY")
+    if SECRET_KEY is None or SECRET_KEY == "":
+        raise ValueError("DEEPFIX_PORTAL_SECRET_KEY is not set")
     return SECRET_KEY
 
 def get_algorithm() -> str:
     """
     Get the algorithm from the environment
     """
-    ALGORITHM = os.getenv("ALGORITHM")
-    if ALGORITHM is None:
-        raise ValueError("ALGORITHM is not set")
+    ALGORITHM = os.getenv("DEEPFIX_PORTAL_ALGORITHM")
+    if ALGORITHM is None or ALGORITHM == "":
+        raise ValueError("DEEPFIX_PORTAL_ALGORITHM is not set")
     return ALGORITHM
 
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES","30"))
