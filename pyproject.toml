@@ -13,9 +13,9 @@ dependencies = [
     "mkdocstrings[python]>=0.24.0",
     "mkdocs-git-revision-date-localized-plugin>=1.2.0",
     "nbconvert>=7.16.6",
-    "pycaret>=2.2.2",
-    "fairlearn>=0.13.0",
     "streamlit>=1.51.0",
+    "psycopg2>=2.9.11",
+    "bcrypt==4.0.1",
 ]
 
 [tool.ruff]
