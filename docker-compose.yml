@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
 
   mlflow:
     build:
@@ -67,7 +67,7 @@ services:
       - ./server_data/mlflow:/mlflow
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
 
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
@@ -88,6 +88,11 @@ services:
     volumes:
       - ./server_data/badger:/badger
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:16.11-alpine3.23
