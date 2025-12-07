@@ -1,0 +1,38 @@
+# Ignore local environment files that should not be in production builds
+.env.local
+.env.*.local
+client/.env.local
+client/.env.*.local
+
+# Development dependencies and caches
+node_modules
+.npm
+.cache
+
+# Python stuff (if any)
+__pycache__
+*.pyc
+.venv
+venv
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Testing
+coverage
+.pytest_cache
+
+# Build outputs (we want fresh builds in Docker)
+dist
+build
