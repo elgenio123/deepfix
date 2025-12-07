@@ -16,9 +16,31 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_started
+      postgres:
+        condition: service_healthy
+
+  deepfix-portal:
+    build:
+      context: ./deepfix-portal
+      dockerfile: Dockerfile
+    image: deepfix-portal:latest
+    env_file:
+      - .env
+    environment:
+    - POSTGRES_DB=deepfix_portal
+    - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    ports:
+      - "5041:5041"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.6.0
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    image: mlflow:psycopg2-3.6.0
     container_name: mlflow
     restart: unless-stopped
     ports:
@@ -29,15 +51,22 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    environment:
+      - POSTGRES_DB=mlflow
+    env_file:
+      - .env
     command: >
       mlflow server
-      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
       --allowed-hosts localhost:5000,localhost,mlflow:5000
     volumes:
-      - ./server_mlflow_data:/mlflow
+      - ./server_data/mlflow:/mlflow
+    depends_on:
+      postgres:
+        condition: service_started
 
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
@@ -56,8 +85,19 @@ services:
       - BADGER_DIRECTORY_VALUE=/badger/data
       - BADGER_DIRECTORY_KEY=/badger/key
     volumes:
-      - ./server_logs/badger:/badger
+      - ./server_data/badger:/badger
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16.11-alpine3.23
+    container_name: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./server_data/postgres:/var/lib/postgresql/data
 
   #cursor-agent:
   #  build: ./cursor_wrapper
@@ -68,6 +108,3 @@ services:
   #    - cursor_wrapper/.env
   #  volumes:
   #    - ./cursor_agent_logs:/logs
-
-
-
