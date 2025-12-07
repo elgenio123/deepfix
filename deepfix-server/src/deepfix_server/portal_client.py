@@ -51,7 +51,7 @@ class PortalClient:
                 headers={"X-Service-Token": self.config.service_token},
             )
         except httpx.RequestError as exc:
-            LOGGER.exception("Portal validation request failed")
+            LOGGER.exception(f"Portal validation request failed: {exc}")
             raise HTTPException(
                 status_code=503, detail="Portal authorization service unavailable"
             ) from exc
@@ -72,7 +72,7 @@ class PortalClient:
             payload = response.json()
             return PortalKeyValidationResult(**payload)
         except Exception as exc:  # JSON decode or validation error
-            LOGGER.exception("Invalid portal validation response")
+            LOGGER.exception(f"Invalid portal validation response: {exc}")
             raise HTTPException(
                 status_code=502, detail="Invalid response from portal"
             ) from exc

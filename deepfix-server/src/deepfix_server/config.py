@@ -36,7 +36,7 @@ class PortalConfig(BaseModel):
         """
         if env_file is not None:
             load_dotenv(env_file)
-        base_url = os.getenv("DEEPFIX_PORTAL_BASE_URL", "http://localhost:5000")
+        base_url = os.getenv("DEEPFIX_PORTAL_BASE_URL", "http://localhost:5041")
         validate_path = os.getenv(
             "DEEPFIX_PORTAL_VALIDATE_PATH", "/api/api-keys/validate"
         )

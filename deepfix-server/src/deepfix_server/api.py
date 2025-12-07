@@ -22,7 +22,19 @@ class AnalyseArtifactsAPI(ls.LitAPI):
 
     Provides a LitServe API for analyzing ML artifacts (datasets, training,
     deepchecks, model checkpoints) and returning diagnostic results.
-    """
+    """        
+
+    def _ensure_initialized(self) -> None:
+        """Initialize dependencies if setup has not run."""
+        if getattr(self, "portal_client", None) is not None and getattr(
+            self, "coordinator", None
+        ) is not None:
+            return
+
+        self.llm_config = LLMConfig.load_from_env()
+        portal_config = PortalConfig.load_from_env()
+        self.portal_client = PortalClient(config=portal_config)
+        self.coordinator = ArtifactAnalysisCoordinator(llm_config=self.llm_config)
 
     def setup(self, device: str) -> None:
         """Setup the API endpoint.
@@ -39,28 +51,23 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             )
         except Exception:
             print(f"Error setting up DSPy logging: {traceback.format_exc()}")
-
-        llm_config = LLMConfig.load_from_env()
-        self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
-        self.portal_config = PortalConfig.load_from_env()
-        self.portal_client = PortalClient(config=self.portal_config)
+        
+        finally:
+            self._ensure_initialized()
     
     async def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
-        assert os.getenv("LIT_SERVER_API_KEY") is None, "LIT_SERVER_API_KEY should not be set when using custom authentication."
+        self._ensure_initialized()
+        #assert (os.getenv("LIT_SERVER_API_KEY") is None) or (os.getenv("LIT_SERVER_API_KEY") == ""), f"LIT_SERVER_API_KEY should not be set when using custom authentication. Got {os.getenv('LIT_SERVER_API_KEY')}"
 
-        if auth is None or not auth.credentials:
+        if auth.scheme != "Bearer" or not auth.credentials:
             raise HTTPException(
                 status_code=401, detail="Missing authorization credentials"
             )
 
-        if not hasattr(self, "portal_client"):
-            self.portal_config = PortalConfig.load_from_env()
-            self.portal_client = PortalClient(config=self.portal_config)
-
         try:
             return await self.portal_client.validate_api_key(auth.credentials)
-        except HTTPException:
-            raise
+        except HTTPException as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail)
         except Exception as exc:
             LOGGER.exception("Authorization failure", exc_info=exc)
             raise HTTPException(
