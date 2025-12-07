@@ -4,10 +4,10 @@
 http:
   # Middlewares
   middlewares:
-    # Rate limiting middleware - 100 requests per minute per IP
+    # Rate limiting middleware - 2 requests per minute per IP
     rate-limit:
       rateLimit:
-        average: 100
+        average: 2
         burst: 50
         period: 1m
         sourceCriterion:
