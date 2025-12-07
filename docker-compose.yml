@@ -110,15 +110,15 @@ services:
       timeout: 5s
       retries: 5
 
-  cursor-agent:
-    build: ./cursor_wrapper
-    image: cursor-agent:latest
-    ports:
-      - "8841:8841"
-    env_file:
-      - cursor_wrapper/.env
-    environment:
-      - CURSOR_MODEL_NAME=gpt-5.1-codex-max
-    volumes:
-      - ./server_data/cursor_agent:/logs
-    restart: unless-stopped
+#  cursor-agent:
+#    build: ./cursor_wrapper
+#    image: cursor-agent:latest
+#    ports:
+#      - "8841:8841"
+#    env_file:
+#      - cursor_wrapper/.env
+#    environment:
+#      - CURSOR_MODEL_NAME=gpt-5.1-codex-max
+#    volumes:
+#      - ./server_data/cursor_agent:/logs
+#    restart: unless-stopped
