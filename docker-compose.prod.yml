@@ -1,5 +1,5 @@
 # Production Docker Compose for DeepFix Server
-# Includes: Traefik reverse proxy, Grafana OTEL LGTM Stack (Grafana, Loki, Mimir, Tempo, OpenTelemetry Collector)
+
 
 services:
   # ===================
@@ -54,6 +54,8 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -70,7 +72,7 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix.rule=Host(`localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.deepfix.rule=Host(`localhost`) && PathPrefix(`/api`)"
       - "traefik.http.routers.deepfix.entrypoints=websecure"
       - "traefik.http.routers.deepfix.tls=true"
       - "traefik.http.routers.deepfix.middlewares=rate-limit@file"
@@ -79,23 +81,69 @@ services:
       - "traefik.http.services.deepfix.loadbalancer.healthcheck.interval=30s"
 
   # ===================
+  # DeepFix Portal
+  # ===================
+  deepfix-portal:
+    build:
+      context: ./deepfix-portal
+      dockerfile: Dockerfile
+    image: deepfix-portal:latest
+    container_name: deepfix-portal
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - POSTGRES_DB=deepfix_portal
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    networks:
+      - deepfix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls=true"
+      - "traefik.http.services.portal.loadbalancer.server.port=5041"
+
+  # ===================
   # MLflow Server
   # ===================
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.6.0
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    image: mlflow:psycopg2-3.6.0
     container_name: mlflow
     restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=mlflow
     command: >
       mlflow server
-      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
       --allowed-hosts mlflow:5000,localhost:5000,localhost,mlflow,172.20.0.0/16
     volumes:
-      - ./server_mlflow_data:/mlflow
+      - ./server_data/mlflow:/mlflow
     networks:
       - deepfix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -119,40 +167,67 @@ services:
       - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
 
   # ===================
-  # Monitoring - Grafana OTEL LGTM Stack
-  # (All-in-one: Grafana, Loki, Mimir, Tempo, OpenTelemetry Collector)
+  # PostgreSQL Database
   # ===================
-  otel-lgtm:
-    image: grafana/otel-lgtm:0.12.0
-    container_name: otel-lgtm
+  postgres:
+    image: postgres:16.11-alpine3.23
+    container_name: postgres
     restart: unless-stopped
-    environment:
-      - ENABLE_LOGS_ALL=True
-    ports:
-      - "4317:4317"  # OTLP gRPC receiver
-      - "4318:4318"  # OTLP HTTP receiver
-      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./server_data/postgres:/var/lib/postgresql/data
     networks:
       - deepfix-network
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 2G
+          cpus: '1'
+          memory: 1G
         reservations:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '0.25'
+          memory: 256M
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================
+  # Jaeger Tracing
+  # ===================
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "5778:5778"
+      - "9411:9411"
+    environment:
+      - LOG_LEVEL=debug
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    volumes:
+      - ./server_data/badger:/badger
+    networks:
+      - deepfix-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`localhost`) && PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.jaeger.rule=Host(`localhost`) && PathPrefix(`/jaeger`)"
+      - "traefik.http.routers.jaeger.entrypoints=websecure"
+      - "traefik.http.routers.jaeger.tls=true"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
 
 # ===================
 # Networks
@@ -165,7 +240,4 @@ networks:
 # ===================
 # Volumes
 # ===================
-volumes:
-  otel_lgtm_data:
-    name: deepfix_otel_lgtm_data
 
