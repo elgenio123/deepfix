@@ -26,7 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+*.db
 *.onnx
 *.pt
 *.pth
@@ -74,6 +74,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+node_modules/
+
 
 # Translations
 *.mo
