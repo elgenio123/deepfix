@@ -12,14 +12,15 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  Copy, 
-  RefreshCw, 
-  Key, 
-  BarChart3, 
-  CreditCard, 
-  CheckCircle2, 
-  AlertCircle 
+import {
+  Copy,
+  RefreshCw,
+  Key,
+  BarChart3,
+  CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,10 +33,15 @@ import {
 } from "@/components/ui/table";
 
 export default function Dashboard() {
-  const { user, isLoading, generateApiKey } = useAuth();
+  const { user, isLoading, generateApiKey, deleteApiKey } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const maskedApiKey = user?.apiKey
+    ? `${user.apiKey.slice(0, 6)}...${user.apiKey.slice(-4)}`
+    : "";
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -65,6 +71,19 @@ export default function Dashboard() {
     setIsGenerating(true);
     await generateApiKey();
     setIsGenerating(false);
+  };
+
+  const handleDeleteKey = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteApiKey();
+      toast({
+        title: "API key deleted",
+        description: "Generate a new key when you're ready.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -97,7 +116,7 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className="relative">
                   <div className="bg-muted p-4 rounded-lg font-mono text-sm break-all pr-12 border">
-                    {user.apiKey}
+                    {maskedApiKey}
                   </div>
                   <Button
                     size="icon"
@@ -115,6 +134,17 @@ export default function Dashboard() {
                     Never share your API key in client-side code (browsers, apps). Use it only on your backend.
                   </AlertDescription>
                 </Alert>
+                <div className="flex justify-end">
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteKey}
+                    disabled={isDeleting}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className={`w-4 h-4 ${isDeleting ? "animate-spin" : ""}`} />
+                    {isDeleting ? "Deleting..." : "Delete API Key"}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 bg-muted/30 rounded-lg border border-dashed">
@@ -125,15 +155,6 @@ export default function Dashboard() {
               </div>
             )}
           </CardContent>
-          {user.apiKey && (
-            <CardFooter className="bg-muted/10 border-t px-6 py-4 flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Last generated: Today</span>
-              <Button variant="outline" size="sm" onClick={handleGenerateKey} disabled={isGenerating}>
-                <RefreshCw className={`w-3 h-3 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
-                Roll Key
-              </Button>
-            </CardFooter>
-          )}
         </Card>
 
         {/* Plan Status */}
