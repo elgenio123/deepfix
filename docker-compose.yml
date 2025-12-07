@@ -27,14 +27,15 @@ services:
     env_file:
       - .env
     environment:
-    - POSTGRES_DB=deepfix_portal
-    - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - NODE_ENV=production
+      - POSTGRES_DB=deepfix_portal
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     ports:
       - "5041:5041"
     restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
 
   mlflow:
     build:
@@ -98,13 +99,21 @@ services:
       - "5432:5432"
     volumes:
       - ./server_data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  #cursor-agent:
-  #  build: ./cursor_wrapper
-  #  image: cursor-agent:latest
-  #  ports:
-  #    - "8841:8841"
-  #  env_file:
-  #    - cursor_wrapper/.env
-  #  volumes:
-  #    - ./cursor_agent_logs:/logs
+  cursor-agent:
+    build: ./cursor_wrapper
+    image: cursor-agent:latest
+    ports:
+      - "8841:8841"
+    env_file:
+      - cursor_wrapper/.env
+    environment:
+      - CURSOR_MODEL_NAME=gpt-5.1-codex-max
+    volumes:
+      - ./server_data/cursor_agent:/logs
+    restart: unless-stopped

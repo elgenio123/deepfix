@@ -44,18 +44,42 @@ async def health_check():
 # Serve static files in production
 # In development, Vite handles this
 if os.getenv("NODE_ENV") == "production":
-    dist_path = Path(__file__).parent.parent / "dist" / "public"
-    if dist_path.exists():
-        app.mount("/static", StaticFiles(directory=str(dist_path)), name="static")
+    # Check multiple possible locations for the built frontend
+    # 1. Docker: copied to src/deepfix_portal/dist/public
+    # 2. Local: Vite outputs to project_root/dist/public
+    possible_paths = [
+        Path(__file__).parent.parent / "dist" / "public",  # Docker path
+        Path(__file__).parent.parent.parent.parent / "dist" / "public",  # Local path
+    ]
+    
+    dist_path = None
+    for path in possible_paths:
+        if path.exists() and (path / "index.html").exists():
+            dist_path = path
+            break
+    
+    if dist_path:
+        # Mount assets at /assets to match Vite's output references
+        assets_path = dist_path / "assets"
+        if assets_path.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+
+        @app.get("/")
+        async def serve_index():
+            """Serve index.html for root path"""
+            return FileResponse(str(dist_path / "index.html"))
         
         @app.get("/{full_path:path}")
         async def serve_spa(full_path: str):
             """Serve SPA for all non-API routes"""
-            if not full_path.startswith("api") and not full_path.startswith("static"):
-                index_path = dist_path / "index.html"
-                if index_path.exists():
-                    return FileResponse(str(index_path))
-            return {"error": "Not found"}
+            if full_path.startswith("api"):
+                return {"error": "Not found"}
+            # Try to serve static file first
+            file_path = dist_path / full_path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+            # Otherwise serve index.html for SPA routing
+            return FileResponse(str(dist_path / "index.html"))
 
 
 if __name__ == "__main__":

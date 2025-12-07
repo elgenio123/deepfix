@@ -7,8 +7,9 @@ COPY tsconfig.json vite.config.ts vite-plugin-meta-images.ts postcss.config.js c
 COPY client ./client
 COPY shared ./shared
 COPY attached_assets ./attached_assets
-# Need dev deps (vite) during build even though final image is production
-RUN npm ci --include=dev && npx vite build
+COPY script ./script
+RUN npm install
+RUN npm run build
 
 
 FROM astral/uv:python3.11-bookworm-slim AS runtime
@@ -36,6 +37,7 @@ RUN uv sync --frozen --no-dev --no-progress && chown -R app:app /app
 
 USER app
 ENV PATH="/app/.venv/bin:${PATH}"
+ENV NODE_ENV=
 
 EXPOSE 5041
 
