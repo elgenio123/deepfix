@@ -44,6 +44,11 @@ models-registry/
 /logs/
 advisor_output/
 uv.lock
+server_data/
+examples/
+
+server.crt
+server.key
 
 *visualization.html
 
