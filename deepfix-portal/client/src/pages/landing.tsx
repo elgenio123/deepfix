@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, Code2, Zap, Shield, CheckCircle2 } from "lucide-react";
-import heroBg from "@assets/generated_images/ml_diagnostics_visualization.png";
 
 export default function Landing() {
   return (
@@ -9,11 +8,11 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-16 pb-20 md:pt-20 md:pb-28">
         <div className="absolute inset-0 -z-10 opacity-10">
-          <img 
+          {/*<img 
             src={heroBg} 
             alt="Background" 
             className="w-full h-full object-cover"
-          />
+          />*/}
           <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background"></div>
         </div>
         
