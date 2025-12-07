@@ -2,14 +2,20 @@
 API Key management routes
 """
 import secrets
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
 from ..models import APIKey, User
-from ..schemas import APIKeyCreate, APIKeyResponse
-from ..dependencies import get_current_user
+from ..schemas import (
+    APIKeyCreate,
+    APIKeyResponse,
+    APIKeyValidationRequest,
+    APIKeyValidationResponse,
+)
+from ..dependencies import get_current_user, verify_service_token
 
 router = APIRouter()
 
@@ -93,4 +99,47 @@ async def get_api_key(
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key
+
+
+@router.post(
+    "/validate",
+    response_model=APIKeyValidationResponse,
+    dependencies=[Depends(verify_service_token)],
+)
+async def validate_api_key(
+    request: APIKeyValidationRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Validate an API key for server-to-server access (used by deepfix-server).
+    """
+    api_key = db.query(APIKey).filter(APIKey.key == request.key).first()
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
+    if not api_key.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="API key is inactive"
+        )
+
+    user = db.query(User).filter(User.id == api_key.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key owner is inactive or missing",
+        )
+
+    api_key.last_used = datetime.now(timezone.utc)
+    db.commit()
+
+    return APIKeyValidationResponse(
+        key_id=api_key.id,
+        key_name=api_key.name,
+        key_is_active=api_key.is_active,
+        user_id=user.id,
+        user_email=user.email,
+        user_name=user.name,
+        user_is_active=user.is_active,
+    )
 

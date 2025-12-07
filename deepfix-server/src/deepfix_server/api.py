@@ -1,14 +1,17 @@
 import traceback
+from typing import Optional
 
 import litserve as ls
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import os
 
-from .config import LLMConfig
+from .config import LLMConfig, PortalConfig
 from .coordinators import ArtifactAnalysisCoordinator
 from .logging import get_logger, setup_dspy_logging
 from .models import AgentContext
+from .portal_client import PortalClient
 
 LOGGER = get_logger(__name__)
 
@@ -39,6 +42,30 @@ class AnalyseArtifactsAPI(ls.LitAPI):
 
         llm_config = LLMConfig.load_from_env()
         self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
+        self.portal_config = PortalConfig.load_from_env()
+        self.portal_client = PortalClient(config=self.portal_config)
+    
+    async def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+        assert os.getenv("LIT_SERVER_API_KEY") is None, "LIT_SERVER_API_KEY should not be set when using custom authentication."
+
+        if auth is None or not auth.credentials:
+            raise HTTPException(
+                status_code=401, detail="Missing authorization credentials"
+            )
+
+        if not hasattr(self, "portal_client"):
+            self.portal_config = PortalConfig.load_from_env()
+            self.portal_client = PortalClient(config=self.portal_config)
+
+        try:
+            return await self.portal_client.validate_api_key(auth.credentials)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            LOGGER.exception("Authorization failure", exc_info=exc)
+            raise HTTPException(
+                status_code=503, detail="Authorization service unavailable"
+            ) from exc
 
     async def decode_request(self, request: APIRequest) -> AgentContext:
         """Decode API request into AgentContext.
@@ -66,11 +93,11 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 dataset_name=request.dataset_name,
                 language=request.language,
             )
-        except Exception as e:
+        except Exception as exc:
             raise HTTPException(
                 status_code=400,
-                detail=f"Error decoding request: {e}",
-            )
+                detail=f"Error decoding request: {exc}",
+            ) from exc
 
     async def predict(self, request_ctx: AgentContext) -> APIResponse:
         """Run artifact analysis and return results.
@@ -94,8 +121,10 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 dataset_name=request_ctx.dataset_name,
             )
             return response
-        except Exception:
-            raise HTTPException(status_code=500, detail=traceback.format_exc())
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500, detail=traceback.format_exc()
+            ) from exc
 
 
 def run_analyse_artifacts_api(

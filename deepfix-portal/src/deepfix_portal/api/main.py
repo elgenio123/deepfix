@@ -23,7 +23,7 @@ app = FastAPI(
 # CORS middleware - configure for your frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5000", "http://localhost:5173"],  # Add your frontend URLs
+    allow_origins=["http://localhost:8844", "http://localhost:5173"],  # Add your frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +60,5 @@ if os.getenv("NODE_ENV") == "production":
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "5000"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=5041)
 

@@ -1,7 +1,10 @@
 """
 FastAPI dependencies for authentication, etc.
 """
-from fastapi import Depends, HTTPException, status
+import os
+from typing import Optional
+
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -48,4 +51,24 @@ async def get_admin_user(
             detail="Admin access required"
         )
     return current_user
+
+
+async def verify_service_token(
+    x_service_token: Optional[str] = Header(default=None),
+) -> None:
+    """
+    Verify the shared service token for server-to-server requests.
+    """
+    PORTAL_SERVICE_TOKEN = os.getenv("PORTAL_SERVICE_TOKEN")
+
+    if PORTAL_SERVICE_TOKEN is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Service token is not configured",
+        )
+    if not x_service_token or x_service_token != PORTAL_SERVICE_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid service token",
+        )
 

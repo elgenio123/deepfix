@@ -77,6 +77,20 @@ class APIKeyResponse(BaseModel):
         from_attributes = True
 
 
+class APIKeyValidationRequest(BaseModel):
+    key: str
+
+
+class APIKeyValidationResponse(BaseModel):
+    key_id: str
+    key_name: Optional[str]
+    key_is_active: bool
+    user_id: str
+    user_email: EmailStr
+    user_name: Optional[str]
+    user_is_active: bool
+
+
 # Password Reset Schemas
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

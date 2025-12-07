@@ -8,7 +8,6 @@ from jose import JWTError, jwt
 import os
 import hashlib
 
-
 # Use SHA256 truncation for passwords longer than 72 bytes (bcrypt limit)
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -16,8 +15,24 @@ pwd_context = CryptContext(
     bcrypt__truncate_error=True
 )
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production-min-32-characters-long")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+def get_secret_key() -> str:
+    """
+    Get the secret key from the environment
+    """
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    if SECRET_KEY is None:
+        raise ValueError("SECRET_KEY is not set")
+    return SECRET_KEY
+
+def get_algorithm() -> str:
+    """
+    Get the algorithm from the environment
+    """
+    ALGORITHM = os.getenv("ALGORITHM")
+    if ALGORITHM is None:
+        raise ValueError("ALGORITHM is not set")
+    return ALGORITHM
+
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES","30"))
 
 def hash_password(password: str) -> str:
@@ -52,7 +67,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, get_secret_key(), algorithm=get_algorithm())
     return encoded_jwt
 
 
@@ -61,8 +76,9 @@ def verify_token(token: str) -> Optional[str]:
     Verify and decode a JWT token
     Returns user ID if valid, None otherwise
     """
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, get_secret_key(), algorithms=[get_algorithm()])
         user_id: str = payload.get("sub")
         return user_id
     except JWTError:

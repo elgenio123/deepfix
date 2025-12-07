@@ -5,6 +5,53 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 
 
+class PortalConfig(BaseModel):
+    """Configuration for portal-based authorization."""
+
+    base_url: str = Field(
+        default="http://localhost:5000",
+        description="Base URL for deepfix-portal backend",
+    )
+    validate_path: str = Field(
+        default="/api/api-keys/validate",
+        description="Path for API key validation endpoint",
+    )
+    service_token: str = Field(
+        default="dev-portal-service-token",
+        description="Shared token for server-to-portal validation requests",
+    )
+    timeout_seconds: float = Field(
+        default=5.0, description="HTTP timeout when calling the portal"
+    )
+
+    @classmethod
+    def load_from_env(cls, env_file: Optional[str] = None) -> "PortalConfig":
+        """Load portal configuration from environment variables.
+
+        Reads:
+        - DEEPFIX_PORTAL_BASE_URL
+        - DEEPFIX_PORTAL_VALIDATE_PATH
+        - DEEPFIX_PORTAL_SERVICE_TOKEN
+        - DEEPFIX_PORTAL_TIMEOUT_SECONDS
+        """
+        if env_file is not None:
+            load_dotenv(env_file)
+        base_url = os.getenv("DEEPFIX_PORTAL_BASE_URL", "http://localhost:5000")
+        validate_path = os.getenv(
+            "DEEPFIX_PORTAL_VALIDATE_PATH", "/api/api-keys/validate"
+        )
+        service_token = os.getenv("DEEPFIX_PORTAL_SERVICE_TOKEN")
+        timeout_seconds = float(os.getenv("DEEPFIX_PORTAL_TIMEOUT_SECONDS", "5"))
+        if not service_token:
+            raise ValueError("DEEPFIX_PORTAL_SERVICE_TOKEN must be set")
+        return cls(
+            base_url=base_url,
+            validate_path=validate_path,
+            service_token=service_token,
+            timeout_seconds=timeout_seconds,
+        )
+
+
 class PromptConfig(BaseModel):
     """Configuration for prompt generation.
 
