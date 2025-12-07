@@ -72,7 +72,7 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.deepfix.rule=Host(`localhost`) && PathPrefix(`/server`)"
       - "traefik.http.routers.deepfix.entrypoints=websecure"
       - "traefik.http.routers.deepfix.tls=true"
       - "traefik.http.routers.deepfix.middlewares=rate-limit@file"
