@@ -69,9 +69,9 @@ http:
 
   # Routers (additional to docker labels)
   routers:
-    # Dashboard router (protected)
+    # Dashboard router (protected) - uses /traefik prefix to avoid conflict with app API
     dashboard:
-      rule: "Host(`localhost`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      rule: "Host(`localhost`) && (PathPrefix(`/traefik-api`) || PathPrefix(`/traefik-dashboard`))"
       entryPoints:
         - websecure
       service: api@internal
