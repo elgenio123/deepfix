@@ -9,11 +9,9 @@ from alembic import context
 import os
 import sys
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from api.database import Base
-from api.models import User, APIKey  # Import all models here
+from ..database import Base
+from ..models import User, APIKey  # Import all models here
 
 # this is the Alembic Config object
 config = context.config
@@ -23,7 +21,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set sqlalchemy.url from environment variable
-database_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/deepfix")
+database_url = os.getenv("DATABASE_URL", "sqlite:///./deepfix.db")
 config.set_main_option("sqlalchemy.url", database_url)
 
 # add your model's MetaData object here for 'autogenerate' support

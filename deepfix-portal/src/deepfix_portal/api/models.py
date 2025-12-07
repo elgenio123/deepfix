@@ -3,7 +3,7 @@ SQLAlchemy database models
 """
 from sqlalchemy import Column, String, Text, DateTime, Boolean, text
 from sqlalchemy.sql import func
-from api.database import Base
+from .database import Base
 import uuid
 
 

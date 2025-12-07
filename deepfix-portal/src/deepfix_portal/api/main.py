@@ -8,8 +8,8 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-from api.routes import auth, api_keys, users
-from api.database import engine, Base
+from .routes import auth, api_keys, users
+from .database import engine, Base
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

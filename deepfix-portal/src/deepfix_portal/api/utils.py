@@ -6,9 +6,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 import os
+import hashlib
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use SHA256 truncation for passwords longer than 72 bytes (bcrypt limit)
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__truncate_error=True
+)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -17,14 +23,22 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES","30"))
 def hash_password(password: str) -> str:
     """
     Hash a password using bcrypt
+    For passwords longer than 72 bytes, pre-hash with SHA256
     """
+    # Bcrypt has a 72-byte limit, so pre-hash long passwords
+    if len(password.encode('utf-8')) > 72:
+        password = hashlib.sha256(password.encode('utf-8')).hexdigest()
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a password against a hash
+    For passwords longer than 72 bytes, pre-hash with SHA256
     """
+    # Bcrypt has a 72-byte limit, so pre-hash long passwords
+    if len(plain_password.encode('utf-8')) > 72:
+        plain_password = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
     return pwd_context.verify(plain_password, hashed_password)
 
 
