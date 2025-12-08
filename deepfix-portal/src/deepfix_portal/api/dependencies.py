@@ -2,17 +2,40 @@
 FastAPI dependencies for authentication, etc.
 """
 import os
+import time
+from functools import lru_cache
 from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from .database import get_db
+from .database import get_db, SessionLocal
 from .models import User
 from .utils import verify_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+# Lightweight TTL bucket helper for lru_cache-backed lookups
+USER_CACHE_TTL_SECONDS = 60
+
+
+def _user_cache_bucket() -> int:
+    return int(time.time() / USER_CACHE_TTL_SECONDS)
+
+
+@lru_cache(maxsize=256)
+def _cached_user_lookup(user_id: str, _bucket: int) -> Optional[User]:
+    """
+    Cached user fetch to avoid repeated DB hits on hot paths.
+    The TTL bucket parameter ensures periodic refresh.
+    """
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    finally:
+        db.close()
 
 
 async def get_current_user(
@@ -32,7 +55,7 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
     
-    user = db.query(User).filter(User.id == user_id).first()
+    user = _cached_user_lookup(user_id, _user_cache_bucket())
     if user is None:
         raise credentials_exception
     

@@ -2,12 +2,14 @@
 API Key management routes
 """
 import secrets
+import time
 from datetime import datetime, timezone
+from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, Tuple
 
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..models import APIKey, User
 from ..schemas import (
     APIKeyCreate,
@@ -18,6 +20,41 @@ from ..schemas import (
 from ..dependencies import get_current_user, verify_service_token
 
 router = APIRouter()
+
+CACHE_TTL_SECONDS = 300
+
+
+def _cache_bucket() -> int:
+    return int(time.time() / CACHE_TTL_SECONDS)
+
+
+@lru_cache(maxsize=256)
+def _cached_api_key_lookup(key: str, _bucket: int) -> Optional[Tuple[str, str, bool, str, str, Optional[str], bool]]:
+    """
+    Cached API key lookup to reduce DB hits on validation path.
+    Returns tuple of (key_id, key_name, key_is_active, user_id, user_email, user_name, user_is_active).
+    """
+    db = SessionLocal()
+    try:
+        api_key = db.query(APIKey).filter(APIKey.key == key).first()
+        if not api_key:
+            return None
+
+        user = db.query(User).filter(User.id == api_key.user_id).first()
+        if not user:
+            return None
+
+        return (
+            api_key.id,
+            api_key.name,
+            api_key.is_active,
+            api_key.user_id,
+            user.email,
+            user.name,
+            user.is_active,
+        )
+    finally:
+        db.close()
 
 
 @router.get("/", response_model=List[APIKeyResponse])
@@ -57,6 +94,7 @@ async def create_api_key(
     db.add(new_key)
     db.commit()
     db.refresh(new_key)
+    _cached_api_key_lookup.cache_clear()
     return new_key
 
 
@@ -79,6 +117,7 @@ async def revoke_api_key(
     
     api_key.is_active = False
     db.commit()
+    _cached_api_key_lookup.cache_clear()
     return {"message": "API key revoked successfully"}
 
 
@@ -113,33 +152,45 @@ async def validate_api_key(
     """
     Validate an API key for server-to-server access (used by deepfix-server).
     """
-    api_key = db.query(APIKey).filter(APIKey.key == request.key).first()
-    if not api_key:
+    cached = _cached_api_key_lookup(request.key, _cache_bucket())
+    if not cached:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
         )
-    if not api_key.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="API key is inactive"
-        )
+    (
+        key_id,
+        key_name,
+        key_is_active,
+        user_id,
+        user_email,
+        user_name,
+        user_is_active,
+    ) = cached
 
-    user = db.query(User).filter(User.id == api_key.user_id).first()
-    if not user or not user.is_active:
+    if not key_is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key is inactive",
+        )
+    if not user_is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="API key owner is inactive or missing",
         )
 
-    api_key.last_used = datetime.now(timezone.utc)
+    # Update last_used on the live DB object using the request-scoped session
+    api_key = db.query(APIKey).filter(APIKey.id == key_id).first()
+    if api_key:
+        api_key.last_used = datetime.now(timezone.utc)
     db.commit()
 
     return APIKeyValidationResponse(
-        key_id=api_key.id,
-        key_name=api_key.name,
-        key_is_active=api_key.is_active,
-        user_id=user.id,
-        user_email=user.email,
-        user_name=user.name,
-        user_is_active=user.is_active,
+        key_id=key_id,
+        key_name=key_name,
+        key_is_active=key_is_active,
+        user_id=user_id,
+        user_email=user_email,
+        user_name=user_name,
+        user_is_active=user_is_active,
     )
 
