@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useAuth } from "@/lib/auth";
 import { ArrowRight, Code2, Zap, Shield, CheckCircle2 } from "lucide-react";
 
 export default function Landing() {
+  const { user } = useAuth();
+  const ctaHref = user ? "/dashboard" : "/signup";
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -26,7 +30,7 @@ export default function Landing() {
           </h1>
           <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">DeepFix finds what’s broken, explains why, and tells you exactly how to fix it, all automatically, right inside your pipeline.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-            <Link href="/signup">
+            <Link href={ctaHref}>
               <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/20">
                 Get Your API Key <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
