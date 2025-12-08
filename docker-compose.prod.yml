@@ -44,11 +44,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
-      - ./server_logs:/logs
-      - ./server_mlflow_data:/mlflow
+      - ./server_data/logs:/logs
     networks:
       - deepfix-network
     depends_on:
