@@ -1,6 +1,7 @@
 """
 Client for delegating authorization to deepfix-portal.
 """
+from functools import lru_cache
 from typing import Optional
 
 import httpx
@@ -37,6 +38,7 @@ class PortalClient:
             timeout=self.config.timeout_seconds,
         )
 
+    @lru_cache(maxsize=128)
     async def validate_api_key(self, api_key: str) -> PortalKeyValidationResult:
         """Validate an API key via deepfix-portal."""
         if not api_key:
