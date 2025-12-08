@@ -44,6 +44,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - OTEL_SERVICE_NAME=deepfix-server
+      - OTEL_RESOURCE_ATTRIBUTES="service.name=deepfix"
     volumes:
       - ./server_data/logs:/logs
     networks:
@@ -91,6 +94,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - OTEL_SERVICE_NAME=deepfix-portal
       - POSTGRES_DB=deepfix_portal
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     networks:
