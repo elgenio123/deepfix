@@ -39,9 +39,10 @@ line-ending = "auto"
 deepfix-core = { workspace = true }
 deepfix-sdk = { workspace = true }
 deepfix-server = { workspace = true }
+deepfix-portal = { workspace = true }
 
 [tool.uv.workspace]
-members = ["deepfix-core","deepfix-sdk","deepfix-server"]
+members = ["deepfix-core","deepfix-sdk","deepfix-server","deepfix-portal"]
 
 [[tool.uv.index]]
 name = "testpypi"

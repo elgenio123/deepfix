@@ -1,5 +1,4 @@
 import traceback
-from typing import Optional
 
 import litserve as ls
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
@@ -7,11 +6,12 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import os
 
-from .config import LLMConfig, PortalConfig
+from .callbacks import RequestLoggingCallback
+from .config import DatabaseConfig, LLMConfig, PortalConfig
 from .coordinators import ArtifactAnalysisCoordinator
 from .logging import get_logger, setup_dspy_logging
 from .models import AgentContext
-from .portal_client import PortalClient
+from .portal_client import PortalClient, PortalKeyValidationResult
 
 LOGGER = get_logger(__name__)
 
@@ -55,7 +55,20 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         finally:
             self._ensure_initialized()
     
-    async def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+    async def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())) -> PortalKeyValidationResult:
+        """Authorize the request using portal API key validation.
+
+        The result is stored in `_current_user` for use by logging callbacks.
+
+        Args:
+            auth: HTTP Bearer authorization credentials.
+
+        Returns:
+            PortalKeyValidationResult with user identity information.
+
+        Raises:
+            HTTPException: If authorization fails.
+        """
         self._ensure_initialized()
         #assert (os.getenv("LIT_SERVER_API_KEY") is None) or (os.getenv("LIT_SERVER_API_KEY") == ""), f"LIT_SERVER_API_KEY should not be set when using custom authentication. Got {os.getenv('LIT_SERVER_API_KEY')}"
 
@@ -65,7 +78,10 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             )
 
         try:
-            return await self.portal_client.validate_api_key(auth.credentials)
+            result = await self.portal_client.validate_api_key(auth.credentials)
+            # Store user info for request logging callback
+            self._current_user = result
+            return result
         except HTTPException as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail)
         except Exception as exc:
@@ -148,8 +164,13 @@ def run_analyse_artifacts_api(
         workers_per_device: Number of workers per device. Defaults to 1.
         fast_queue: Enable fast queue mode. Defaults to False.
     """
+    # Initialize request logging callback
+    db_config = DatabaseConfig.load_from_env()
+    logging_callback = RequestLoggingCallback(db_config)
+
     server = ls.LitServer(
-        AnalyseArtifactsAPI(api_path="/v1/analyse",enable_async=True,),
+        AnalyseArtifactsAPI(api_path="/v1/analyse", enable_async=True),
+        callbacks=[logging_callback],
         workers_per_device=workers_per_device,
         fast_queue=fast_queue,
     )

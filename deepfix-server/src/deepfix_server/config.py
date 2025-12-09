@@ -184,6 +184,37 @@ class OutputConfig(BaseModel):
         return v.lower()
 
 
+class DatabaseConfig(BaseModel):
+    """Configuration for database connection.
+
+    Attributes:
+        database_url: Database connection URL (SQLAlchemy format).
+        echo: Whether to echo SQL statements for debugging. Defaults to False.
+    """
+
+    database_url: str = Field(
+        default="sqlite:///./deepfix_server.db",
+        description="Database connection URL",
+    )
+    echo: bool = Field(default=False, description="Echo SQL statements for debugging")
+
+    @classmethod
+    def load_from_env(cls, env_file: Optional[str] = None) -> "DatabaseConfig":
+        """Load database configuration from environment variables.
+
+        Reads:
+        - DEEPFIX_SERVER_DATABASE_URL
+        - DEEPFIX_SERVER_DATABASE_ECHO
+        """
+        if env_file is not None:
+            load_dotenv(env_file)
+        database_url = os.getenv(
+            "DEEPFIX_SERVER_DATABASE_URL", "sqlite:///./deepfix_server.db"
+        )
+        echo = os.getenv("DEEPFIX_SERVER_DATABASE_ECHO", "false").lower() == "true"
+        return cls(database_url=database_url, echo=echo)
+
+
 class TrainingDynamicsConfig(BaseModel):
     """Configuration for training dynamics analysis.
 

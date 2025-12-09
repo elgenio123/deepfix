@@ -17,6 +17,8 @@ from .artifacts import (
     TrainingArtifacts,
     VisionStatistics,
 )
+from .database import Base as DatabaseBase
+from .database import RequestLog
 from .defaults import DataType, DeepchecksConfig, DefaultPaths, TaskType
 
 __all__ = [
@@ -47,4 +49,6 @@ __all__ = [
     "TabularStatistics",
     "NLPStatistics",
     "BaseDatasetStatistics",
+    "DatabaseBase",
+    "RequestLog",
 ]

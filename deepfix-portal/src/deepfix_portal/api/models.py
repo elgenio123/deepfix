@@ -1,10 +1,16 @@
 """
 SQLAlchemy database models
 """
-from sqlalchemy import Column, String, Text, DateTime, Boolean, text
-from sqlalchemy.sql import func
-from .database import Base
 import uuid
+
+from deepfix_core.models import RequestLog
+from sqlalchemy import Boolean, Column, DateTime, String, Text, text
+from sqlalchemy.sql import func
+
+from .database import Base
+
+# Re-export RequestLog from deepfix_core for convenience
+__all__ = ["User", "APIKey", "RequestLog"]
 
 
 class User(Base):

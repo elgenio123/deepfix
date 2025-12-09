@@ -10,6 +10,7 @@ dependencies = [
     "pyyaml",
     "pydantic",
     "rich",
+    "sqlalchemy",
 ]
 
 [tool.ruff]
