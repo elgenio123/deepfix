@@ -10,6 +10,9 @@ services:
       - "8844:8844"
     env_file:
       - .env
+    environment:
+      # Use same database as deepfix-portal for shared request_logs table
+      - DEEPFIX_SERVER_DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
     volumes:
       - ./server_data/logs:/logs
     restart: unless-stopped
@@ -30,8 +33,8 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - POSTGRES_DB=deepfix_portal
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Hardcode database name to ensure consistency with deepfix-server
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
     ports:
       - "5041:5041"
     restart: unless-stopped
