@@ -1,6 +1,7 @@
 """
 Utility functions for authentication, password hashing, etc.
 """
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -10,10 +11,9 @@ import hashlib
 
 # Use SHA256 truncation for passwords longer than 72 bytes (bcrypt limit)
 pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__truncate_error=True
+    schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=True
 )
+
 
 def get_secret_key() -> str:
     """
@@ -24,6 +24,7 @@ def get_secret_key() -> str:
         raise ValueError("DEEPFIX_PORTAL_SECRET_KEY is not set")
     return SECRET_KEY
 
+
 def get_algorithm() -> str:
     """
     Get the algorithm from the environment
@@ -33,7 +34,9 @@ def get_algorithm() -> str:
         raise ValueError("DEEPFIX_PORTAL_ALGORITHM is not set")
     return ALGORITHM
 
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES","30"))
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
 
 def hash_password(password: str) -> str:
     """
@@ -41,8 +44,8 @@ def hash_password(password: str) -> str:
     For passwords longer than 72 bytes, pre-hash with SHA256
     """
     # Bcrypt has a 72-byte limit, so pre-hash long passwords
-    if len(password.encode('utf-8')) > 72:
-        password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    if len(password.encode("utf-8")) > 72:
+        password = hashlib.sha256(password.encode("utf-8")).hexdigest()
     return pwd_context.hash(password)
 
 
@@ -52,8 +55,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     For passwords longer than 72 bytes, pre-hash with SHA256
     """
     # Bcrypt has a 72-byte limit, so pre-hash long passwords
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+    if len(plain_password.encode("utf-8")) > 72:
+        plain_password = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -65,7 +68,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, get_secret_key(), algorithm=get_algorithm())
     return encoded_jwt
@@ -83,4 +88,3 @@ def verify_token(token: str) -> Optional[str]:
         return user_id
     except JWTError:
         return None
-

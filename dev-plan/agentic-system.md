@@ -21,7 +21,7 @@ Raw Artifacts
 ```
 ArtifactAnalysisCoordinator (Coordinator)
 ├── TrainingArtifactsAnalyzerAgent (Training Expert)
-├── DeepchecksArtifactsAnalyzerAgent (Data Quality Expert)  
+├── DeepchecksArtifactsAnalyzerAgent (Data Quality Expert)
 ├── DatasetArtifactsAnalyzerAgent (Dataset Expert)
 └── ModelCheckpointArtifactsAnalyzerAgent (Model Expert)
 ```
@@ -53,5 +53,3 @@ ArtifactAnalysisCoordinator (Coordinator)
 
 ## Knowledge Integration
 **KnowledgeBridge**: agent knowledge retrieval
-
-

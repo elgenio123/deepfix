@@ -12,14 +12,14 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-16 pb-20 md:pt-20 md:pb-28">
         <div className="absolute inset-0 -z-10 opacity-10">
-          {/*<img 
-            src={heroBg} 
-            alt="Background" 
+          {/*<img
+            src={heroBg}
+            alt="Background"
             className="w-full h-full object-cover"
           />*/}
           <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background"></div>
         </div>
-        
+
         <div className="container px-4 mx-auto text-center max-w-5xl">
           <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             Now Available for Beta Users

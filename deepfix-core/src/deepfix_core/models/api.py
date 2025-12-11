@@ -12,7 +12,7 @@ from rich.text import Text
 
 from .analysis import AgentResult, Severity
 from .artifacts import (
-    DatasetArtifacts,
+    # DatasetArtifacts,
     DeepchecksArtifacts,
     ModelCheckpointArtifacts,
     TrainingArtifacts,
@@ -119,8 +119,10 @@ class APIResponse(BaseModel):
 
         df = self.get_results_as_dataframe()
 
-        if 'agent_name' not in df.columns:
-            raise ValueError(f"No analysis results found. Error messages: {self.error_messages}")
+        if "agent_name" not in df.columns:
+            raise ValueError(
+                f"No analysis results found. Error messages: {self.error_messages}"
+            )
 
         if not verbose:
             mask = df["agent_name"].isin(["CrossArtifactReasoningAgent"])

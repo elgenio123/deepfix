@@ -1,6 +1,7 @@
 """
 Database configuration and session management for deepfix-server.
 """
+
 from typing import Optional
 
 from sqlalchemy import create_engine
@@ -44,9 +45,7 @@ def get_session() -> Session:
         RuntimeError: If the database has not been initialized.
     """
     if _SessionLocal is None:
-        raise RuntimeError(
-            "Database not initialized. Call init_database() first."
-        )
+        raise RuntimeError("Database not initialized. Call init_database() first.")
     return _SessionLocal()
 
 
@@ -64,4 +63,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

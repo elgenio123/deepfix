@@ -1,6 +1,7 @@
 """
 Client for delegating authorization to deepfix-portal.
 """
+
 from functools import lru_cache
 from typing import Optional
 
@@ -90,4 +91,3 @@ class PortalClient:
             # Fall back to text if JSON parsing fails
             pass
         return response.text or "Authorization failed"
-

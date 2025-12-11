@@ -49,7 +49,7 @@ export default function AuthPage() {
   const [location] = useLocation();
   const { login, signup, isLoading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Default tab based on URL, though we handle both here
   const defaultTab = location === "/signup" ? "signup" : "login";
 
@@ -110,7 +110,7 @@ export default function AuthPage() {
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="login">
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
@@ -160,7 +160,7 @@ export default function AuthPage() {
                 </form>
               </Form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <Form {...signupForm}>
                 <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">

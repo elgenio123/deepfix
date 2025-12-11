@@ -245,7 +245,7 @@ class IngestionPipeline(Pipeline):
             steps.append(LogModelCheckpoint(**cfg))
 
         super().__init__(steps=steps)
-    
+
     @classmethod
     def from_config(cls, config: IngestionPipelineConfig) -> "IngestionPipeline":
         return cls(**config.to_pipeline_kwargs())

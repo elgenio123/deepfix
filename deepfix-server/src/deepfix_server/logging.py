@@ -35,7 +35,7 @@ def setup_dspy_logging(
             print("Tracing will not be enabled.")
             print("=" * 50)
         return
-    
+
     if tracking_uri.startswith("http"):
         try:
             httpx.get(tracking_uri, timeout=2.0)

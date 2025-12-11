@@ -45,4 +45,3 @@ Complete API documentation for DeepFix Core models and types.
 ## Examples
 
 See the [Quickstart Guide](../../getting-started/quickstart.md) for usage examples.
-

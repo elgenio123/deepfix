@@ -302,10 +302,10 @@ if result.additional_outputs:
    ```python
    # Short texts (tweets, headlines)
    batch_size = 32
-   
+
    # Medium texts (reviews, articles)
    batch_size = 16
-   
+
    # Long texts (documents, books)
    batch_size = 8
    ```
@@ -399,4 +399,3 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 - [Tabular Data Guide](tabular-data.md) - Analyze structured data
 - [MLflow Integration](mlflow-integration.md) - Track experiments
 - [API Reference](../api-reference/index.md) - Complete API documentation
-

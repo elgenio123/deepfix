@@ -46,9 +46,7 @@ class ArtifactAnalysisCoordinator:
             LOGGER.error(f"Error with agent {agent_name}:\n {traceback.format_exc()}")
             raise e
 
-    async def run(
-        self, context: AgentContext
-    ) -> ArtifactAnalysisResult:
+    async def run(self, context: AgentContext) -> ArtifactAnalysisResult:
         # 1. Analyze artifacts
         LOGGER.info(
             f"Analyzing {len(context.artifacts)} artifacts linked to dataset {context.dataset_name}..."

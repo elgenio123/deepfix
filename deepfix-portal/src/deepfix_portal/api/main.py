@@ -1,6 +1,7 @@
 """
 FastAPI main application entry point
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,22 +9,29 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-from .routes import auth, api_keys, users
+from .routes import auth, api_keys, users, request_logs
 from .database import engine, Base
+from .models import RequestLog  # Import to ensure table is created
+from deepfix_core.models import DatabaseBase  # Base for RequestLog table
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+# Also create tables from deepfix_core (request_logs table)
+DatabaseBase.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="DeepFix Portal Backend",
     description="Backend for DeepFix Portal",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # CORS middleware - configure for your frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8844", "http://localhost:5173"],  # Add your frontend URLs
+    allow_origins=[
+        "http://localhost:8844",
+        "http://localhost:5173",
+    ],  # Add your frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +41,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(api_keys.router, prefix="/api/api-keys", tags=["api-keys"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(
+    request_logs.router, prefix="/api/request-logs", tags=["request-logs"]
+)
 
 
 @app.get("/api/health")
@@ -51,13 +62,13 @@ if os.getenv("NODE_ENV") == "production":
         Path(__file__).parent.parent / "dist" / "public",  # Docker path
         Path(__file__).parent.parent.parent.parent / "dist" / "public",  # Local path
     ]
-    
+
     dist_path = None
     for path in possible_paths:
         if path.exists() and (path / "index.html").exists():
             dist_path = path
             break
-    
+
     if dist_path:
         # Mount assets at /assets to match Vite's output references
         assets_path = dist_path / "assets"
@@ -68,7 +79,7 @@ if os.getenv("NODE_ENV") == "production":
         async def serve_index():
             """Serve index.html for root path"""
             return FileResponse(str(dist_path / "index.html"))
-        
+
         @app.get("/{full_path:path}")
         async def serve_spa(full_path: str):
             """Serve SPA for all non-API routes"""
@@ -84,5 +95,5 @@ if os.getenv("NODE_ENV") == "production":
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5041)
 
+    uvicorn.run(app, host="0.0.0.0", port=5041)

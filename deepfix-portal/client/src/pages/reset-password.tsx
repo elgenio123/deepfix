@@ -48,12 +48,12 @@ export default function ResetPassword() {
     setIsSubmitting(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     toast({
       title: "Password Reset Successful",
       description: "You can now login with your new password.",
     });
-    
+
     setLocation("/login");
     setIsSubmitting(false);
   }

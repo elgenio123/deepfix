@@ -156,4 +156,3 @@ When contributing, try to:
 - Keep models, schemas, and routes small and focused.
 - Add or update Pydantic schemas alongside any changes to the SQLAlchemy models.
 - Extend this README with any new configuration or endpoints you introduce.
-

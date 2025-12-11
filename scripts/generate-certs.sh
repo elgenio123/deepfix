@@ -39,4 +39,3 @@ echo "  - $CERT_DIR/server.key (private key)"
 echo ""
 echo -e "${YELLOW}WARNING: Self-signed certificates are for testing only.${NC}"
 echo "For production, use Let's Encrypt or a trusted CA."
-

@@ -139,13 +139,13 @@ Use Google-style docstrings:
 ```python
 def analyze_dataset(dataset_name: str) -> AnalysisResult:
     """Analyze dataset and return results.
-    
+
     Args:
         dataset_name: Name of the dataset to analyze
-        
+
     Returns:
         AnalysisResult: Analysis results with findings
-        
+
     Raises:
         ValueError: If dataset not found
     """
@@ -323,4 +323,3 @@ Contributors are recognized in:
 - [Documentation Guide](#documentation) - Documentation standards
 
 Thank you for contributing to DeepFix!
-

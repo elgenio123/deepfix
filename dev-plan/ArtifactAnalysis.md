@@ -30,7 +30,7 @@ The `ArtifactAnalysisCoordinator` is responsible for validating artifacts, extra
 ```
 ArtifactAnalysisAgent (Coordinator)
 ├── TrainingArtifactsAnalyzerAgent (Training Expert)
-├── DeepchecksArtifactsAnalyzerAgent (Data Quality Expert)  
+├── DeepchecksArtifactsAnalyzerAgent (Data Quality Expert)
 ├── DatasetArtifactsAnalyzerAgent (Dataset Expert)
 └── ModelCheckpointArtifactsAnalyzerAgent (Model Expert)
 ```

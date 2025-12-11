@@ -1,6 +1,7 @@
 """
 FastAPI dependencies for authentication, etc.
 """
+
 import os
 import time
 from functools import lru_cache
@@ -39,8 +40,7 @@ def _cached_user_lookup(user_id: str, _bucket: int) -> Optional[User]:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
     """
     Dependency to get the current authenticated user
@@ -50,28 +50,25 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     user_id = verify_token(token)
     if user_id is None:
         raise credentials_exception
-    
+
     user = _cached_user_lookup(user_id, _user_cache_bucket())
     if user is None:
         raise credentials_exception
-    
+
     return user
 
 
-async def get_admin_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     """
     Dependency to ensure the current user is an admin
     """
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
     return current_user
 
@@ -94,4 +91,3 @@ async def verify_service_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid service token",
         )
-

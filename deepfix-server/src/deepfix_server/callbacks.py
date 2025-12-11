@@ -1,6 +1,7 @@
 """
 LitServe callbacks for request/response logging.
 """
+
 import json
 import time
 from typing import Any, Dict, Optional
@@ -200,4 +201,3 @@ class RequestLoggingCallback(Callback):
             raise
         finally:
             session.close()
-

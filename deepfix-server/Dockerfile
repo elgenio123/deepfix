@@ -29,14 +29,14 @@ COPY deepfix-core ./deepfix-core
 
 COPY pyproject.toml ./
 
-RUN . /opt/venv/bin/activate \
-    && uv pip install -r deepfix-server/pyproject.toml
+#RUN . /opt/venv/bin/activate \
+#    && uv pip install -r deepfix-server/pyproject.toml
 
 # Install project into the venv (non-editable)
 RUN . /opt/venv/bin/activate \
     && uv pip install ./deepfix-server \
     && uv pip install pip \
-    && uv pip install ./deepfix-core && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement - 
+    && uv pip install ./deepfix-core && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
 ###############
 # Runtime stage

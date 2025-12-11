@@ -10,9 +10,19 @@ from deepfix_sdk.config import ArtifactConfig, MLflowConfig
 
 
 @st.cache_resource(show_spinner=False)
-def get_client(api_url: str = "https://deepfix.delcaux.com", mlflow_config: Optional[MLflowConfig] = None, artifact_config: Optional[ArtifactConfig] = None, timeout: int = 30) -> DeepFixClient:
+def get_client(
+    api_url: str = "https://deepfix.delcaux.com",
+    mlflow_config: Optional[MLflowConfig] = None,
+    artifact_config: Optional[ArtifactConfig] = None,
+    timeout: int = 30,
+) -> DeepFixClient:
     """Create a cached DeepFix client for reuse across interactions."""
-    return DeepFixClient(api_url=api_url, mlflow_config=mlflow_config, artifact_config=artifact_config, timeout=timeout)
+    return DeepFixClient(
+        api_url=api_url,
+        mlflow_config=mlflow_config,
+        artifact_config=artifact_config,
+        timeout=timeout,
+    )
 
 
 def render_dataset_overview(datasets: list[dict[str, str]]) -> None:
@@ -115,4 +125,3 @@ def run_diagnosis_ui() -> None:
 
 if __name__ == "__main__":
     run_diagnosis_ui()
-

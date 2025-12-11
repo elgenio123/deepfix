@@ -1,6 +1,7 @@
 """
 API Key management routes
 """
+
 import secrets
 import time
 from datetime import datetime, timezone
@@ -29,7 +30,9 @@ def _cache_bucket() -> int:
 
 
 @lru_cache(maxsize=256)
-def _cached_api_key_lookup(key: str, _bucket: int) -> Optional[Tuple[str, str, bool, str, str, Optional[str], bool]]:
+def _cached_api_key_lookup(
+    key: str, _bucket: int
+) -> Optional[Tuple[str, str, bool, str, str, Optional[str], bool]]:
     """
     Cached API key lookup to reduce DB hits on validation path.
     Returns tuple of (key_id, key_name, key_is_active, user_id, user_email, user_name, user_is_active).
@@ -59,17 +62,17 @@ def _cached_api_key_lookup(key: str, _bucket: int) -> Optional[Tuple[str, str, b
 
 @router.get("/", response_model=List[APIKeyResponse])
 async def list_api_keys(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     List all API keys for the current user
     """
     # Get API keys for current user
-    api_keys = db.query(APIKey).filter(
-        APIKey.user_id == current_user.id,
-        APIKey.is_active == True
-    ).all()
+    api_keys = (
+        db.query(APIKey)
+        .filter(APIKey.user_id == current_user.id, APIKey.is_active == True)
+        .all()
+    )
     return api_keys
 
 
@@ -77,20 +80,16 @@ async def list_api_keys(
 async def create_api_key(
     key_data: APIKeyCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Generate a new API key for the current user
     """
     # Generate secure API key
     api_key = f"df_live_{secrets.token_urlsafe(32)}"
-    
+
     # Create API key record
-    new_key = APIKey(
-        user_id=current_user.id,
-        key=api_key,
-        name=key_data.name
-    )
+    new_key = APIKey(user_id=current_user.id, key=api_key, name=key_data.name)
     db.add(new_key)
     db.commit()
     db.refresh(new_key)
@@ -102,19 +101,20 @@ async def create_api_key(
 async def revoke_api_key(
     key_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Revoke (deactivate) an API key
     """
     # Find and deactivate API key
-    api_key = db.query(APIKey).filter(
-        APIKey.id == key_id,
-        APIKey.user_id == current_user.id
-    ).first()
+    api_key = (
+        db.query(APIKey)
+        .filter(APIKey.id == key_id, APIKey.user_id == current_user.id)
+        .first()
+    )
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
-    
+
     api_key.is_active = False
     db.commit()
     _cached_api_key_lookup.cache_clear()
@@ -125,16 +125,17 @@ async def revoke_api_key(
 async def get_api_key(
     key_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get details of a specific API key
     """
     # Get API key
-    api_key = db.query(APIKey).filter(
-        APIKey.id == key_id,
-        APIKey.user_id == current_user.id
-    ).first()
+    api_key = (
+        db.query(APIKey)
+        .filter(APIKey.id == key_id, APIKey.user_id == current_user.id)
+        .first()
+    )
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key
@@ -193,4 +194,3 @@ async def validate_api_key(
         user_name=user_name,
         user_is_active=user_is_active,
     )
-

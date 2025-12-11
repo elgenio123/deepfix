@@ -30,8 +30,8 @@ def get_workdir():
     candidates = [
         Path(user_data_dir("deepfix")),
         Path.cwd() / ".deepfix",
-        #Path("/content/.deepfix"),  # for Google Colab
-        #Path(tempfile.gettempdir()) / ".deepfix",
+        # Path("/content/.deepfix"),  # for Google Colab
+        # Path(tempfile.gettempdir()) / ".deepfix",
     ]
 
     for path in candidates:
@@ -300,8 +300,8 @@ class DefaultPaths(StrEnum):
 
     ADVISOR_OUTPUT_DIR = _default_output_dir(_BASE_DIRS["data"])
 
-    #KNOWLEDGE_BASE_DIR = _default_knowledge_base_dir(_BASE_DIRS["data"])
-    #KNOWLEDGE_BASE_INDICES_DIR = _default_knowledge_base_indices_dir(_BASE_DIRS["data"])
-    #KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(
+    # KNOWLEDGE_BASE_DIR = _default_knowledge_base_dir(_BASE_DIRS["data"])
+    # KNOWLEDGE_BASE_INDICES_DIR = _default_knowledge_base_indices_dir(_BASE_DIRS["data"])
+    # KNOWLEDGE_BASE_DOCUMENTS_DIR = _default_knowledge_base_documents_dir(
     #    _BASE_DIRS["data"]
-    #)
+    # )

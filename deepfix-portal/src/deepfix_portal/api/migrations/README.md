@@ -33,4 +33,3 @@ alembic upgrade head
 alembic downgrade -1  # Roll back one migration
 alembic downgrade base  # Roll back all migrations
 ```
-

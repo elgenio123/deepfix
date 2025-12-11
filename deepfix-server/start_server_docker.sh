@@ -43,4 +43,3 @@ else
     # Keep the container running
     wait
 fi
-

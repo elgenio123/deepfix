@@ -1,6 +1,7 @@
 """
 Pydantic schemas for request/response validation
 """
+
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
@@ -23,7 +24,7 @@ class UserResponse(UserBase):
     is_active: bool
     is_admin: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -72,7 +73,7 @@ class APIKeyResponse(BaseModel):
     created_at: datetime
     last_used: Optional[datetime]
     is_active: bool
-    
+
     class Config:
         from_attributes = True
 
@@ -100,3 +101,41 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+
+# Request Log Schemas
+class RequestLogResponse(BaseModel):
+    """Schema for a single request log entry."""
+
+    id: str
+    user_id: str
+    user_email: str
+    endpoint: str
+    request_json: Optional[str] = None
+    response_json: Optional[str] = None
+    status_code: Optional[int] = None
+    duration_ms: Optional[float] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RequestLogListResponse(BaseModel):
+    """Schema for paginated list of request logs."""
+
+    items: list[RequestLogResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class RequestLogStatsResponse(BaseModel):
+    """Schema for request log statistics."""
+
+    total_requests: int
+    total_requests_24h: int
+    total_requests_7d: int
+    total_requests_30d: int
+    avg_duration_ms: Optional[float] = None
+    endpoints: dict[str, int]  # endpoint -> count mapping

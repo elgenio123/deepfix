@@ -172,8 +172,12 @@ class DeepFixClient:
             ... )
             >>> print(response.to_text())
         """
-        assert isinstance(train_data, BaseDataset), "train_data must be an instance of BaseDataset"
-        assert test_data is None or isinstance(test_data, BaseDataset), "test_data must be an instance of BaseDataset"
+        assert isinstance(train_data, BaseDataset), (
+            "train_data must be an instance of BaseDataset"
+        )
+        assert test_data is None or isinstance(test_data, BaseDataset), (
+            "test_data must be an instance of BaseDataset"
+        )
 
         dataset_name = self.get_dataset_name(train_data, test_data)
 
@@ -224,7 +228,7 @@ class DeepFixClient:
         Example:
             >>> response = client.diagnose(dataset_name="my-dataset")
             >>> print(response.to_text())
-        """        
+        """
         request = self._create_request(
             dataset_name=dataset_name,
             model_name=model_name,
@@ -232,8 +236,8 @@ class DeepFixClient:
         )
         response = self._send_request(request)
         return response
-    
-    def _load_artifacts(self,dataset_name: str, model_name: str) -> dict:
+
+    def _load_artifacts(self, dataset_name: str, model_name: str) -> dict:
         from .pipelines import ArtifactLoadingPipeline
 
         artifact_config = self.artifact_config.model_copy()
@@ -337,7 +341,9 @@ class DeepFixClient:
         Raises:
             ValueError: If dataset artifacts are not found or have unexpected format.
         """
-        loaded_artifacts = self._load_artifacts(dataset_name=dataset_name, model_name=model_name)
+        loaded_artifacts = self._load_artifacts(
+            dataset_name=dataset_name, model_name=model_name
+        )
 
         cfg = {
             "dataset_name": dataset_name,
@@ -345,12 +351,10 @@ class DeepFixClient:
             "model_name": model_name,
         }
         request = APIRequest(**cfg)
-        dataset_artifacts = loaded_artifacts.get(
-            ArtifactPath.DATASET.value, None
-        )
+        dataset_artifacts = loaded_artifacts.get(ArtifactPath.DATASET.value, None)
         if dataset_artifacts is not None:
             request.dataset_artifacts = dataset_artifacts.to_dict()
-        
+
         request.deepchecks_artifacts = loaded_artifacts.get(
             ArtifactPath.DEEPCHECKS.value, None
         )
@@ -383,7 +387,7 @@ class DeepFixClient:
             refresh_per_second=10,
         ):
             payload = request.model_dump()
-            #headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
+            # headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
             headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
             response = requests.post(
                 self._analyze_endpoint,
@@ -398,7 +402,7 @@ class DeepFixClient:
                     f"Error during analysis: status code: {response.status_code} \nand message: {response.text}"
                 )
             out = APIResponse(**response.json())
-        
+
         if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
             console.print("[red]✗[/red] Analysis failed", style="bold red")
             raise RuntimeError(f"Error during analysis: {out.error_messages}")
@@ -406,15 +410,21 @@ class DeepFixClient:
         console.print("[green]✓[/green] Analysis complete!", style="bold green")
         return out
 
-    def _get_data_type(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> DataType:
+    def _get_data_type(
+        self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None
+    ) -> DataType:
         data_type = train_data.data_type
         if test_data is not None:
             test_data_type = test_data.data_type
             if test_data_type != data_type:
-                raise ValueError(f"Test data type {test_data_type} does not match train data type {data_type}")
+                raise ValueError(
+                    f"Test data type {test_data_type} does not match train data type {data_type}"
+                )
         return data_type
 
-    def get_dataset_name(self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None) -> str:
+    def get_dataset_name(
+        self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None
+    ) -> str:
         dataset_name = train_data.name
         if test_data is not None:
             if test_data.name != dataset_name:

@@ -1,6 +1,7 @@
 """
 SQLAlchemy database models
 """
+
 import uuid
 
 from deepfix_core.models import RequestLog
@@ -15,8 +16,9 @@ __all__ = ["User", "APIKey", "RequestLog"]
 
 class User(Base):
     """User model"""
+
     __tablename__ = "users"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(Text, unique=True, nullable=False, index=True)
     email = Column(Text, unique=True, nullable=False, index=True)
@@ -30,8 +32,9 @@ class User(Base):
 
 class APIKey(Base):
     """API Key model"""
+
     __tablename__ = "api_keys"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, nullable=False, index=True)  # Foreign key to users.id
     key = Column(String, unique=True, nullable=False, index=True)  # The actual API key
@@ -39,4 +42,3 @@ class APIKey(Base):
     last_used = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
     is_active = Column(Boolean, default=True)
-

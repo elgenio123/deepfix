@@ -203,15 +203,13 @@ class DatabaseConfig(BaseModel):
         """Load database configuration from environment variables.
 
         Reads:
-        - DEEPFIX_SERVER_DATABASE_URL
-        - DEEPFIX_SERVER_DATABASE_ECHO
+        - DATABASE_URL
+        - DATABASE_ECHO
         """
         if env_file is not None:
             load_dotenv(env_file)
-        database_url = os.getenv(
-            "DEEPFIX_SERVER_DATABASE_URL", "sqlite:///./deepfix_server.db"
-        )
-        echo = os.getenv("DEEPFIX_SERVER_DATABASE_ECHO", "false").lower() == "true"
+        database_url = os.getenv("DATABASE_URL", "sqlite:///./deepfix_server.db")
+        echo = os.getenv("DATABASE_ECHO", "false").lower() == "true"
         return cls(database_url=database_url, echo=echo)
 
 

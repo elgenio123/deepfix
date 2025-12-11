@@ -410,4 +410,3 @@ openssl s_client -connect localhost:443 -servername deepfix.local
 # Regenerate certificates
 ./scripts/generate-certs.sh
 ```
-

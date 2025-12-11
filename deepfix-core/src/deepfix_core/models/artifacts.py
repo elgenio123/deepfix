@@ -432,10 +432,12 @@ class BaseDatasetStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "BaseDatasetStatistics":
-        raise NotImplementedError("from_dict is not implemented for BaseDatasetStatistics")
+        raise NotImplementedError(
+            "from_dict is not implemented for BaseDatasetStatistics"
+        )
 
 
 class ObjectDetectionStatistics(BaseDatasetStatistics):
@@ -474,7 +476,7 @@ class ObjectDetectionStatistics(BaseDatasetStatistics):
     box_area_stats: Optional[Dict[str, Any]] = Field(
         default=None, description="Box area statistics"
     )
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "ObjectDetectionStatistics":
         return cls(**d)
@@ -531,11 +533,13 @@ class VisionStatistics(BaseDatasetStatistics):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "VisionStatistics":
         if "object_detection_statistics" in d:
-            d["object_detection_statistics"] = ObjectDetectionStatistics.from_dict(d["object_detection_statistics"])
+            d["object_detection_statistics"] = ObjectDetectionStatistics.from_dict(
+                d["object_detection_statistics"]
+            )
         return cls(**d)
 
 
@@ -614,7 +618,7 @@ class TextStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "TextStatistics":
         return cls(**d)
@@ -664,7 +668,7 @@ class LabelStatistics(BaseModel):
             if dumped_dict[k] is None:
                 dumped_dict.pop(k)
         return dumped_dict
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "LabelStatistics":
         return cls(**d)
@@ -779,8 +783,12 @@ class NLPStatistics(BaseDatasetStatistics):
         if "label_statistics" in d:
             d["label_statistics"] = LabelStatistics.from_dict(d["label_statistics"])
         if "properties_statistics" in d:
-            d["properties_statistics"] = PropertiesStatistics.from_dict(d["properties_statistics"])
+            d["properties_statistics"] = PropertiesStatistics.from_dict(
+                d["properties_statistics"]
+            )
         return cls(**d)
+
+
 ## Dataset
 class DatasetArtifacts(Artifacts):
     """Artifacts containing dataset statistics and metadata.
@@ -832,20 +840,30 @@ class DatasetArtifacts(Artifacts):
         """
         with open(path, "r", encoding="utf-8") as f:
             d = yaml.safe_load(f)
-        #print("d", d)
+        # print("d", d)
         return cls.from_dict(d)
-    
+
     @classmethod
     def from_dict(cls, d: dict) -> "DatasetArtifacts":
         task_type = TaskType(d["task_type"])
-        d['task_type'] = task_type
+        d["task_type"] = task_type
 
         def load_statistics(d: dict) -> BaseDatasetStatistics:
-            if task_type in [TaskType.OBJECT_DETECTION, TaskType.IMAGE_CLASSIFICATION, TaskType.IMAGE_SEGMENTATION]:
+            if task_type in [
+                TaskType.OBJECT_DETECTION,
+                TaskType.IMAGE_CLASSIFICATION,
+                TaskType.IMAGE_SEGMENTATION,
+            ]:
                 return ObjectDetectionStatistics.from_dict(d)
-            elif task_type in [TaskType.TABULAR_CLASSIFICATION, TaskType.TABULAR_REGRESSION]:
+            elif task_type in [
+                TaskType.TABULAR_CLASSIFICATION,
+                TaskType.TABULAR_REGRESSION,
+            ]:
                 return TabularStatistics.from_dict(d)
-            elif task_type in [TaskType.TEXT_CLASSIFICATION, TaskType.TEXT_TOKEN_CLASSIFICATION]:
+            elif task_type in [
+                TaskType.TEXT_CLASSIFICATION,
+                TaskType.TEXT_TOKEN_CLASSIFICATION,
+            ]:
                 return NLPStatistics.from_dict(d)
             else:
                 raise ValueError(f"Invalid task type: {task_type.value}")

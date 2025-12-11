@@ -75,7 +75,7 @@ services:
       - ./server_logs:/app/logs
     depends_on:
       - mlflow
-  
+
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
     ports:
@@ -113,11 +113,11 @@ services:
       - DEEPFIX_LLM_TEMPERATURE=${DEEPFIX_LLM_TEMPERATURE}
       - DEEPFIX_LLM_MAX_TOKENS=${DEEPFIX_LLM_MAX_TOKENS}
       - DEEPFIX_LLM_CACHE=${DEEPFIX_LLM_CACHE:-true}
-      
+
       # Server Configuration
       - DEEPFIX_HOST=${DEEPFIX_HOST:-0.0.0.0}
       - DEEPFIX_PORT=${DEEPFIX_PORT:-8844}
-      
+
       # MLflow Configuration
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://mlflow:5000}
     volumes:
@@ -264,7 +264,7 @@ services:
   deepfix-server:
     networks:
       - deepfix-network
-  
+
   mlflow:
     networks:
       - deepfix-network
@@ -291,7 +291,7 @@ Map volumes for persistent data:
 volumes:
   mlruns-data:
     driver: local
-  
+
   mlflow-db:
     driver: local
 
@@ -299,7 +299,7 @@ services:
   deepfix-server:
     volumes:
       - mlruns-data:/app/mlruns
-  
+
   mlflow:
     volumes:
       - mlruns-data:/mlruns
@@ -502,4 +502,3 @@ services:
 - [Local Setup](local-setup.md) - Set up local development environment
 - [Configuration Guide](../getting-started/configuration.md) - Configure DeepFix
 - [Architecture Overview](../architecture/overview.md) - Understand system architecture
-

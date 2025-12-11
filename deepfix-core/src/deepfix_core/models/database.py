@@ -1,6 +1,7 @@
 """
 SQLAlchemy database models shared across deepfix packages.
 """
+
 import uuid
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, text
@@ -38,4 +39,3 @@ class RequestLog(Base):
     status_code = Column(Integer, nullable=True)
     duration_ms = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
-

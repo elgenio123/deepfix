@@ -271,7 +271,7 @@ testpaths = tests
 python_files = test_*.py
 python_classes = Test*
 python_functions = test_*
-addopts = 
+addopts =
     -v
     --strict-markers
     --tb=short
@@ -459,4 +459,3 @@ uv pip install --user -e .
 - [Configuration Guide](../getting-started/configuration.md) - Configure DeepFix
 - [Development Guide](../contributing/development.md) - Development practices
 - [Docker Deployment](docker.md) - Deploy with Docker
-

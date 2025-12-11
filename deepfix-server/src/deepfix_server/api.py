@@ -22,13 +22,14 @@ class AnalyseArtifactsAPI(ls.LitAPI):
 
     Provides a LitServe API for analyzing ML artifacts (datasets, training,
     deepchecks, model checkpoints) and returning diagnostic results.
-    """        
+    """
 
     def _ensure_initialized(self) -> None:
         """Initialize dependencies if setup has not run."""
-        if getattr(self, "portal_client", None) is not None and getattr(
-            self, "coordinator", None
-        ) is not None:
+        if (
+            getattr(self, "portal_client", None) is not None
+            and getattr(self, "coordinator", None) is not None
+        ):
             return
 
         self.llm_config = LLMConfig.load_from_env()
@@ -45,17 +46,22 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             device: Device specification (unused, kept for LitAPI compatibility).
         """
         try:
-            assert os.getenv("MLFLOW_EXP_NAME") is not None, "MLFLOW_EXP_NAME is not set"
-            setup_dspy_logging(experiment_name=os.getenv("MLFLOW_EXP_NAME"),
-            tracking_uri=os.getenv("MLFLOW_TRACKING_URI")
+            assert os.getenv("MLFLOW_EXP_NAME") is not None, (
+                "MLFLOW_EXP_NAME is not set"
+            )
+            setup_dspy_logging(
+                experiment_name=os.getenv("MLFLOW_EXP_NAME"),
+                tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
             )
         except Exception:
             print(f"Error setting up DSPy logging: {traceback.format_exc()}")
-        
+
         finally:
             self._ensure_initialized()
-    
-    async def authorize(self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())) -> PortalKeyValidationResult:
+
+    async def authorize(
+        self, auth: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+    ) -> PortalKeyValidationResult:
         """Authorize the request using portal API key validation.
 
         The result is stored in `_current_user` for use by logging callbacks.
@@ -70,7 +76,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             HTTPException: If authorization fails.
         """
         self._ensure_initialized()
-        #assert (os.getenv("LIT_SERVER_API_KEY") is None) or (os.getenv("LIT_SERVER_API_KEY") == ""), f"LIT_SERVER_API_KEY should not be set when using custom authentication. Got {os.getenv('LIT_SERVER_API_KEY')}"
+        # assert (os.getenv("LIT_SERVER_API_KEY") is None) or (os.getenv("LIT_SERVER_API_KEY") == ""), f"LIT_SERVER_API_KEY should not be set when using custom authentication. Got {os.getenv('LIT_SERVER_API_KEY')}"
 
         if auth.scheme != "Bearer" or not auth.credentials:
             raise HTTPException(
@@ -105,7 +111,9 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         try:
             dataset_artifacts = request.dataset_artifacts
             if isinstance(request.dataset_artifacts, dict):
-                dataset_artifacts = DatasetArtifacts.from_dict(request.dataset_artifacts)
+                dataset_artifacts = DatasetArtifacts.from_dict(
+                    request.dataset_artifacts
+                )
             elif not isinstance(request.dataset_artifacts, DatasetArtifacts):
                 raise ValueError("Dataset artifacts must be a DatasetArtifacts object")
             return AgentContext(
@@ -145,9 +153,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             )
             return response
         except Exception as exc:
-            raise HTTPException(
-                status_code=500, detail=traceback.format_exc()
-            ) from exc
+            raise HTTPException(status_code=500, detail=traceback.format_exc()) from exc
 
 
 def run_analyse_artifacts_api(

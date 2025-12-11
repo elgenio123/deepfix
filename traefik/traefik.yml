@@ -92,4 +92,3 @@ ping:
 #       storage: /etc/traefik/acme.json
 #       httpChallenge:
 #         entryPoint: web
-

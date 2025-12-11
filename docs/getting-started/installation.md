@@ -234,4 +234,3 @@ See the [Configuration Guide](configuration.md) and [Deployment Guide](../deploy
 - [Quickstart Guide](quickstart.md) - Get started with DeepFix
 - [Configuration Guide](configuration.md) - Configure DeepFix for your needs
 - [Deployment Guide](../deployment/docker.md) - Deploy DeepFix in production
-
