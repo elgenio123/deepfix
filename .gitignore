@@ -80,6 +80,8 @@ coverage.xml
 .pytest_cache/
 cover/
 
+/report/
+
 node_modules/
 
 
