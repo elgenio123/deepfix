@@ -79,7 +79,8 @@ RUN mkdir -p /logs \
 VOLUME /logs
 
 # Copy startup script and fix permissions
-COPY --chown=deepfix:deepfix start_server_docker.sh .
+COPY --chown=deepfix:deepfix deepfix-server/start_server_docker.sh .
+COPY README.md .
 RUN sed -i 's/\r$//' start_server_docker.sh && chmod +x start_server_docker.sh
 
 # Expose ports

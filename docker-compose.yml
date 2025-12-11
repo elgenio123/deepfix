@@ -4,7 +4,7 @@ services:
   deepfix-server:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: deepfix-server/Dockerfile
     image: deepfix-server:latest
     ports:
       - "8844:8844"
@@ -26,8 +26,8 @@ services:
 
   deepfix-portal:
     build:
-      context: ./deepfix-portal
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: deepfix-portal/Dockerfile
     image: deepfix-portal:latest
     env_file:
       - .env

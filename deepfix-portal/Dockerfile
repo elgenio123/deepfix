@@ -2,12 +2,13 @@ FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 
 # Install dependencies and build the React client
-COPY package-lock.json package.json ./
-COPY tsconfig.json vite.config.ts vite-plugin-meta-images.ts postcss.config.js components.json ./
-COPY client ./client
-COPY shared ./shared
-COPY attached_assets ./attached_assets
-COPY script ./script
+# Note: context is now root, so paths are relative to deepfix-portal/
+COPY deepfix-portal/package-lock.json deepfix-portal/package.json ./
+COPY deepfix-portal/tsconfig.json deepfix-portal/vite.config.ts deepfix-portal/vite-plugin-meta-images.ts deepfix-portal/postcss.config.js deepfix-portal/components.json ./
+COPY deepfix-portal/client ./client
+COPY deepfix-portal/shared ./shared
+COPY deepfix-portal/attached_assets ./attached_assets
+COPY deepfix-portal/script ./script
 RUN npm install
 RUN npm run build
 
@@ -26,18 +27,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* \
  && adduser --disabled-password --no-create-home --gecos "" app
 
-# Copy backend source and lockfiles
-COPY pyproject.toml uv.lock ./
-COPY src ./src
+# Copy workspace structure (needed for uv to resolve workspace dependencies)
+COPY pyproject.toml ./pyproject.toml
+COPY deepfix-core ./deepfix-core
+COPY deepfix-portal ./deepfix-portal
+
 # Bring in the built frontend so FastAPI can serve it when NODE_ENV=production
-COPY --from=frontend-builder /app/dist/public ./src/deepfix_portal/dist/public
+COPY --from=frontend-builder /app/dist/public ./deepfix-portal/src/deepfix_portal/dist/public
 
 # Install Python deps into a project-local venv
-RUN uv sync --frozen --no-dev --no-progress && chown -R app:app /app \
+WORKDIR /app/deepfix-portal
+RUN uv venv .venv
+RUN uv pip install ../deepfix-core \
+    && uv pip install . \
     && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
 USER app
-ENV PATH="/app/.venv/bin:${PATH}"
+ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
 ENV NODE_ENV=
 
 EXPOSE 5041
