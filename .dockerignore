@@ -15,6 +15,9 @@ env/
 ENV/
 .venv
 
+# Node.js
+node_modules/
+
 # IDE
 .vscode/
 .idea/
@@ -65,4 +68,7 @@ Pipfile.lock
 .env.*.local
 tmp/
 temp/
+
+# Local data directories
+server_data/
 
