@@ -52,7 +52,8 @@ def _get_base_dirs() -> Dict[str, Path]:
     Returns:
         Dictionary mapping 'data', 'cache', and 'log' to their respective Path objects.
     """
-    env_home = os.environ.get("DEEPFIX_HOME", get_workdir())
+    env_home_str = os.environ.get("DEEPFIX_HOME")
+    env_home = Path(env_home_str) if env_home_str else get_workdir()
     return {
         "data": env_home / "data",
         "cache": env_home / "cache",

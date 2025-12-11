@@ -42,9 +42,13 @@ RUN uv pip install ../deepfix-core \
     && uv pip install . \
     && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
+# Create .deepfix directory with proper permissions for the app user
+RUN mkdir -p /app/deepfix-portal/.deepfix && chown -R app:app /app/deepfix-portal/.deepfix
+
 USER app
 ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
 ENV NODE_ENV=
+ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
 
 EXPOSE 5041
 
