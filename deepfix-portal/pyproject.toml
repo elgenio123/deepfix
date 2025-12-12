@@ -15,6 +15,7 @@ dependencies = [
     "deepfix-core",
     "deepfix-server",
     "langfuse>=3.10.6",
+    "openinference-instrumentation-dspy>=0.1.31",
 ]
 
 [tool.ruff]

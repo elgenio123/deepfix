@@ -11,8 +11,9 @@ import os
 import time
 import traceback
 from typing import Any, Optional
-
+from langfuse import get_client, observe
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
+import litellm
 from deepfix_server.config import LLMConfig
 from deepfix_server.coordinators import ArtifactAnalysisCoordinator
 from deepfix_server.models import AgentContext
@@ -28,9 +29,23 @@ router = APIRouter()
 
 LOGGER = logging.getLogger(__name__)
 
+litellm.callbacks = ["langfuse_otel"]
+
 # Singleton coordinator instance
 _coordinator: Optional[ArtifactAnalysisCoordinator] = None
 _llm_config: Optional[LLMConfig] = None
+
+if os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"):
+    from openinference.instrumentation.dspy import DSPyInstrumentor
+
+    DSPyInstrumentor().instrument()
+    langfuse = get_client()
+
+    # Verify connection
+    if langfuse.auth_check():
+        LOGGER.info("Langfuse client is authenticated and ready!")
+    else:
+        LOGGER.warning("Authentication failed. Please check your credentials and host.")
 
 
 def _get_llm_config() -> LLMConfig:
@@ -157,6 +172,7 @@ async def _log_request(
 
 
 @router.post("/analyse", response_model=APIResponse)
+@observe()
 async def analyse_artifacts(
     request: APIRequest,
     current_user: APIKeyValidationResponse = Depends(get_api_key_user),
