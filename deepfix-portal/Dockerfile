@@ -40,6 +40,7 @@ WORKDIR /app/deepfix-portal
 RUN uv venv .venv
 RUN uv pip install ../deepfix-core \
     && uv pip install . \
+    && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
     && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
 # Create .deepfix directory with proper permissions for the app user

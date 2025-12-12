@@ -17,9 +17,6 @@ dependencies = [
     "typer",
     "deepfix-core",
     "seaborn",
-    "opentelemetry-distro>=0.60b0",
-    "opentelemetry-exporter-otlp>=1.39.0",
-    "opentelemetry-instrumentation-fastapi>=0.60b0",
 ]
 
 [tool.ruff]

@@ -36,6 +36,7 @@ COPY pyproject.toml ./
 RUN . /opt/venv/bin/activate \
     && uv pip install ./deepfix-server \
     && uv pip install pip \
+    && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
     && uv pip install ./deepfix-core && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
 ###############
