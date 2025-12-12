@@ -4,25 +4,34 @@ FastAPI dependencies for authentication, etc.
 
 import os
 import time
+from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Tuple
 
 from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from .database import get_db, SessionLocal
-from .models import User
+from .models import APIKey, User
+from .schemas import APIKeyValidationResponse
 from .utils import verify_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+api_key_scheme = HTTPBearer()
 
 # Lightweight TTL bucket helper for lru_cache-backed lookups
 USER_CACHE_TTL_SECONDS = 60
+API_KEY_CACHE_TTL_SECONDS = 300
 
 
 def _user_cache_bucket() -> int:
     return int(time.time() / USER_CACHE_TTL_SECONDS)
+
+
+def _api_key_cache_bucket() -> int:
+    return int(time.time() / API_KEY_CACHE_TTL_SECONDS)
 
 
 @lru_cache(maxsize=256)
@@ -91,3 +100,95 @@ async def verify_service_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid service token",
         )
+
+
+@lru_cache(maxsize=256)
+def _cached_api_key_lookup(
+    key: str, _bucket: int
+) -> Optional[Tuple[str, str, bool, str, str, Optional[str], bool]]:
+    """
+    Cached API key lookup to reduce DB hits on validation path.
+    Returns tuple of (key_id, key_name, key_is_active, user_id, user_email, user_name, user_is_active).
+    """
+    db = SessionLocal()
+    try:
+        api_key = db.query(APIKey).filter(APIKey.key == key).first()
+        if not api_key:
+            return None
+
+        user = db.query(User).filter(User.id == api_key.user_id).first()
+        if not user:
+            return None
+
+        return (
+            api_key.id,
+            api_key.name,
+            api_key.is_active,
+            api_key.user_id,
+            user.email,
+            user.name,
+            user.is_active,
+        )
+    finally:
+        db.close()
+
+
+async def get_api_key_user(
+    auth: HTTPAuthorizationCredentials = Depends(api_key_scheme),
+    db: Session = Depends(get_db),
+) -> APIKeyValidationResponse:
+    """
+    Dependency to validate Bearer token API key and return user info.
+    Used for SDK/API authentication via API keys.
+    """
+    if auth.scheme.lower() != "bearer" or not auth.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    cached = _cached_api_key_lookup(auth.credentials, _api_key_cache_bucket())
+    if not cached:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    (
+        key_id,
+        key_name,
+        key_is_active,
+        user_id,
+        user_email,
+        user_name,
+        user_is_active,
+    ) = cached
+
+    if not key_is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key is inactive",
+        )
+    if not user_is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key owner is inactive or missing",
+        )
+
+    # Update last_used on the live DB object
+    api_key = db.query(APIKey).filter(APIKey.id == key_id).first()
+    if api_key:
+        api_key.last_used = datetime.now(timezone.utc)
+        db.commit()
+
+    return APIKeyValidationResponse(
+        key_id=key_id,
+        key_name=key_name,
+        key_is_active=key_is_active,
+        user_id=user_id,
+        user_email=user_email,
+        user_name=user_name,
+        user_is_active=user_is_active,
+    )

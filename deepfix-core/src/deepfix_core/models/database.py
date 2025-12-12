@@ -3,7 +3,7 @@ SQLAlchemy database models shared across deepfix packages.
 """
 
 import uuid
-
+from datetime import datetime
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, text
 from sqlalchemy.orm import declarative_base
 
@@ -30,7 +30,13 @@ class RequestLog(Base):
 
     __tablename__ = "request_logs"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(
+        String,
+        primary_key=True,
+        default=lambda: str(
+            f"req_{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4()}"
+        ),
+    )
     user_id = Column(String, nullable=False, index=True)
     user_email = Column(String, nullable=False)
     endpoint = Column(String, nullable=False)

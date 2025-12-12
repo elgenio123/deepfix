@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 import os
 from pathlib import Path
 
-from .routes import auth, api_keys, users, request_logs
+from .routes import analysis, auth, api_keys, users, request_logs
 from .database import engine, Base
 from .models import RequestLog  # Import to ensure table is created
 from deepfix_core.models import DatabaseBase  # Base for RequestLog table
@@ -44,6 +44,7 @@ app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(
     request_logs.router, prefix="/api/request-logs", tags=["request-logs"]
 )
+app.include_router(analysis.router, prefix="/api/v1", tags=["analysis"])
 
 
 @app.get("/api/health")

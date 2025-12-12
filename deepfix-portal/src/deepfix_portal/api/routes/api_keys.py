@@ -3,14 +3,12 @@ API Key management routes
 """
 
 import secrets
-import time
 from datetime import datetime, timezone
-from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional, Tuple
+from typing import List
 
-from ..database import get_db, SessionLocal
+from ..database import get_db
 from ..models import APIKey, User
 from ..schemas import (
     APIKeyCreate,
@@ -18,46 +16,14 @@ from ..schemas import (
     APIKeyValidationRequest,
     APIKeyValidationResponse,
 )
-from ..dependencies import get_current_user, verify_service_token
+from ..dependencies import (
+    get_current_user,
+    verify_service_token,
+    _cached_api_key_lookup,
+    _api_key_cache_bucket,
+)
 
 router = APIRouter()
-
-CACHE_TTL_SECONDS = 300
-
-
-def _cache_bucket() -> int:
-    return int(time.time() / CACHE_TTL_SECONDS)
-
-
-@lru_cache(maxsize=256)
-def _cached_api_key_lookup(
-    key: str, _bucket: int
-) -> Optional[Tuple[str, str, bool, str, str, Optional[str], bool]]:
-    """
-    Cached API key lookup to reduce DB hits on validation path.
-    Returns tuple of (key_id, key_name, key_is_active, user_id, user_email, user_name, user_is_active).
-    """
-    db = SessionLocal()
-    try:
-        api_key = db.query(APIKey).filter(APIKey.key == key).first()
-        if not api_key:
-            return None
-
-        user = db.query(User).filter(User.id == api_key.user_id).first()
-        if not user:
-            return None
-
-        return (
-            api_key.id,
-            api_key.name,
-            api_key.is_active,
-            api_key.user_id,
-            user.email,
-            user.name,
-            user.is_active,
-        )
-    finally:
-        db.close()
 
 
 @router.get("/", response_model=List[APIKeyResponse])
@@ -153,7 +119,7 @@ async def validate_api_key(
     """
     Validate an API key for server-to-server access (used by deepfix-server).
     """
-    cached = _cached_api_key_lookup(request.key, _cache_bucket())
+    cached = _cached_api_key_lookup(request.key, _api_key_cache_bucket())
     if not cached:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"

@@ -13,6 +13,7 @@ dependencies = [
     "sqlalchemy>=2.0.44",
     "sqlmodel>=0.0.27",
     "deepfix-core",
+    "deepfix-server",
 ]
 
 [tool.ruff]
@@ -23,6 +24,7 @@ lint.ignore = []
 
 [tool.uv.sources]
 deepfix-core = { workspace = true }
+deepfix-server = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.7.19,<0.8.0"]
