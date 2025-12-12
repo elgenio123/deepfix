@@ -1,0 +1,36 @@
+FROM astral/uv:python3.11-bookworm-slim AS runtime
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# System deps for compiling wheels like bcrypt/psycopg2, plus create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && adduser --disabled-password --no-create-home --gecos "" app
+
+# Copy workspace structure (needed for uv to resolve workspace dependencies)
+COPY pyproject.toml ./pyproject.toml
+COPY deepfix-core ./deepfix-core
+COPY deepfix-portal ./deepfix-portal
+COPY deepfix-server ./deepfix-server
+
+# Install Python deps into a project-local venv
+WORKDIR /app/deepfix-portal
+RUN uv venv .venv
+RUN uv pip install ../deepfix-core ../deepfix-server
+RUN uv pip install .
+
+# Create .deepfix directory with proper permissions for the app user
+RUN mkdir -p /app/deepfix-portal/.deepfix && chown -R app:app /app/deepfix-portal/.deepfix
+
+USER app
+ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
+ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
+
+EXPOSE 5041
+
+# Start the FastAPI app (API only, no static assets)
+CMD ["uvicorn", "deepfix_portal.api.main:app", "--host", "0.0.0.0", "--port", "5041"]

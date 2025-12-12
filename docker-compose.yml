@@ -1,34 +1,96 @@
 
 services:
 
+  # ===================
+  # Reverse Proxy
+  # ===================
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certs:/etc/traefik/certs:ro
+    networks:
+      - deepfix-network
+    labels:
+      - "traefik.enable=true"
+
+  # ===================
+  # DeepFix Server
+  # ===================
   deepfix-server:
     build:
       context: .
       dockerfile: deepfix-server/Dockerfile
     image: deepfix-server:latest
-    ports:
-      - "8844:8844"
     env_file:
       - .env
+    networks:
+      - deepfix-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deepfix-server.rule=Host(`localhost`) && PathPrefix(`/server`)"
+      - "traefik.http.routers.deepfix-server.entrypoints=web"
+      - "traefik.http.services.deepfix-server.loadbalancer.server.port=8844"
 
-  deepfix-portal:
+  # ===================
+  # DeepFix Portal Frontend
+  # ===================
+  deepfix-portal-frontend:
     build:
       context: .
-      dockerfile: deepfix-portal/Dockerfile
-    image: deepfix-portal:latest
+      dockerfile: deepfix-portal/Dockerfile.frontend
+    image: deepfix-portal-frontend:latest
+    restart: unless-stopped
+    networks:
+      - deepfix-network
+    depends_on:
+      - deepfix-portal-api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal-frontend.rule=Host(`localhost`) && PathPrefix(`/home`)"
+      - "traefik.http.routers.portal-frontend.entrypoints=web"
+      - "traefik.http.routers.portal-frontend.middlewares=portal-strip"
+      - "traefik.http.middlewares.portal-strip.stripprefix.prefixes=/home"
+      - "traefik.http.services.portal-frontend.loadbalancer.server.port=3000"
+
+  # ===================
+  # DeepFix Portal API (Backend)
+  # ===================
+  deepfix-portal-api:
+    build:
+      context: .
+      dockerfile: deepfix-portal/Dockerfile.backend
+    image: deepfix-portal-api:latest
     env_file:
       - .env
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
-      #- DATABASE_URL=postgresql+psycopg2://postgres:${SUPABASE_PASSWORD}@db.qsublsakvmiiucpzyqff.supabase.co:5432/postgres
-    ports:
-      - "5041:5041"
     restart: unless-stopped
+    networks:
+      - deepfix-network
     depends_on:
       postgres:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.portal-api.entrypoints=web"
+      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.portal-api.middlewares=api-strip"
+      - "traefik.http.services.portal-api.loadbalancer.server.port=5041"
 
+  # ===================
+  # MLflow Server
+  # ===================
   mlflow:
     build:
       context: .
@@ -36,8 +98,6 @@ services:
     image: mlflow:psycopg2-3.6.0
     container_name: mlflow
     restart: unless-stopped
-    ports:
-      - "5000:5000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000').read()"]
       interval: 30s
@@ -55,10 +115,20 @@ services:
       --allowed-hosts localhost:5000,localhost,mlflow:5000
     volumes:
       - ./server_data/mlflow:/mlflow
+    networks:
+      - deepfix-network
     depends_on:
       postgres:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mlflow.rule=Host(`localhost`) && PathPrefix(`/mlflow`)"
+      - "traefik.http.routers.mlflow.entrypoints=web"
+      - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
 
+  # ===================
+  # Jaeger Tracing
+  # ===================
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
     container_name: jaeger
@@ -77,13 +147,23 @@ services:
       - BADGER_DIRECTORY_KEY=/badger/key
     volumes:
       - ./server_data/badger:/badger
+    networks:
+      - deepfix-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:16686"]
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=Host(`localhost`) && PathPrefix(`/jaeger`)"
+      - "traefik.http.routers.jaeger.entrypoints=web"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
 
+  # ===================
+  # PostgreSQL Database
+  # ===================
   postgres:
     image: postgres:16.11-alpine3.23
     container_name: postgres
@@ -95,6 +175,8 @@ services:
     volumes:
       - ./server_data/postgres:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - deepfix-network
     healthcheck:
       # Explicitly check a known database to avoid noisy "database <user> does not exist"
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "postgres"]
@@ -102,15 +184,10 @@ services:
       timeout: 5s
       retries: 5
 
-#  cursor-agent:
-#    build: ./cursor_wrapper
-#    image: cursor-agent:latest
-#    ports:
-#      - "8841:8841"
-#    env_file:
-#      - cursor_wrapper/.env
-#    environment:
-#      - CURSOR_MODEL_NAME=gpt-5.1-codex-max
-#    volumes:
-#      - ./server_data/cursor_agent:/logs
-#    restart: unless-stopped
+# ===================
+# Networks
+# ===================
+networks:
+  deepfix-network:
+    driver: bridge
+    name: deepfix-network
