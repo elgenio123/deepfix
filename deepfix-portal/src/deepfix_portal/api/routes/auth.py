@@ -4,6 +4,7 @@ Authentication routes
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -22,8 +23,14 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     """
     Login endpoint
     """
-    # Find user by email
-    user = db.query(User).filter(User.email == login_data.email).first()
+    try:
+        # Find user by email
+        user = db.query(User).filter(User.email == login_data.email).first()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503, detail="Database unavailable. Please retry shortly."
+        ) from exc
+
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -45,12 +52,17 @@ async def signup(signup_data: SignupRequest, db: Session = Depends(get_db)):
     # Use email as username if username is not provided
     username = signup_data.username or signup_data.email
 
-    # Check if user already exists
-    existing_user = (
-        db.query(User)
-        .filter((User.email == signup_data.email) | (User.username == username))
-        .first()
-    )
+    try:
+        # Check if user already exists
+        existing_user = (
+            db.query(User)
+            .filter((User.email == signup_data.email) | (User.username == username))
+            .first()
+        )
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503, detail="Database unavailable. Please retry shortly."
+        ) from exc
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exists")
 
@@ -64,9 +76,15 @@ async def signup(signup_data: SignupRequest, db: Session = Depends(get_db)):
         password=hashed_password,
         name=signup_data.name,
     )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503, detail="Unable to save user. Please retry shortly."
+        ) from exc
 
     # Create access token
     token = create_access_token(data={"sub": new_user.id})
