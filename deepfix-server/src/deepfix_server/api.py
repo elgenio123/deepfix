@@ -40,19 +40,15 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         Args:
             device: Device specification (unused, kept for LitAPI compatibility).
         """
-        try:
-            assert os.getenv("MLFLOW_EXP_NAME") is not None, (
-                "MLFLOW_EXP_NAME is not set"
-            )
+        if os.getenv("MLFLOW_EXP_NAME") and os.getenv("MLFLOW_TRACKING_URI"):
             setup_dspy_logging(
                 experiment_name=os.getenv("MLFLOW_EXP_NAME"),
                 tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
             )
-        except Exception:
+        else:
             print(f"Error setting up DSPy logging: {traceback.format_exc()}")
 
-        finally:
-            self._ensure_initialized()
+        self._ensure_initialized()
 
     async def decode_request(self, request: APIRequest) -> AgentContext:
         """Decode API request into AgentContext.
