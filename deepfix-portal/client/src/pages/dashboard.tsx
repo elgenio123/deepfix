@@ -197,7 +197,8 @@ export default function Dashboard() {
                 </div>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" /> 100 requests / month
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />{" "}
+                    {statsLoading ? "..." : stats?.total_requests_30d || 0} / 100 requests / month
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-500" /> Standard Support
@@ -269,7 +270,7 @@ export default function Dashboard() {
                   {statsLoading
                     ? "-"
                     : stats?.avg_duration_ms
-                    ? `${Math.round(stats.avg_duration_ms)}ms`
+                    ? `${(stats.avg_duration_ms / 1000).toFixed(2)}s`
                     : "-"}
                 </div>
                 <p className="text-xs text-muted-foreground">Response time</p>
@@ -310,6 +311,7 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
+
         </TabsContent>
       </Tabs>
 

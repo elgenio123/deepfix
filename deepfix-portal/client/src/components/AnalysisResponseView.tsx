@@ -289,13 +289,20 @@ export default function AnalysisResponseView({
           </TabsList>
 
           <TabsContent value="report" className="mt-4 space-y-4">
-            {report.errorMessages && Object.keys(report.errorMessages).length > 0 && (
+            {report.errorMessages && Object.values(report.errorMessages).some(msg => msg !== null) && (
               <Alert variant="destructive">
                 <AlertTitle>Some agents failed</AlertTitle>
                 <AlertDescription>
-                  {Object.entries(report.errorMessages)
-                    .map(([agent, msg]) => `${agent}: ${msg ?? "Unknown error"}`)
-                    .join(" • ")}
+                  <ul className="list-disc pl-4 space-y-1 mt-2">
+                    {Object.entries(report.errorMessages)
+                      .filter(([_, msg]) => msg !== null)
+                      .map(([agent, msg]) => (
+                        <li key={agent} className="text-sm">
+                          <span className="font-semibold">{agent}:</span>{" "}
+                          <span className="whitespace-pre-wrap">{msg ?? "Unknown error"}</span>
+                        </li>
+                      ))}
+                  </ul>
                 </AlertDescription>
               </Alert>
             )}
