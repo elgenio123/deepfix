@@ -11,8 +11,8 @@ from pathlib import Path
 
 from .routes import analysis, auth, api_keys, users, request_logs
 from .database import engine, Base
-from .models import RequestLog  # Import to ensure table is created
 from deepfix_core.models import DatabaseBase  # Base for RequestLog table
+from deepfix_server.logging import setup_dspy_logging
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -51,6 +51,13 @@ app.include_router(analysis.router, prefix="/api/v1", tags=["analysis"])
 async def health_check():
     """Health check endpoint"""
     return {"status": "ok", "message": "DeepFix Portal Backend is running"}
+
+
+if os.getenv("MLFLOW_EXP_NAME") and os.getenv("MLFLOW_TRACKING_URI"):
+    setup_dspy_logging(
+        experiment_name=os.getenv("MLFLOW_EXP_NAME"),
+        tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
+    )
 
 
 # Serve static files in production

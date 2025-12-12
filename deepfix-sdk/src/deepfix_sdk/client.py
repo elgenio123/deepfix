@@ -59,7 +59,7 @@ class DeepFixClient:
         self.api_url = api_url
         self.timeout = timeout
 
-        self._analyze_endpoint = f"{self.api_url}/v1/analyse"
+        self._analyze_endpoint = f"{self.api_url}/api/v1/analyse"
         self._artifact_repo: Optional[ArtifactRepository] = None
 
     def _get_artifact_repository(self) -> ArtifactRepository:
