@@ -39,10 +39,8 @@ COPY --from=frontend-builder /app/dist/public ./deepfix-portal/src/deepfix_porta
 # Install Python deps into a project-local venv
 WORKDIR /app/deepfix-portal
 RUN uv venv .venv
-RUN uv pip install ../deepfix-core ../deepfix-server \
-    && uv pip install . \
-    && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
-    && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
+RUN uv pip install ../deepfix-core ../deepfix-server
+RUN uv pip install .
 
 # Create .deepfix directory with proper permissions for the app user
 RUN mkdir -p /app/deepfix-portal/.deepfix && chown -R app:app /app/deepfix-portal/.deepfix
@@ -55,4 +53,4 @@ ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
 EXPOSE 5041
 
 # Start the FastAPI app (serves API and static assets)
-CMD ["opentelemetry-instrument","uvicorn", "deepfix_portal.api.main:app", "--host", "0.0.0.0", "--port", "5041"]
+CMD ["uvicorn", "deepfix_portal.api.main:app", "--host", "0.0.0.0", "--port", "5041"]
