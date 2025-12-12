@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import AnalysisResponseView from "@/components/AnalysisResponseView";
 
 interface RequestDetailDialogProps {
   log: RequestLog | null;
@@ -92,7 +93,6 @@ export default function RequestDetailDialog({
   };
 
   const requestJson = formatJson(log.request_json);
-  const responseJson = formatJson(log.response_json);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -147,25 +147,15 @@ export default function RequestDetailDialog({
             </div>
           </TabsContent>
           <TabsContent value="response" className="mt-4">
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-2 z-10"
-                onClick={() => copyToClipboard(responseJson, "Response")}
-              >
-                {copiedTab === "Response" ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-              <ScrollArea className="h-[300px] w-full rounded-md border bg-muted/30">
-                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">
-                  {responseJson}
-                </pre>
-              </ScrollArea>
-            </div>
+            <AnalysisResponseView
+              responseJson={log.response_json}
+              meta={{
+                endpoint: log.endpoint,
+                status_code: log.status_code,
+                duration_ms: log.duration_ms,
+                created_at: log.created_at,
+              }}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>

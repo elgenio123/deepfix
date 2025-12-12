@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRequestLogs, RequestLog } from "@/hooks/use-request-logs";
 import {
   Table,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import AnalysisResponseView from "@/components/AnalysisResponseView";
 import {
   Pagination,
   PaginationContent,
@@ -19,7 +20,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Eye, RefreshCw, Clock, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, RefreshCw, Clock, AlertCircle } from "lucide-react";
 
 interface RequestHistoryTabProps {
   onViewDetails: (log: RequestLog) => void;
@@ -28,11 +29,17 @@ interface RequestHistoryTabProps {
 export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabProps) {
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const { data, isLoading, isError, error, refetch, isFetching } = useRequestLogs({
     page,
     pageSize,
   });
+
+  useEffect(() => {
+    // Keep UX predictable when paging through history
+    setExpandedIds(new Set());
+  }, [page]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -161,30 +168,76 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.items.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="font-medium">
-                      {formatDate(log.created_at)}
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-sm bg-muted px-2 py-1 rounded">
-                        {log.endpoint}
-                      </code>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(log.status_code)}</TableCell>
-                    <TableCell>{formatDuration(log.duration_ms)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onViewDetails(log)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {data.items.map((log) => {
+                  const isExpanded = expandedIds.has(log.id);
+                  return (
+                    <Fragment key={log.id}>
+                      <TableRow>
+                        <TableCell className="font-medium">
+                          {formatDate(log.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-sm bg-muted px-2 py-1 rounded">
+                            {log.endpoint}
+                          </code>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(log.status_code)}</TableCell>
+                        <TableCell>{formatDuration(log.duration_ms)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setExpandedIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(log.id)) next.delete(log.id);
+                                  else next.add(log.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 mr-2" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 mr-2" />
+                              )}
+                              {isExpanded ? "Hide" : "Details"}
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onViewDetails(log)}
+                              title="Open request details"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {isExpanded && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="bg-muted/10 p-0">
+                            <div className="p-4">
+                              <AnalysisResponseView
+                                responseJson={log.response_json}
+                                meta={{
+                                  endpoint: log.endpoint,
+                                  status_code: log.status_code,
+                                  duration_ms: log.duration_ms,
+                                  created_at: log.created_at,
+                                }}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
