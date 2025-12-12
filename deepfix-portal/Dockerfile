@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./pyproject.toml
 COPY deepfix-core ./deepfix-core
 COPY deepfix-portal ./deepfix-portal
+COPY deepfix-server ./deepfix-server
 
 # Bring in the built frontend so FastAPI can serve it when NODE_ENV=production
 COPY --from=frontend-builder /app/dist/public ./deepfix-portal/src/deepfix_portal/dist/public
@@ -38,7 +39,7 @@ COPY --from=frontend-builder /app/dist/public ./deepfix-portal/src/deepfix_porta
 # Install Python deps into a project-local venv
 WORKDIR /app/deepfix-portal
 RUN uv venv .venv
-RUN uv pip install ../deepfix-core \
+RUN uv pip install ../deepfix-core ../deepfix-server \
     && uv pip install . \
     && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
     && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
