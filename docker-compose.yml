@@ -12,7 +12,7 @@ services:
       - .env
     environment:
       # Use same database as deepfix-portal for shared request_logs table
-      - DEEPFIX_SERVER_DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
     volumes:
       - ./server_data/logs:/logs
     restart: unless-stopped
