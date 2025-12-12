@@ -85,8 +85,8 @@ services:
   # ===================
   deepfix-portal:
     build:
-      context: ./deepfix-portal
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: deepfix-portal/Dockerfile
     image: deepfix-portal:latest
     container_name: deepfix-portal
     restart: unless-stopped
@@ -94,9 +94,7 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - OTEL_SERVICE_NAME=deepfix-portal
-      - POSTGRES_DB=deepfix_portal
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
     networks:
       - deepfix-network
     depends_on:
@@ -112,7 +110,7 @@ services:
           memory: 256M
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portal.rule=Host(`localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.portal.rule=Host(`localhost`) && PathPrefix(`/portal`)"
       - "traefik.http.routers.portal.entrypoints=websecure"
       - "traefik.http.routers.portal.tls=true"
       - "traefik.http.services.portal.loadbalancer.server.port=5041"
@@ -129,15 +127,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - POSTGRES_DB=mlflow
     command: >
       mlflow server
-      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mlflow
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
-      --allowed-hosts mlflow:5000,localhost:5000,localhost,mlflow,172.20.0.0/16
+      --allowed-hosts localhost:5000,localhost,mlflow:5000
     volumes:
       - ./server_data/mlflow:/mlflow
     networks:
@@ -178,6 +174,7 @@ services:
       - .env
     volumes:
       - ./server_data/postgres:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     networks:
       - deepfix-network
     deploy:
@@ -189,7 +186,8 @@ services:
           cpus: '0.25'
           memory: 256M
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      # Explicitly check a known database to avoid noisy "database <user> does not exist"
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
