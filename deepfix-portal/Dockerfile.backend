@@ -1,8 +1,11 @@
-FROM astral/uv:python3.11-bookworm-slim AS runtime
+FROM astral/uv:python3.11-bookworm-slim AS builder
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# Set environment variables for Python optimization
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # System deps for compiling wheels like bcrypt/psycopg2, plus create non-root user
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -19,15 +22,31 @@ COPY deepfix-server ./deepfix-server
 
 # Install Python deps into a project-local venv
 WORKDIR /app/deepfix-portal
-RUN uv venv .venv
-RUN uv pip install ../deepfix-core ../deepfix-server
+RUN uv venv /opt/venv
+RUN . /opt/venv/bin/activate \
+    && uv pip install ../deepfix-core ../deepfix-server \
 RUN uv pip install .
+
+###############
+# Runtime stage
+###############
+FROM python:3.11-slim-bookworm AS runtime
+
+LABEL maintainer="fadel.seydou@delcaux.com"
+LABEL version="0.0.1"
+LABEL description="deepfix-portal-backend"
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
 # Create .deepfix directory with proper permissions for the app user
 RUN mkdir -p /app/deepfix-portal/.deepfix && chown -R app:app /app/deepfix-portal/.deepfix
 
 USER app
-ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
+# Ensure venv takes precedence
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
 
 EXPOSE 5041
