@@ -13,7 +13,6 @@ import traceback
 from typing import Any, Optional
 from langfuse import get_client, observe
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
-import litellm
 from deepfix_server.config import LLMConfig
 from deepfix_server.coordinators import ArtifactAnalysisCoordinator
 from deepfix_server.models import AgentContext
@@ -29,7 +28,6 @@ router = APIRouter()
 
 LOGGER = logging.getLogger(__name__)
 
-litellm.callbacks = ["langfuse_otel"]
 
 # Singleton coordinator instance
 _coordinator: Optional[ArtifactAnalysisCoordinator] = None
