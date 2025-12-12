@@ -1,5 +1,4 @@
 import { useId, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,17 +11,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Copy } from "lucide-react";
-
-type Severity = "high" | "medium" | "low" | string;
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Copy, Search, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  CROSS_ARTIFACT_AGENT,
+  Severity,
+  formatDuration,
+  formatDate,
+  statusBadge,
+  prettyJson,
+  getOrderedSeverities,
+  severityColor,
+} from "@/lib/analysis-utils";
+import SummarySection from "./analysis/SummarySection";
+import ContextSection from "./analysis/ContextSection";
+import StatisticsSection from "./analysis/StatisticsSection";
+import SeveritySection from "./analysis/SeveritySection";
+import { Issue } from "./analysis/IssueCard";
 
 interface Finding {
   description: string;
@@ -71,70 +81,16 @@ interface AnalysisResponseViewProps {
   defaultConcise?: boolean;
 }
 
-function formatDuration(ms: number | null | undefined) {
-  if (ms === null || ms === undefined) return "-";
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
-}
-
-function formatDate(dateString: string | undefined) {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function severityColor(sev: Severity) {
-  const s = String(sev).toLowerCase();
-  if (s === "high") return { badge: "bg-red-500 hover:bg-red-600", text: "text-red-600" };
-  if (s === "medium") return { badge: "bg-yellow-500 hover:bg-yellow-600", text: "text-yellow-700" };
-  if (s === "low") return { badge: "bg-green-500 hover:bg-green-600", text: "text-green-700" };
-  return { badge: "bg-muted text-foreground", text: "text-foreground" };
-}
-
-function statusBadge(statusCode: number | null | undefined) {
-  if (statusCode === null || statusCode === undefined) {
-    return <Badge variant="outline">Unknown</Badge>;
-  }
-  if (statusCode >= 200 && statusCode < 300) {
-    return <Badge className="bg-green-500 hover:bg-green-600">{statusCode}</Badge>;
-  }
-  if (statusCode >= 400 && statusCode < 600) {
-    return <Badge variant="destructive">{statusCode}</Badge>;
-  }
-  return <Badge variant="outline">{statusCode}</Badge>;
-}
-
-function prettyJson(jsonString: string | null): string {
-  if (!jsonString) return "No data available";
-  try {
-    const parsed = JSON.parse(jsonString);
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return jsonString;
-  }
-}
-
-function getOrderedSeverities(found: Array<{ severity: Severity }>) {
-  const uniq = new Set(found.map((f) => String(f.severity).toLowerCase()));
-  const ordered = ["high", "medium", "low"];
-  const rest = [...uniq].filter((s) => !ordered.includes(s)).sort();
-  return [...ordered.filter((s) => uniq.has(s)), ...rest];
-}
-
 export default function AnalysisResponseView({
   responseJson,
   meta,
   defaultConcise = true,
 }: AnalysisResponseViewProps) {
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [showAllAgents, setShowAllAgents] = useState(!defaultConcise);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [severityFilters, setSeverityFilters] = useState<Set<string>>(new Set());
   const showAllAgentsId = useId();
 
   const raw = useMemo(() => prettyJson(responseJson), [responseJson]);
@@ -154,15 +110,7 @@ export default function AnalysisResponseView({
       return {
         summary: null as string | null,
         context: null as { optimization_areas?: unknown; constraints?: unknown } | null,
-        issues: [] as Array<{
-          agent_name: string;
-          analyzed_artifacts?: string;
-          severity: Severity;
-          finding_description: string;
-          finding_evidence: string;
-          recommendation_action: string;
-          recommendation_rationale: string;
-        }>,
+        issues: [] as Issue[],
         errorMessages: null as APIResponse["error_messages"],
         hadCrossAgent: false,
         agentsAvailable: [] as string[],
@@ -172,17 +120,14 @@ export default function AnalysisResponseView({
     const api = parsed.value;
     const agentResults = api.agent_results ?? {};
     const agentsAvailable = Object.keys(agentResults);
-    const hadCrossAgent = Object.prototype.hasOwnProperty.call(
-      agentResults,
-      "CrossArtifactReasoningAgent"
-    );
+    const hadCrossAgent = CROSS_ARTIFACT_AGENT in agentResults;
 
     const agentEntries: Array<[string, AgentResult]> = Object.entries(agentResults);
 
     const filteredEntries = showAllAgents
       ? agentEntries
       : hadCrossAgent
-        ? agentEntries.filter(([name]) => name === "CrossArtifactReasoningAgent")
+        ? agentEntries.filter(([name]) => name === CROSS_ARTIFACT_AGENT)
         : agentEntries;
 
     const issues = filteredEntries.flatMap(([agentName, agent]) => {
@@ -213,27 +158,71 @@ export default function AnalysisResponseView({
     };
   }, [parsed, showAllAgents]);
 
+  // Filter issues based on search and severity filters
+  const filteredIssues = useMemo(() => {
+    return report.issues.filter((issue) => {
+      // Search filter
+      const matchesSearch =
+        !searchQuery ||
+        issue.finding_description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.finding_evidence.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        issue.recommendation_action.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Severity filter
+      const matchesSeverity =
+        severityFilters.size === 0 ||
+        severityFilters.has(String(issue.severity).toLowerCase());
+
+      return matchesSearch && matchesSeverity;
+    });
+  }, [report.issues, searchQuery, severityFilters]);
+
   const severityCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const i of report.issues) {
+    for (const i of filteredIssues) {
       const key = String(i.severity).toLowerCase();
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
-  }, [report.issues]);
+  }, [filteredIssues]);
 
   const orderedSeverities = useMemo(
-    () => getOrderedSeverities(report.issues.map((i) => ({ severity: i.severity }))),
-    [report.issues]
+    () => getOrderedSeverities(filteredIssues.map((i) => ({ severity: i.severity }))),
+    [filteredIssues]
   );
+
+  const toggleSeverityFilter = (severity: string) => {
+    const newFilters = new Set(severityFilters);
+    if (newFilters.has(severity)) {
+      newFilters.delete(severity);
+    } else {
+      newFilters.add(severity);
+    }
+    setSeverityFilters(newFilters);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSeverityFilters(new Set());
+  };
+
+  const hasActiveFilters = searchQuery !== "" || severityFilters.size > 0;
 
   const copyRaw = async () => {
     try {
       await navigator.clipboard.writeText(raw);
       setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Response copied to clipboard.",
+      });
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ignore
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy to clipboard. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -286,7 +275,7 @@ export default function AnalysisResponseView({
           <Alert>
             <AlertTitle>Concise agent not available</AlertTitle>
             <AlertDescription>
-              CrossArtifactReasoningAgent was not found in this response. Showing all available agents: {report.agentsAvailable.join(", ")}.
+              {CROSS_ARTIFACT_AGENT} was not found in this response. Showing all available agents: {report.agentsAvailable.join(", ")}.
             </AlertDescription>
           </Alert>
         )}
@@ -311,70 +300,68 @@ export default function AnalysisResponseView({
               </Alert>
             )}
 
-            {report.summary && (
-              <div className="rounded-lg border bg-muted/20 p-4">
-                <div className="text-sm font-semibold">Summary</div>
-                <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                  {report.summary}
-                </div>
-              </div>
-            )}
+            {report.summary && <SummarySection summary={report.summary} />}
 
-            {(report.context?.optimization_areas || report.context?.constraints) && (
-              <div className="rounded-lg border p-4">
-                <div className="text-sm font-semibold">Context</div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  {report.context?.optimization_areas && (
-                    <div>
-                      <div className="text-xs font-medium text-muted-foreground">
-                        Optimization Areas
-                      </div>
-                      <div className="mt-1 text-sm whitespace-pre-wrap">
-                        {String(report.context.optimization_areas)}
-                      </div>
-                    </div>
-                  )}
-                  {report.context?.constraints && (
-                    <div>
-                      <div className="text-xs font-medium text-muted-foreground">
-                        Constraints
-                      </div>
-                      <div className="mt-1 text-sm whitespace-pre-wrap">
-                        {String(report.context.constraints)}
-                      </div>
-                    </div>
+            {report.context && report.context.optimization_areas || report.context?.constraints ? (
+              <ContextSection context={report.context} />
+            ) : null}
+
+            <StatisticsSection
+              issues={filteredIssues}
+              severityCounts={severityCounts}
+              orderedSeverities={orderedSeverities}
+            />
+
+            {/* Search and Filter UI */}
+            {report.issues.length > 0 && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">Search & Filter</div>
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-7 text-xs"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Clear filters
+                    </Button>
                   )}
                 </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search findings, evidence, or actions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs text-muted-foreground self-center">Filter by severity:</span>
+                  {["high", "medium", "low"].map((sev) => {
+                    const isActive = severityFilters.has(sev);
+                    const color = severityColor(sev);
+                    return (
+                      <Badge
+                        key={sev}
+                        variant={isActive ? "default" : "outline"}
+                        className={`cursor-pointer ${isActive ? color.badge : ""}`}
+                        onClick={() => toggleSeverityFilter(sev)}
+                      >
+                        {sev.toUpperCase()}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                {hasActiveFilters && (
+                  <div className="text-xs text-muted-foreground">
+                    Showing {filteredIssues.length} of {report.issues.length} findings
+                  </div>
+                )}
               </div>
             )}
-
-            <div className="rounded-lg border p-4">
-              <div className="text-sm font-semibold">Summary Statistics</div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">Total Findings</span>
-                  <span className="text-sm font-semibold">{report.issues.length}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">Severity Distribution</span>
-                  <span className="flex flex-wrap items-center justify-end gap-2">
-                    {orderedSeverities.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    ) : (
-                      orderedSeverities.map((sev) => {
-                        const c = severityCounts.get(sev) ?? 0;
-                        const color = severityColor(sev);
-                        return (
-                          <Badge key={sev} className={color.badge}>
-                            {sev.toUpperCase()}: {c}
-                          </Badge>
-                        );
-                      })
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
 
             <div className="rounded-lg border">
               <div className="px-4 py-3">
@@ -385,82 +372,42 @@ export default function AnalysisResponseView({
               </div>
               <Separator />
 
-              {report.issues.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                  No findings available in this response.
+              {filteredIssues.length === 0 ? (
+                <div className="p-8 text-center">
+                  {report.issues.length === 0 ? (
+                    <>
+                      <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" />
+                      <div className="text-sm font-medium">No issues found</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        The analysis completed successfully with no findings to report.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                      <div className="text-sm font-medium">No matching findings</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Try adjusting your search or filter criteria.
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <Accordion type="multiple" className="w-full" defaultValue={orderedSeverities}>
                   {orderedSeverities.map((sev) => {
                     const normalized = String(sev).toLowerCase();
-                    const items = report.issues.filter(
+                    const items = filteredIssues.filter(
                       (i) => String(i.severity).toLowerCase() === normalized
                     );
                     const color = severityColor(sev);
                     return (
-                      <AccordionItem key={normalized} value={normalized}>
-                        <AccordionTrigger className="px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-sm font-semibold ${color.text}`}>
-                              {String(sev).toUpperCase()}
-                            </span>
-                            <Badge className={color.badge}>{items.length}</Badge>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="px-4 pb-4 space-y-3">
-                            {items.map((i, idx) => (
-                              <div key={`${i.agent_name}-${idx}`} className="rounded-lg border p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <div className="text-sm font-semibold">
-                                      {idx + 1}. {i.finding_description}
-                                    </div>
-                                    {showAllAgents && (
-                                      <div className="mt-1 text-xs text-muted-foreground">
-                                        Agent: {i.agent_name}
-                                        {i.analyzed_artifacts
-                                          ? ` • Artifacts: ${i.analyzed_artifacts}`
-                                          : ""}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                                  <div>
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                      Evidence
-                                    </div>
-                                    <div className="mt-1 text-sm whitespace-pre-wrap">
-                                      {i.finding_evidence}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                      Action
-                                    </div>
-                                    <div className="mt-1 text-sm whitespace-pre-wrap">
-                                      {i.recommendation_action}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {i.recommendation_rationale && (
-                                  <div className="mt-3">
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                      Rationale
-                                    </div>
-                                    <div className="mt-1 text-sm whitespace-pre-wrap">
-                                      {i.recommendation_rationale}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
+                      <SeveritySection
+                        key={normalized}
+                        severity={sev}
+                        issues={items}
+                        color={color}
+                        showAllAgents={showAllAgents}
+                      />
                     );
                   })}
                 </Accordion>
@@ -475,6 +422,7 @@ export default function AnalysisResponseView({
                 size="sm"
                 className="absolute right-2 top-2 z-10"
                 onClick={copyRaw}
+                aria-label="Copy raw JSON to clipboard"
               >
                 {copied ? (
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
