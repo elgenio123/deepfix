@@ -20,15 +20,8 @@ WORKDIR /srv
 # Copy built frontend assets
 COPY --from=builder /app/dist/public ./public
 
-# Create Caddyfile for SPA routing
-# Caddy automatically handles SPA routing with try_files directive
-RUN printf '%s\n' \
-    ':3000 {' \
-    '    root * /srv/public' \
-    '    file_server' \
-    '    try_files {path} /index.html' \
-    '    encode gzip' \
-    '}' > /etc/caddy/Caddyfile
+# Copy Caddyfile
+COPY deepfix-portal/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 3000
 
