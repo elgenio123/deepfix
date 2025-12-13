@@ -59,7 +59,7 @@ def _get_coordinator() -> ArtifactAnalysisCoordinator:
     global _coordinator
     if _coordinator is None:
         llm_config = _get_llm_config()
-        _coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
+        _coordinator = ArtifactAnalysisCoordinator(config=llm_config)
     return _coordinator
 
 

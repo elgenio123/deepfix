@@ -30,7 +30,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             return
 
         self.llm_config = LLMConfig.load_from_env()
-        self.coordinator = ArtifactAnalysisCoordinator(llm_config=self.llm_config)
+        self.coordinator = ArtifactAnalysisCoordinator(config=self.llm_config)
 
     def setup(self, device: str) -> None:
         """Setup the API endpoint.
