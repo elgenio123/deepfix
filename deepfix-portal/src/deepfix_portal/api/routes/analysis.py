@@ -202,7 +202,7 @@ async def analyse_artifacts(
 
         # 2. Get coordinator and run analysis
         coordinator = _get_coordinator()
-        results = await coordinator.run(agent_context)
+        results = await coordinator.arun(agent_context)
 
         # 3. Build response
         response = APIResponse(

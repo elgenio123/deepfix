@@ -97,7 +97,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             HTTPException: If analysis fails (status 500).
         """
         try:
-            results = await self.coordinator.run(request_ctx)
+            results = await self.coordinator.arun(request_ctx)
             response = APIResponse(
                 agent_results=results.get_agent_results(),
                 summary=results.summary,

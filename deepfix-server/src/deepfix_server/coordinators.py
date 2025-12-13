@@ -101,7 +101,7 @@ class ArtifactAnalysisCoordinator(Agent):
                 summary=None,
             )
 
-    async def run(self, context: AgentContext) -> ArtifactAnalysisResult:
+    def run(self, context: AgentContext) -> ArtifactAnalysisResult:
         """Run the coordinator (alias for arun for backward compatibility).
 
         Args:
@@ -137,14 +137,6 @@ class ArtifactAnalysisCoordinator(Agent):
         return ctx
 
     def forward(self, context: AgentContext) -> ArtifactAnalysisResult:
-        """Forward method required by Agent base class.
-
-        The coordinator's main functionality is async and returns ArtifactAnalysisResult.
-        Use the async run() method instead.
-
-        Raises:
-            NotImplementedError: Always raised, use async run() method instead.
-        """
         # 1. Analyze artifacts
         LOGGER.info(
             f"Analyzing {len(context.artifacts)} artifacts linked to dataset {context.dataset_name}..."
@@ -169,7 +161,7 @@ class ArtifactAnalysisCoordinator(Agent):
         return output
 
     def _initialize_analyzer_agents(self) -> List[ArtifactAnalyzer]:
-        """Initialize specialized analyzer agents."""
+        """Initialize specialized analyzer agents"""
         agents = [
             DeepchecksArtifactsAnalyzer(config=self._llm_config),
             DatasetArtifactsAnalyzer(config=self._llm_config),
