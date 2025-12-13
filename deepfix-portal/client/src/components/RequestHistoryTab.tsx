@@ -100,7 +100,6 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Endpoint</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -110,7 +109,6 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
               {[...Array(5)].map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-12" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
@@ -161,7 +159,6 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Endpoint</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -175,11 +172,6 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
                       <TableRow>
                         <TableCell className="font-medium">
                           {formatDate(log.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <code className="text-sm bg-muted px-2 py-1 rounded">
-                            {log.endpoint}
-                          </code>
                         </TableCell>
                         <TableCell>{getStatusBadge(log.status_code)}</TableCell>
                         <TableCell>{formatDuration(log.duration_ms)}</TableCell>
@@ -220,7 +212,7 @@ export default function RequestHistoryTab({ onViewDetails }: RequestHistoryTabPr
 
                       {isExpanded && (
                         <TableRow>
-                          <TableCell colSpan={5} className="bg-muted/10 p-0">
+                          <TableCell colSpan={4} className="bg-muted/10 p-0">
                             <div className="p-4">
                               <AnalysisResponseView
                                 responseJson={log.response_json}
