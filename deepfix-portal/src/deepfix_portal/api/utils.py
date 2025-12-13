@@ -8,6 +8,7 @@ from typing import Optional
 from jose import JWTError, jwt
 import os
 import hashlib
+import secrets
 
 # Use SHA256 truncation for passwords longer than 72 bytes (bcrypt limit)
 pwd_context = CryptContext(
@@ -84,6 +85,46 @@ def verify_token(token: str) -> Optional[str]:
 
     try:
         payload = jwt.decode(token, get_secret_key(), algorithms=[get_algorithm()])
+        user_id: str = payload.get("sub")
+        return user_id
+    except JWTError:
+        return None
+
+
+def generate_verification_token() -> str:
+    """
+    Generate a secure random token for email verification
+    Returns a URL-safe random token
+    """
+    return secrets.token_urlsafe(32)
+
+
+def create_verification_token(user_id: str) -> str:
+    """
+    Create a JWT token for email verification
+    Token expires in 24 hours
+    Returns the encoded JWT token
+    """
+    expire = datetime.now(timezone.utc) + timedelta(hours=24)
+    to_encode = {
+        "sub": user_id,
+        "type": "email_verification",
+        "exp": expire,
+    }
+    encoded_jwt = jwt.encode(to_encode, get_secret_key(), algorithm=get_algorithm())
+    return encoded_jwt
+
+
+def verify_verification_token(token: str) -> Optional[str]:
+    """
+    Verify and decode an email verification token
+    Returns user ID if valid, None otherwise
+    """
+    try:
+        payload = jwt.decode(token, get_secret_key(), algorithms=[get_algorithm()])
+        token_type = payload.get("type")
+        if token_type != "email_verification":
+            return None
         user_id: str = payload.get("sub")
         return user_id
     except JWTError:

@@ -11,6 +11,7 @@ import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import VerifyEmail from "@/pages/verify-email";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={AuthPage} />
         <Route path="/signup" component={AuthPage} />
+        <Route path="/verify-email" component={VerifyEmail} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/dashboard" component={Dashboard} />

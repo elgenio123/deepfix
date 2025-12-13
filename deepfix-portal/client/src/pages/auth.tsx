@@ -28,7 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -47,8 +47,11 @@ const signupSchema = z.object({
 
 export default function AuthPage() {
   const [location] = useLocation();
-  const { login, signup, isLoading: authLoading } = useAuth();
+  const { login, signup, resendVerificationEmail, isLoading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupEmail, setSignupEmail] = useState<string>("");
+  const [isResending, setIsResending] = useState(false);
 
   // Default tab based on URL, though we handle both here
   const defaultTab = location === "/signup" ? "signup" : "login";
@@ -85,11 +88,26 @@ export default function AuthPage() {
   async function onSignup(values: z.infer<typeof signupSchema>) {
     setIsSubmitting(true);
     try {
-      await signup(values.name, values.email, values.password);
+      const result = await signup(values.name, values.email, values.password);
+      setSignupEmail(result.email);
+      setSignupSuccess(true);
+      signupForm.reset();
     } catch (error) {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!signupEmail) return;
+    setIsResending(true);
+    try {
+      await resendVerificationEmail(signupEmail);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -162,72 +180,117 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <Form {...signupForm}>
-                <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
-                  <FormField
-                    control={signupForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="name@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="repeatPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Repeat Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button className="w-full mt-4" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-                </form>
-              </Form>
+              {signupSuccess ? (
+                <div className="text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground">Check your email</h3>
+                  <p className="text-muted-foreground">
+                    We've sent a verification link to <span className="font-medium text-foreground">{signupEmail}</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Please click the link in the email to verify your account before logging in.
+                  </p>
+                  <div className="pt-4 space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleResendVerification}
+                      disabled={isResending}
+                    >
+                      {isResending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Resend verification email
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        setSignupSuccess(false);
+                        setSignupEmail("");
+                      }}
+                    >
+                      Back to signup
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Form {...signupForm}>
+                  <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
+                    <FormField
+                      control={signupForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signupForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="name@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signupForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signupForm.control}
+                      name="repeatPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Repeat Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button className="w-full mt-4" type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        "Create Account"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

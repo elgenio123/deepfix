@@ -11,8 +11,8 @@ import os
 import sys
 
 
-from ..database import Base
-from ..models import User, APIKey  # Import all models here
+from deepfix_portal.api.database import Base
+from deepfix_portal.api.models import User, APIKey  # Import all models here
 
 # this is the Alembic Config object
 config = context.config

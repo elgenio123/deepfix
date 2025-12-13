@@ -5,7 +5,7 @@ SQLAlchemy database models
 import uuid
 
 from deepfix_core.models import RequestLog
-from sqlalchemy import Boolean, Column, DateTime, String, Text, text
+from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy.sql import func
 
 from .database import Base
@@ -24,10 +24,13 @@ class User(Base):
     email = Column(Text, unique=True, nullable=False, index=True)
     password = Column(Text, nullable=False)  # Should be hashed
     name = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=text("now()"))
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    email_verification_token = Column(Text, nullable=True)
+    email_verification_token_expires = Column(DateTime(timezone=True), nullable=True)
 
 
 class APIKey(Base):
@@ -40,5 +43,5 @@ class APIKey(Base):
     key = Column(String, unique=True, nullable=False, index=True)  # The actual API key
     name = Column(Text, nullable=True)  # Optional name for the key
     last_used = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=text("now()"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_active = Column(Boolean, default=True)

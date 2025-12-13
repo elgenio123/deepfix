@@ -25,17 +25,20 @@ import {
   History,
   Clock,
   Activity,
+  Mail,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RequestHistoryTab from "@/components/RequestHistoryTab";
 import RequestDetailDialog from "@/components/RequestDetailDialog";
 
 export default function Dashboard() {
-  const { user, isLoading, generateApiKey, deleteApiKey } = useAuth();
+  const { user, isLoading, generateApiKey, deleteApiKey, resendVerificationEmail } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [selectedLog, setSelectedLog] = useState<RequestLog | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -93,6 +96,16 @@ export default function Dashboard() {
     setDetailDialogOpen(true);
   };
 
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    setIsResendingVerification(true);
+    try {
+      await resendVerificationEmail(user.email);
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -105,6 +118,38 @@ export default function Dashboard() {
           System Status: Operational
         </div>
       </div>
+
+      {/* Email Verification Banner */}
+      {!user.email_verified && (
+        <Alert className="mb-6 bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+          <Mail className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-800 dark:text-amber-300">Verify your email</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-400 flex flex-col sm:flex-row sm:items-center gap-3">
+            <span>
+              Please verify your email address ({user.email}) to unlock all features.
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResendVerification}
+              disabled={isResendingVerification}
+              className="w-fit border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30"
+            >
+              {isResendingVerification ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Resend verification email
+                </>
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="api-keys" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">

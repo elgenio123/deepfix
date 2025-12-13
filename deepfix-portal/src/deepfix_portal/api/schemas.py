@@ -23,6 +23,7 @@ class UserResponse(UserBase):
     username: str
     is_active: bool
     is_admin: bool
+    email_verified: bool
     created_at: datetime
 
     class Config:
@@ -100,6 +101,28 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+
+# Email Verification Schemas
+class EmailVerificationRequest(BaseModel):
+    token: str
+
+
+class EmailVerificationResponse(BaseModel):
+    message: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    message: str
+
+
+class SignupResponse(BaseModel):
+    message: str
+    email: EmailStr
 
 
 # Request Log Schemas
