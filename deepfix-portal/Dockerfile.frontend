@@ -22,12 +22,14 @@ COPY --from=builder /app/dist/public ./public
 
 # Create Caddyfile for SPA routing
 # Caddy automatically handles SPA routing with try_files directive
-RUN echo ':3000 { \
-    root * /srv/public \
-    file_server \
-    try_files {path} /index.html \
-    encode gzip \
-}' > /etc/caddy/Caddyfile
+RUN sh -c 'cat > /etc/caddy/Caddyfile <<EOF
+:3000 {
+    root * /srv/public
+    file_server
+    try_files {path} /index.html
+    encode gzip
+}
+EOF'
 
 EXPOSE 3000
 
