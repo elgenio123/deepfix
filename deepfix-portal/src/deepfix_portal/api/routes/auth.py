@@ -21,6 +21,10 @@ from ..schemas import (
     EmailVerificationResponse,
     ResendVerificationRequest,
     ResendVerificationResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
 )
 from ..utils import (
     hash_password,
@@ -31,7 +35,7 @@ from ..utils import (
     verify_verification_token,
 )
 from ..dependencies import get_current_user
-from ..email_service import send_verification_email
+from ..email_service import send_verification_email, send_password_reset_email
 
 router = APIRouter()
 
@@ -269,6 +273,108 @@ async def resend_verification(
 
     return ResendVerificationResponse(
         message="If an account exists with this email, a verification link has been sent."
+    )
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    forgot_data: ForgotPasswordRequest, db: Session = Depends(get_db)
+):
+    """
+    Request password reset email
+    """
+    try:
+        user = db.query(User).filter(User.email == forgot_data.email).first()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503, detail="Database unavailable. Please retry shortly."
+        ) from exc
+
+    # Always return success message to prevent email enumeration
+    success_message = (
+        "If an account exists with this email, a password reset link has been sent."
+    )
+
+    if not user:
+        return ForgotPasswordResponse(message=success_message)
+
+    # Generate password reset token using user ID
+    reset_token = create_verification_token(user.id)
+    token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+
+    # Update user with reset token
+    user.password_reset_token = reset_token
+    user.password_reset_token_expires = token_expires
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to process request. Please retry shortly.",
+        ) from exc
+
+    # Send password reset email
+    try:
+        await send_password_reset_email(
+            email=user.email, token=reset_token, name=user.name
+        )
+    except Exception as e:
+        # Log error but return success message for security
+        print(f"Failed to send password reset email: {e}")
+
+    return ForgotPasswordResponse(message=success_message)
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    reset_data: ResetPasswordRequest, db: Session = Depends(get_db)
+):
+    """
+    Reset password with token
+    """
+    # Verify the token
+    user_id = verify_verification_token(reset_data.token)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    # Find user by ID
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503, detail="Database unavailable. Please retry shortly."
+        ) from exc
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if token matches and hasn't expired
+    if (
+        user.password_reset_token != reset_data.token
+        or user.password_reset_token_expires is None
+        or user.password_reset_token_expires < datetime.now(timezone.utc)
+    ):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    # Update password and clear reset token
+    user.password = hash_password(reset_data.new_password)
+    user.password_reset_token = None
+    user.password_reset_token_expires = None
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503, detail="Unable to reset password. Please retry shortly."
+        ) from exc
+
+    return ResetPasswordResponse(
+        message="Password reset successfully! You can now log in with your new password."
     )
 
 

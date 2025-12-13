@@ -3,6 +3,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Link } from "wouter";
+
+// Prefer explicit env; fall back to backend port in dev, same-origin in prod
+const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== "undefined") {
+    if (window.location.port === "5173") {
+      return "http://localhost:5041";
+    }
+    return window.location.origin;
+  }
+  return "http://localhost:5041";
+})();
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { ArrowLeft, Mail, Loader2, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -30,6 +43,7 @@ const forgotPasswordSchema = z.object({
 export default function ForgotPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -40,10 +54,36 @@ export default function ForgotPassword() {
 
   async function onSubmit(values: z.infer<typeof forgotPasswordSchema>) {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: values.email }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to send reset link";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || errorMessage;
+        } catch {
+          // Response was not JSON, use default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -67,13 +107,9 @@ export default function ForgotPassword() {
               <p className="text-muted-foreground">
                 We've sent a password reset link to <span className="font-medium text-foreground">{form.getValues("email")}</span>.
               </p>
-              <div className="pt-4">
-                <Link href="/reset-password">
-                  <Button variant="outline" className="w-full">
-                    Click here to simulate "Link Clicked"
-                  </Button>
-                </Link>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                The link will expire in 1 hour. If you don't see the email, check your spam folder.
+              </p>
             </div>
           ) : (
             <Form {...form}>

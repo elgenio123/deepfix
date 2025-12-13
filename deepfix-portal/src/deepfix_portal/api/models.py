@@ -31,6 +31,8 @@ class User(Base):
     email_verified = Column(Boolean, default=False, nullable=False)
     email_verification_token = Column(Text, nullable=True)
     email_verification_token_expires = Column(DateTime(timezone=True), nullable=True)
+    password_reset_token = Column(Text, nullable=True)
+    password_reset_token_expires = Column(DateTime(timezone=True), nullable=True)
 
 
 class APIKey(Base):

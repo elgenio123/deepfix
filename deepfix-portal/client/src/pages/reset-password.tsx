@@ -1,8 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
+
+// Prefer explicit env; fall back to backend port in dev, same-origin in prod
+const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (typeof window !== "undefined") {
+    if (window.location.port === "5173") {
+      return "http://localhost:5041";
+    }
+    return window.location.origin;
+  }
+  return "http://localhost:5041";
+})();
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,7 +32,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const resetPasswordSchema = z.object({
@@ -35,6 +47,19 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState(false);
+
+  useEffect(() => {
+    // Get token from URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get("token");
+    if (tokenParam) {
+      setToken(tokenParam);
+    } else {
+      setTokenError(true);
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
     resolver: zodResolver(resetPasswordSchema),
@@ -45,17 +70,79 @@ export default function ResetPassword() {
   });
 
   async function onSubmit(values: z.infer<typeof resetPasswordSchema>) {
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Invalid reset token. Please request a new password reset link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          new_password: values.password,
+        }),
+      });
 
-    toast({
-      title: "Password Reset Successful",
-      description: "You can now login with your new password.",
-    });
+      if (!response.ok) {
+        let errorMessage = "Failed to reset password";
+        try {
+          const error = await response.json();
+          errorMessage = error.detail || errorMessage;
+        } catch {
+          // Response was not JSON, use default message
+        }
+        throw new Error(errorMessage);
+      }
 
-    setLocation("/login");
-    setIsSubmitting(false);
+      toast({
+        title: "Password Reset Successful",
+        description: "You can now login with your new password.",
+      });
+
+      setLocation("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (tokenError) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 bg-muted/20">
+        <Card className="w-full max-w-md shadow-lg border-muted">
+          <CardHeader className="space-y-1">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">
+              Invalid Reset Link
+            </CardTitle>
+            <CardDescription className="text-center">
+              This password reset link is invalid or has expired. Please request a new one.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Link href="/forgot-password">
+              <Button className="w-full">Request New Reset Link</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
