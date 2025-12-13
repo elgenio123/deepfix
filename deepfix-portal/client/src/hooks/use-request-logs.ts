@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
-// Prefer explicit env; fall back to same-origin or dev default port 5041 (uvicorn)
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== "undefined" ? window.location.origin : "") ||
-  "http://localhost:5041";
+import { API_BASE_URL } from "@/lib/api-url";
 
 // Helper function to get auth token
 const getToken = (): string | null => {

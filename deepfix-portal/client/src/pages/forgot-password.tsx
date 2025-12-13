@@ -3,18 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Link } from "wouter";
-
-// Prefer explicit env; fall back to backend port in dev, same-origin in prod
-const API_BASE_URL = (() => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== "undefined") {
-    if (window.location.port === "5173") {
-      return "http://localhost:5041";
-    }
-    return window.location.origin;
-  }
-  return "http://localhost:5041";
-})();
+import { API_BASE_URL } from "@/lib/api-url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

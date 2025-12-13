@@ -38,29 +38,36 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-server.rule=Host(`localhost`) && PathPrefix(`/server`)"
-      - "traefik.http.routers.deepfix-server.entrypoints=web"
+      - "traefik.http.routers.deepfix-server.entrypoints=web,websecure"
+      - "traefik.http.routers.deepfix-server.tls=true"
+      - "traefik.http.routers.deepfix-server.priority=100"
       - "traefik.http.services.deepfix-server.loadbalancer.server.port=8844"
 
   # ===================
   # DeepFix Portal Frontend
   # ===================
-  deepfix-portal-frontend:
+  deepfix-portal:
     build:
       context: .
       dockerfile: deepfix-portal/Dockerfile.frontend
-    image: deepfix-portal-frontend:latest
+    image: deepfix-portal:latest
+    #ports:
+    #  - "3000:3000"
     restart: unless-stopped
     networks:
       - deepfix-network
+    volumes:
+      - ./deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - deepfix-portal-api
+      - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portal-frontend.rule=Host(`localhost`) && PathPrefix(`/home`)"
-      - "traefik.http.routers.portal-frontend.entrypoints=web"
-      - "traefik.http.routers.portal-frontend.middlewares=portal-strip"
-      - "traefik.http.middlewares.portal-strip.stripprefix.prefixes=/home"
-      - "traefik.http.services.portal-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.deepfix-portal.rule=Host(`localhost`)"
+      - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
+      - "traefik.http.routers.deepfix-portal.tls=true"
+      - "traefik.http.routers.deepfix-portal.priority=1"
+      - "traefik.http.services.deepfix-portal.loadbalancer.server.port=3000"
 
   # ===================
   # DeepFix Portal API (Backend)
@@ -72,6 +79,8 @@ services:
     image: deepfix-portal-api:latest
     env_file:
       - .env
+    #ports:
+    #  - "5041:5041"
     environment:
       - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/deepfix_portal
     restart: unless-stopped
@@ -82,11 +91,11 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.portal-api.entrypoints=web"
-      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
-      - "traefik.http.routers.portal-api.middlewares=api-strip"
-      - "traefik.http.services.portal-api.loadbalancer.server.port=5041"
+      - "traefik.http.routers.deepfix-portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.deepfix-portal-api.entrypoints=web,websecure"
+      - "traefik.http.routers.deepfix-portal-api.tls=true"
+      - "traefik.http.routers.deepfix-portal-api.priority=100"
+      - "traefik.http.services.deepfix-portal-api.loadbalancer.server.port=5041"
 
   # ===================
   # MLflow Server
@@ -123,7 +132,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mlflow.rule=Host(`localhost`) && PathPrefix(`/mlflow`)"
-      - "traefik.http.routers.mlflow.entrypoints=web"
+      - "traefik.http.routers.mlflow.entrypoints=web,websecure"
+      - "traefik.http.routers.mlflow.tls=true"
+      - "traefik.http.routers.mlflow.priority=100"
       - "traefik.http.services.mlflow.loadbalancer.server.port=5000"
 
   # ===================
@@ -158,7 +169,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jaeger.rule=Host(`localhost`) && PathPrefix(`/jaeger`)"
-      - "traefik.http.routers.jaeger.entrypoints=web"
+      - "traefik.http.routers.jaeger.entrypoints=web,websecure"
+      - "traefik.http.routers.jaeger.tls=true"
+      - "traefik.http.routers.jaeger.priority=100"
       - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
 
   # ===================
