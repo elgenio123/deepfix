@@ -182,6 +182,12 @@ async def verify_email(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Check if email is already verified
+    if user.email_verified:
+        return EmailVerificationResponse(
+            message="Email is already verified. You can log in to your account."
+        )
+
     # Check if token matches and hasn't expired
     if (
         user.email_verification_token != verification_data.token

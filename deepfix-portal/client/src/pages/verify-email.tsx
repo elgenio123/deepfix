@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle, Mail } from "lucide-react";
 
+// Track verification attempts globally (survives HMR and re-renders)
+const verificationAttempts = new Set<string>();
+
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
   const { verifyEmail, resendVerificationEmail } = useAuth();
@@ -31,16 +34,42 @@ export default function VerifyEmail() {
       return;
     }
 
-    // Verify email with token
+    // Check if we've already attempted to verify this token (globally)
+    if (verificationAttempts.has(token)) {
+      return;
+    }
+
+    // Also check sessionStorage to survive page refreshes within the same session
+    const sessionKey = `email_verify_${token}`;
+    if (sessionStorage.getItem(sessionKey)) {
+      // Already attempted in this session - check result
+      const result = sessionStorage.getItem(sessionKey);
+      if (result === "success") {
+        setStatus("success");
+      } else if (result === "error") {
+        setStatus("error");
+        setErrorMessage("Verification already attempted. Please try resending a new verification email.");
+      }
+      return;
+    }
+
+    // Mark token as being verified (prevents duplicate calls)
+    verificationAttempts.add(token);
+    sessionStorage.setItem(sessionKey, "pending");
+
+    // Verify email with token (only once)
     verifyEmail(token)
       .then(() => {
+        sessionStorage.setItem(sessionKey, "success");
         setStatus("success");
       })
       .catch((error) => {
+        sessionStorage.setItem(sessionKey, "error");
         setStatus("error");
         setErrorMessage(error instanceof Error ? error.message : "Invalid or expired verification token");
       });
-  }, [verifyEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   const handleResend = async () => {
     if (!email) {

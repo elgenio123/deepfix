@@ -81,30 +81,30 @@ The DeepFix Team
 
     # HTML version
     html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h1 style="color: #2563eb; margin-top: 0;">Welcome to DeepFix!</h1>
-        <p>Hello {user_name},</p>
-        <p>Thank you for signing up! Please verify your email address to complete your account setup.</p>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{verification_link}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Verify Email Address</a>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h1 style="color: #2563eb; margin-top: 0;">Welcome to DeepFix!</h1>
+            <p>Hello {user_name},</p>
+            <p>Thank you for signing up! Please verify your email address to complete your account setup.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{verification_link}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Verify Email Address</a>
+            </div>
+            <p style="font-size: 14px; color: #666;">Or copy and paste this link into your browser:</p>
+            <p style="font-size: 12px; color: #999; word-break: break-all;">{verification_link}</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">This link will expire in 24 hours.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 20px;">If you didn't create an account with DeepFix, please ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="font-size: 12px; color: #999; margin: 0;">Best regards,<br>The DeepFix Team</p>
         </div>
-        <p style="font-size: 14px; color: #666;">Or copy and paste this link into your browser:</p>
-        <p style="font-size: 12px; color: #999; word-break: break-all;">{verification_link}</p>
-        <p style="font-size: 14px; color: #666; margin-top: 30px;">This link will expire in 24 hours.</p>
-        <p style="font-size: 14px; color: #666; margin-top: 20px;">If you didn't create an account with DeepFix, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-        <p style="font-size: 12px; color: #999; margin: 0;">Best regards,<br>The DeepFix Team</p>
-    </div>
-</body>
-</html>
-"""
+    </body>
+    </html>
+    """
 
     # Attach both versions
     text_part = MIMEText(text_content, "plain")
@@ -114,24 +114,14 @@ The DeepFix Team
 
     # Send email
     try:
-        if config["use_tls"]:
-            await aiosmtplib.send(
-                message,
-                hostname=config["host"],
-                port=config["port"],
-                username=config["username"],
-                password=config["password"],
-                use_tls=True,
-            )
-        else:
-            await aiosmtplib.send(
-                message,
-                hostname=config["host"],
-                port=config["port"],
-                username=config["username"],
-                password=config["password"],
-                start_tls=False,
-            )
+        await aiosmtplib.send(
+            message,
+            hostname=config["host"],
+            port=config["port"],
+            username=config["username"],
+            password=config["password"],
+            use_tls=config["use_tls"],  # Use STARTTLS for port 587
+        )
     except Exception as e:
         # Log error but don't fail the signup process
         print(f"[EMAIL] Failed to send verification email to {email}: {e}")
