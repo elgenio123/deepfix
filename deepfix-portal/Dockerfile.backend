@@ -23,7 +23,9 @@ COPY deepfix-server ./deepfix-server
 # Install Python deps into a project-local venv
 RUN uv venv /opt/venv
 RUN . /opt/venv/bin/activate \
-    && uv pip install ./deepfix-core ./deepfix-server ./deepfix-portal
+    && uv pip install ./deepfix-core ./deepfix-server
+RUN . /opt/venv/bin/activate \
+    && uv pip install ./deepfix-portal
 
 ###############
 # Runtime stage
