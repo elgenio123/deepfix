@@ -5,6 +5,7 @@ This module provides the API endpoint for analyzing ML artifacts,
 replicating the functionality of LitServe-based deepfix-server.
 """
 
+import dspy
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import get_api_key_user
+from ..dspy_cache import DSPyDatabaseCache
 from ..models import RequestLog
 from ..schemas import APIKeyValidationResponse
 
@@ -29,9 +31,10 @@ router = APIRouter()
 LOGGER = logging.getLogger(__name__)
 
 
-# Singleton coordinator instance
+# Singleton instances
 _coordinator: Optional[ArtifactAnalysisCoordinator] = None
 _llm_config: Optional[LLMConfig] = None
+_dspy_cache: Optional[DSPyDatabaseCache] = None
 
 if os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"):
     from openinference.instrumentation.dspy import DSPyInstrumentor
@@ -54,10 +57,24 @@ def _get_llm_config() -> LLMConfig:
     return _llm_config
 
 
+def _get_dspy_cache() -> DSPyDatabaseCache:
+    """Get or create the singleton DSPy database cache instance."""
+    global _dspy_cache
+    if _dspy_cache is None:
+        _dspy_cache = DSPyDatabaseCache()
+        # Set as the global DSPy cache
+        dspy.cache = _dspy_cache
+        LOGGER.info("DSPy database cache initialized and configured")
+    return _dspy_cache
+
+
 def _get_coordinator() -> ArtifactAnalysisCoordinator:
     """Get or create the singleton coordinator instance."""
     global _coordinator
     if _coordinator is None:
+        # Initialize DSPy cache before creating coordinator
+        _get_dspy_cache()
+
         llm_config = _get_llm_config()
         _coordinator = ArtifactAnalysisCoordinator(config=llm_config)
     return _coordinator
@@ -244,4 +261,5 @@ async def analysis_health():
         "status": "ok",
         "service": "analysis",
         "coordinator_initialized": _coordinator is not None,
+        "dspy_cache_initialized": _dspy_cache is not None,
     }
