@@ -1,8 +1,14 @@
 # Ignore local environment files that should not be in production builds
+# Misc
+*.log
 *.env.local
-.env.*.local
+**/*.env.local
 client/.env.local
-client/.env.*.local
+deepfix-portal/client/.env.local
+*.env.*.local
+**/*.env.*.local
+tmp/
+temp/
 
 # Development dependencies and caches
 node_modules

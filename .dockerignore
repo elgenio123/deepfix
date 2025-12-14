@@ -65,8 +65,11 @@ Pipfile.lock
 # Misc
 *.log
 *.env.local
+**/*.env.local
 client/.env.local
+deepfix-portal/client/.env.local
 *.env.*.local
+**/*.env.*.local
 tmp/
 temp/
 
