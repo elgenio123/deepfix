@@ -59,6 +59,8 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
+      - FRONTEND_URL=http://deepfix.localhost
+      - ENVIRONMENT=production
     restart: unless-stopped
     networks:
       - deepfix-network
