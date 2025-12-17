@@ -90,7 +90,7 @@ services:
       - deepfix-network
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-portal-api.rule=Host(`deepfix.localhost`) && PathPrefix(`/api`)"
