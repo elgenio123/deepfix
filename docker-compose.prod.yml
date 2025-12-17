@@ -41,11 +41,14 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal.rule=Host(`deepfix.localhost`)"
+      - "traefik.http.routers.deepfix-portal.rule=Host(`localhost`)"
       - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
       - "traefik.http.routers.deepfix-portal.tls=true"
       - "traefik.http.routers.deepfix-portal.priority=1"
       - "traefik.http.services.deepfix-portal.loadbalancer.server.port=3000"
+      - "traefik.http.routers.deepfix-portal-http.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.deepfix-portal-http.entrypoints=web"
+      - "traefik.http.routers.deepfix-portal-http.priority=1"
 
   # ===================
   # DeepFix Portal API (Backend)
@@ -59,7 +62,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
-      - FRONTEND_URL=http://deepfix.localhost
+      - FRONTEND_URL=http://localhost
       - ENVIRONMENT=production
     restart: unless-stopped
     networks:
@@ -69,11 +72,14 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal-api.rule=Host(`deepfix.localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.deepfix-portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
       - "traefik.http.routers.deepfix-portal-api.entrypoints=web,websecure"
       - "traefik.http.routers.deepfix-portal-api.tls=true"
       - "traefik.http.routers.deepfix-portal-api.priority=100"
       - "traefik.http.services.deepfix-portal-api.loadbalancer.server.port=5041"
+      - "traefik.http.routers.deepfix-portal-api-http.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
+      - "traefik.http.routers.deepfix-portal-api-http.priority=100"
 
 # ===================
 # Networks
