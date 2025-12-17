@@ -155,11 +155,11 @@ All agents inherit from a base `Agent` class:
 ```python
 class Agent(dspy.Module):
     """Base agent class for DeepFix analysis agents."""
-    
+
     def __init__(self, llm_config: LLMConfig):
         self.llm = configure_llm(llm_config)
         # Initialize agent-specific components
-    
+
     def analyze(self, context: AgentContext) -> AgentResult:
         """Run analysis and return results."""
         # Agent-specific analysis logic
@@ -334,4 +334,3 @@ The cross-artifact reasoning agent generates:
 - [Architecture Overview](overview.md) - High-level system architecture
 - [Client-Server Architecture](client-server.md) - Component responsibilities
 - [API Reference](../api-reference/index.md) - API documentation
-

@@ -157,16 +157,16 @@ df_test = pd.read_csv("raw_test.csv")
 def preprocess(df):
     # Handle missing values
     df = df.fillna(df.median())
-    
+
     # Encode categorical variables
     categorical_cols = df.select_dtypes(include=['object']).columns
     for col in categorical_cols:
         df[col] = pd.Categorical(df[col]).codes
-    
+
     # Normalize numerical features
     numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
     df[numerical_cols] = (df[numerical_cols] - df[numerical_cols].mean()) / df[numerical_cols].std()
-    
+
     return df
 
 # Preprocess
@@ -211,15 +211,15 @@ import pandas as pd
 def create_features(df):
     # Create interaction features
     df['feature_interaction'] = df['feature1'] * df['feature2']
-    
+
     # Create polynomial features
     df['feature_squared'] = df['feature1'] ** 2
-    
+
     # Create time-based features (if applicable)
     if 'timestamp' in df.columns:
         df['hour'] = pd.to_datetime(df['timestamp']).dt.hour
         df['day_of_week'] = pd.to_datetime(df['timestamp']).dt.dayofweek
-    
+
     return df
 
 df_train = create_features(df_train)
@@ -310,7 +310,7 @@ if result.additional_outputs:
    ```python
    # Strategy 1: Fill with median/mean
    df = df.fillna(df.median())
-   
+
    # Strategy 2: Drop columns with high missing rate
    missing_rate = df.isnull().sum() / len(df)
    df = df.drop(columns=missing_rate[missing_rate > 0.5].index)
@@ -319,7 +319,7 @@ if result.additional_outputs:
 2. **Outlier Detection**: Identify and handle outliers
    ```python
    from scipy import stats
-   
+
    z_scores = stats.zscore(df[numerical_cols])
    outliers = (z_scores > 3).any(axis=1)
    df = df[~outliers]
@@ -416,4 +416,3 @@ df_train = df_train.astype(df_test.dtypes.to_dict())
 - [NLP Datasets Guide](nlp-datasets.md) - Analyze text datasets
 - [MLflow Integration](mlflow-integration.md) - Track experiments
 - [API Reference](../api-reference/index.md) - Complete API documentation
-

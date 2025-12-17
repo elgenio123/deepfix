@@ -259,22 +259,22 @@ def process_dataset(
     batch_size: int = 8
 ) -> Dict[str, Any]:
     """Process dataset and return results.
-    
+
     This function processes a dataset and returns analysis results.
-    
+
     Args:
         dataset_name: Name of the dataset to process
         batch_size: Batch size for processing. Defaults to 8.
-        
+
     Returns:
         Dictionary containing:
             - results: Analysis results
             - metadata: Processing metadata
-            
+
     Raises:
         ValueError: If dataset_name is invalid
         FileNotFoundError: If dataset not found
-        
+
     Example:
         >>> result = process_dataset("my-dataset", batch_size=16)
         >>> print(result["results"])
@@ -467,4 +467,3 @@ uv run mypy deepfix-sdk/src --show-error-codes
 - [Code Style](#code-quality) - Coding standards
 - [Testing](#testing) - Testing practices
 - [Documentation](#documentation) - Documentation guide
-

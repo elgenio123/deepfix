@@ -276,4 +276,3 @@ result = client.get_diagnosis(
 ```
 
 See the [Troubleshooting section](../guides/image-classification.md#troubleshooting) for more issues and solutions.
-

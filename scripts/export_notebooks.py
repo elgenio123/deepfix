@@ -96,9 +96,7 @@ def export_notebook(
         return True
 
     except Exception as e:
-        logger.error(
-            f"  ✗ Failed to export {notebook_path.name}: {e}", exc_info=True
-        )
+        logger.error(f"  ✗ Failed to export {notebook_path.name}: {e}", exc_info=True)
         return False
 
 
@@ -284,4 +282,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

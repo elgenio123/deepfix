@@ -13,9 +13,13 @@ dependencies = [
     "mkdocstrings[python]>=0.24.0",
     "mkdocs-git-revision-date-localized-plugin>=1.2.0",
     "nbconvert>=7.16.6",
-    "pycaret>=2.2.2",
-    "fairlearn>=0.13.0",
     "streamlit>=1.51.0",
+    "psycopg2>=2.9.11",
+    "bcrypt==4.0.1",
+    "pre-commit>=4.5.0",
+    "opentelemetry-api>=1.39.0",
+    "opentelemetry-sdk>=1.39.0",
+    "opentelemetry-exporter-otlp>=1.39.0",
 ]
 
 [tool.ruff]
@@ -39,9 +43,10 @@ line-ending = "auto"
 deepfix-core = { workspace = true }
 deepfix-sdk = { workspace = true }
 deepfix-server = { workspace = true }
+deepfix-portal = { workspace = true }
 
 [tool.uv.workspace]
-members = ["deepfix-core","deepfix-sdk","deepfix-server"]
+members = ["deepfix-core","deepfix-sdk","deepfix-server","deepfix-portal"]
 
 [[tool.uv.index]]
 name = "testpypi"

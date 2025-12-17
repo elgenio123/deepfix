@@ -213,7 +213,9 @@ class ArtifactAnalyzer(Agent):
             artifacts=context.artifacts, context=None
         )
         with self._llm_context():
-            response = await self.llm.acall(artifacts=prompt, output_language=context.language)
+            response = await self.llm.acall(
+                artifacts=prompt, output_language=context.language
+            )
         return AgentResult(
             agent_name=self.agent_name,
             analysis=response.analysis,

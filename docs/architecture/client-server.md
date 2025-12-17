@@ -360,4 +360,3 @@ Client → Ingest Multiple Artifacts → Request Multiple Analyses → Aggregate
 - [API Reference](../api-reference/index.md) - API documentation
 
 > **Note:** Workflow and Service specifications are available in the `specs/` directory at the repository root.
-

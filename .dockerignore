@@ -15,6 +15,9 @@ env/
 ENV/
 .venv
 
+# Node.js
+node_modules/
+
 # IDE
 .vscode/
 .idea/
@@ -61,8 +64,14 @@ Pipfile.lock
 
 # Misc
 *.log
-.env.local
-.env.*.local
+*.env.local
+**/*.env.local
+client/.env.local
+deepfix-portal/client/.env.local
+*.env.*.local
+**/*.env.*.local
 tmp/
 temp/
 
+# Local data directories
+server_data/

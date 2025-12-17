@@ -245,20 +245,20 @@ with mlflow.start_run(run_name="custom-run"):
     # Log parameters
     mlflow.log_param("dataset_name", "my-dataset")
     mlflow.log_param("batch_size", 8)
-    
+
     # Use DeepFix
     client = DeepFixClient(...)
     result = client.diagnose_dataset(...)
-    
+
     # Log metrics
     mlflow.log_metric("num_issues", len(result.agent_results))
     mlflow.log_metric("severity_score", calculate_severity(result))
-    
+
     # Log artifacts
     with open("diagnosis_report.txt", "w") as f:
         f.write(result.to_text())
     mlflow.log_artifact("diagnosis_report.txt")
-    
+
     # Log tags
     mlflow.set_tag("dataset_type", "image")
     mlflow.set_tag("analysis_version", "1.0")
@@ -432,4 +432,3 @@ mlflow.log_param("data_uri", "s3://bucket/data.csv")
 - [Quickstart Guide](../getting-started/quickstart.md) - Basic DeepFix usage
 - [Configuration Guide](../getting-started/configuration.md) - Configure DeepFix
 - [API Reference](../api-reference/index.md) - Complete API documentation
-

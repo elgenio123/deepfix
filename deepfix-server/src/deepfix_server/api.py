@@ -21,6 +21,17 @@ class AnalyseArtifactsAPI(ls.LitAPI):
     deepchecks, model checkpoints) and returning diagnostic results.
     """
 
+    def _ensure_initialized(self) -> None:
+        """Initialize dependencies if setup has not run."""
+        if (
+            getattr(self, "portal_client", None) is not None
+            and getattr(self, "coordinator", None) is not None
+        ):
+            return
+
+        self.llm_config = LLMConfig.load_from_env()
+        self.coordinator = ArtifactAnalysisCoordinator(config=self.llm_config)
+
     def setup(self, device: str) -> None:
         """Setup the API endpoint.
 
@@ -29,16 +40,15 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         Args:
             device: Device specification (unused, kept for LitAPI compatibility).
         """
-        try:
-            assert os.getenv("MLFLOW_EXP_NAME") is not None, "MLFLOW_EXP_NAME is not set"
-            setup_dspy_logging(experiment_name=os.getenv("MLFLOW_EXP_NAME"),
-            tracking_uri=os.getenv("MLFLOW_TRACKING_URI")
+        if os.getenv("MLFLOW_EXP_NAME") and os.getenv("MLFLOW_TRACKING_URI"):
+            setup_dspy_logging(
+                experiment_name=os.getenv("MLFLOW_EXP_NAME"),
+                tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
             )
-        except Exception:
+        else:
             print(f"Error setting up DSPy logging: {traceback.format_exc()}")
 
-        llm_config = LLMConfig.load_from_env()
-        self.coordinator = ArtifactAnalysisCoordinator(llm_config=llm_config)
+        self._ensure_initialized()
 
     async def decode_request(self, request: APIRequest) -> AgentContext:
         """Decode API request into AgentContext.
@@ -55,7 +65,9 @@ class AnalyseArtifactsAPI(ls.LitAPI):
         try:
             dataset_artifacts = request.dataset_artifacts
             if isinstance(request.dataset_artifacts, dict):
-                dataset_artifacts = DatasetArtifacts.from_dict(request.dataset_artifacts)
+                dataset_artifacts = DatasetArtifacts.from_dict(
+                    request.dataset_artifacts
+                )
             elif not isinstance(request.dataset_artifacts, DatasetArtifacts):
                 raise ValueError("Dataset artifacts must be a DatasetArtifacts object")
             return AgentContext(
@@ -66,11 +78,11 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 dataset_name=request.dataset_name,
                 language=request.language,
             )
-        except Exception as e:
+        except Exception as exc:
             raise HTTPException(
                 status_code=400,
-                detail=f"Error decoding request: {e}",
-            )
+                detail=f"Error decoding request: {exc}",
+            ) from exc
 
     async def predict(self, request_ctx: AgentContext) -> APIResponse:
         """Run artifact analysis and return results.
@@ -85,7 +97,7 @@ class AnalyseArtifactsAPI(ls.LitAPI):
             HTTPException: If analysis fails (status 500).
         """
         try:
-            results = await self.coordinator.run(request_ctx)
+            results = await self.coordinator.arun(request_ctx)
             response = APIResponse(
                 agent_results=results.get_agent_results(),
                 summary=results.summary,
@@ -94,8 +106,8 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 dataset_name=request_ctx.dataset_name,
             )
             return response
-        except Exception:
-            raise HTTPException(status_code=500, detail=traceback.format_exc())
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=traceback.format_exc()) from exc
 
 
 def run_analyse_artifacts_api(
@@ -112,11 +124,13 @@ def run_analyse_artifacts_api(
         workers_per_device: Number of workers per device. Defaults to 1.
         fast_queue: Enable fast queue mode. Defaults to False.
     """
+
     server = ls.LitServer(
-        AnalyseArtifactsAPI(api_path="/v1/analyse",enable_async=True,),
+        AnalyseArtifactsAPI(api_path="/api/v1/analyse", enable_async=True),
         workers_per_device=workers_per_device,
         fast_queue=fast_queue,
     )
+
     server.run(
         host=host,
         port=port,

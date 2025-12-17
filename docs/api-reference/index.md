@@ -108,4 +108,3 @@ print(response.summary)
 - [Quickstart Guide](../getting-started/quickstart.md) - Get started with DeepFix
 - [Architecture](../architecture/overview.md) - System architecture
 - [Guides](../guides/image-classification.md) - Usage guides
-

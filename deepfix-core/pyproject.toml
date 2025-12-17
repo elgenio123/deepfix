@@ -7,9 +7,11 @@ requires-python = ">=3.11.0"
 dependencies = [
     "omegaconf>=2.3.0",
     "pandas",
+    "platformdirs",
     "pyyaml",
     "pydantic",
     "rich",
+    "sqlalchemy",
 ]
 
 [tool.ruff]
@@ -27,5 +29,3 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
-

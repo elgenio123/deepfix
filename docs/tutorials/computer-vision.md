@@ -38,7 +38,7 @@ val_data = ImageClassificationDataset(dataset_name=dataset_name, dataset=val_dat
 ```
 
     Getting label mapping: 100%|██████████| 375/375 [00:03<00:00, 107.85it/s]
-    
+
 
 
 ```python
@@ -51,7 +51,7 @@ result = client.get_diagnosis(
 
     Computing dataset base statistics: 100%|██████████| 215/215 [00:06<00:00, 33.33it/s]
     Computing dataset base statistics: 100%|██████████| 160/160 [00:11<00:00, 14.06it/s]
-    
+
 
 
 
@@ -515,7 +515,69 @@ result = client.get_diagnosis(
     Computing base box statistics: 100%|██████████| 1356/1356 [00:00<00:00, 307780.52it/s]
     Computing dataset base statistics: 100%|██████████| 668/668 [00:08<00:00, 76.87it/s]
     Computing base box statistics: 100%|██████████| 668/668 [00:00<?, ?it/s]
-    
+
+
+
+
+<style>
+    progress {
+        -webkit-appearance: none;
+        border: none;
+        border-radius: 3px;
+        width: 300px;
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 10px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-bar {
+        border-radius: 3px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-value {
+        background-color: #9d60fb;
+    }
+    progress::-moz-progress-bar {
+        background-color: #9d60fb;
+    }
+</style>
+
+
+
+
+
+
+
+
+
+<style>
+    progress {
+        -webkit-appearance: none;
+        border: none;
+        border-radius: 3px;
+        width: 300px;
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 10px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-bar {
+        border-radius: 3px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-value {
+        background-color: #9d60fb;
+    }
+    progress::-moz-progress-bar {
+        background-color: #9d60fb;
+    }
+</style>
+
+
+
+
+
+
 
 
 
@@ -608,6 +670,9 @@ result = client.get_diagnosis(
 
 
 
+
+
+    UserWarning: Properties that have class_id as output_type will be skipped.
 
 
 
@@ -673,72 +738,7 @@ result = client.get_diagnosis(
 
 
     UserWarning: Properties that have class_id as output_type will be skipped.
-    
 
-
-
-<style>
-    progress {
-        -webkit-appearance: none;
-        border: none;
-        border-radius: 3px;
-        width: 300px;
-        height: 20px;
-        vertical-align: middle;
-        margin-right: 10px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-bar {
-        border-radius: 3px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-value {
-        background-color: #9d60fb;
-    }
-    progress::-moz-progress-bar {
-        background-color: #9d60fb;
-    }
-</style>
-
-
-
-
-
-
-
-
-
-<style>
-    progress {
-        -webkit-appearance: none;
-        border: none;
-        border-radius: 3px;
-        width: 300px;
-        height: 20px;
-        vertical-align: middle;
-        margin-right: 10px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-bar {
-        border-radius: 3px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-value {
-        background-color: #9d60fb;
-    }
-    progress::-moz-progress-bar {
-        background-color: #9d60fb;
-    }
-</style>
-
-
-
-
-
-
-
-    UserWarning: Properties that have class_id as output_type will be skipped.
-    
 
 
 
@@ -982,7 +982,69 @@ result = client.get_diagnosis(
 
     Computing dataset base statistics: 100%|██████████| 48/48 [00:03<00:00, 14.42it/s]
     Computing dataset base statistics: 100%|██████████| 49/49 [00:03<00:00, 14.83it/s]
-    
+
+
+
+
+<style>
+    progress {
+        -webkit-appearance: none;
+        border: none;
+        border-radius: 3px;
+        width: 300px;
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 10px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-bar {
+        border-radius: 3px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-value {
+        background-color: #9d60fb;
+    }
+    progress::-moz-progress-bar {
+        background-color: #9d60fb;
+    }
+</style>
+
+
+
+
+
+
+
+
+
+<style>
+    progress {
+        -webkit-appearance: none;
+        border: none;
+        border-radius: 3px;
+        width: 300px;
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 10px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-bar {
+        border-radius: 3px;
+        background-color: aliceblue;
+    }
+    progress::-webkit-progress-value {
+        background-color: #9d60fb;
+    }
+    progress::-moz-progress-bar {
+        background-color: #9d60fb;
+    }
+</style>
+
+
+
+
+
+
 
 
 
@@ -1075,6 +1137,9 @@ result = client.get_diagnosis(
 
 
 
+
+
+    UserWarning: Properties that have class_id as output_type will be skipped.
 
 
 
@@ -1140,72 +1205,7 @@ result = client.get_diagnosis(
 
 
     UserWarning: Properties that have class_id as output_type will be skipped.
-    
 
-
-
-<style>
-    progress {
-        -webkit-appearance: none;
-        border: none;
-        border-radius: 3px;
-        width: 300px;
-        height: 20px;
-        vertical-align: middle;
-        margin-right: 10px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-bar {
-        border-radius: 3px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-value {
-        background-color: #9d60fb;
-    }
-    progress::-moz-progress-bar {
-        background-color: #9d60fb;
-    }
-</style>
-
-
-
-
-
-
-
-
-
-<style>
-    progress {
-        -webkit-appearance: none;
-        border: none;
-        border-radius: 3px;
-        width: 300px;
-        height: 20px;
-        vertical-align: middle;
-        margin-right: 10px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-bar {
-        border-radius: 3px;
-        background-color: aliceblue;
-    }
-    progress::-webkit-progress-value {
-        background-color: #9d60fb;
-    }
-    progress::-moz-progress-bar {
-        background-color: #9d60fb;
-    }
-</style>
-
-
-
-
-
-
-
-    UserWarning: Properties that have class_id as output_type will be skipped.
-    
 
 
 
@@ -1409,5 +1409,3 @@ result.to_text()
 
 
     ''
-
-

@@ -148,7 +148,7 @@ APIResponse
 ### Client (SDK)
 
 - **Language**: Python 3.11+
-- **Key Libraries**: 
+- **Key Libraries**:
   - `requests` for HTTP communication
   - `mlflow` for artifact tracking
   - `pydantic` for data validation
@@ -175,7 +175,7 @@ APIResponse
 
 - **Protocol**: HTTP/HTTPS
 - **Format**: JSON
-- **Endpoints**: 
+- **Endpoints**:
   - `POST /v1/analyse` - Analyze artifacts
 
 ### Request Format
@@ -289,4 +289,3 @@ APIResponse
 - [Agent System](agents.md) - Agent architecture and execution
 - [API Reference](../api-reference/index.md) - API documentation
 - [Deployment Guide](../deployment/docker.md) - Deployment instructions
-

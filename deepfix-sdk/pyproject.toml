@@ -65,4 +65,3 @@ deepfix-core = {workspace = true}
 
 [project.scripts]
 deepfix-sdk = "deepfix_sdk.cli:main"
-

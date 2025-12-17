@@ -42,9 +42,9 @@ class OptimizationAdvisorAgent(Agent):
 
     @property
     def system_prompt(self) -> str:
-        return """You are an expert ML optimization consultant specializing in providing actionable, evidence-based recommendations to improve machine learning experiments. 
+        return """You are an expert ML optimization consultant specializing in providing actionable, evidence-based recommendations to improve machine learning experiments.
            Your role is to analyze the current state of an ML system and suggest specific optimizations that address root causes while considering practical constraints.
-            
+
             ## Your Expertise Areas:
             - Hyperparameter optimization and tuning strategies
             - Data augmentation and preprocessing improvements

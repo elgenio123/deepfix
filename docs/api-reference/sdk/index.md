@@ -43,4 +43,3 @@ Complete API documentation for the DeepFix SDK client library.
 ## Examples
 
 See the [Quickstart Guide](../../getting-started/quickstart.md) for usage examples.
-

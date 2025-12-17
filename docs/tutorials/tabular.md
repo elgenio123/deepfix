@@ -4,10 +4,10 @@ from deepfix_sdk import DeepFixClient
 ```
 
     d:\workspace\repos\deepfix\.venv\Lib\site-packages\deepchecks\core\serialization\dataframe\html.py:16: UserWarning:
-    
+
     pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
-    
-    
+
+
 
 
 ```python
@@ -60,7 +60,7 @@ val_data = TabularDataset(
 
     No categorical features provided, will automatically detect them. (Not Recommended)
     No categorical features provided, will automatically detect them. (Not Recommended)
-    
+
 
 
 ```python
@@ -118,7 +118,7 @@ result = client.get_diagnosis(
 
 
     FutureWarning: DataFrame.applymap has been deprecated. Use DataFrame.map instead.
-    
+
 
 
 
@@ -184,7 +184,7 @@ result = client.get_diagnosis(
 
     deepchecks - WARNING - Could not find built-in feature importance on the model, using permutation feature importance calculation instead
     deepchecks - INFO - Calculating permutation feature importance. Expected to finish in 15 seconds
-    
+
 
 
     Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
@@ -341,5 +341,3 @@ result.to_text(verbose=False)
 
 
     ''
-
-

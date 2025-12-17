@@ -79,7 +79,7 @@ This document defines the interaction patterns, workflows, and error handling st
 1. **Training Execution** (User → Lightning)
    - User calls `trainer.fit(model)`
    - Training proceeds normally
-   
+
 2. **Artifact Computation** (Callback)
    - On `on_fit_end()` hook
    - Compute training metrics summary
@@ -98,7 +98,7 @@ This document defines the interaction patterns, workflows, and error handling st
    - POST `/api/v1/analyze`
    - Payload: `{run_id, mlflow_tracking_uri, analysis_options}`
    - Timeout: 60s
-   
+
 5. **Artifact Retrieval** (Server → MLflow)
    - Server fetches artifacts using MLflow client
    - Downloads to temporary directory
@@ -108,7 +108,7 @@ This document defines the interaction patterns, workflows, and error handling st
 6. **Analysis Execution** (Server)
    - Parallel execution:
      - TrainingArtifactsAnalyzerAgent
-     - DatasetArtifactsAnalyzerAgent  
+     - DatasetArtifactsAnalyzerAgent
      - DeepchecksArtifactsAnalyzerAgent
    - Sequential execution:
      - CrossArtifactIntegrationAgent
@@ -354,8 +354,8 @@ for item in results:
 
 ```
 Server fetches artifacts:
-✅ training_artifacts/metrics.csv  
-✅ training_artifacts/params.yaml  
+✅ training_artifacts/metrics.csv
+✅ training_artifacts/params.yaml
 ❌ deepchecks/  (not found)
 ❌ dataset/  (not found)
 
@@ -519,7 +519,7 @@ class RetryConfig:
     max_delay: float = 10.0
     backoff_factor: float = 2.0
     retryable_statuses: List[int] = [408, 429, 500, 502, 503, 504]
-    
+
     def get_delay(self, attempt: int) -> float:
         """Exponential backoff with jitter"""
         delay = min(
@@ -554,23 +554,23 @@ class PollingConfig:
     max_interval: float = 10.0     # Cap at 10s
     max_wait_time: float = 300.0   # Give up after 5min
     backoff_factor: float = 1.5
-    
+
 async def poll_until_complete(request_id: str) -> AnalysisResult:
     start_time = time.time()
     interval = initial_interval
-    
+
     while time.time() - start_time < max_wait_time:
         status = await client.get_status(request_id)
-        
+
         if status.status == "completed":
             return await client.get_result(request_id)
         elif status.status == "failed":
             raise AnalysisError(status.error_message)
-        
+
         # Backoff
         await asyncio.sleep(interval)
         interval = min(interval * backoff_factor, max_interval)
-    
+
     raise TimeoutError(f"Analysis did not complete within {max_wait_time}s")
 ```
 
@@ -588,21 +588,21 @@ async def execute_analysis(context: AgentContext) -> AnalysisResult:
         DatasetArtifactsAnalyzer(),
         DeepchecksArtifactsAnalyzer()
     ]
-    
+
     results = await asyncio.gather(
         *[agent.run(context) for agent in artifact_agents],
         return_exceptions=True
     )
-    
+
     # Phase 2: Sequential integration
     context.agent_results = {r.agent_name: r for r in results if not isinstance(r, Exception)}
-    
+
     integration_result = await CrossArtifactIntegrationAgent().run(context)
     context.agent_results["CrossArtifact"] = integration_result
-    
+
     optimization_result = await OptimizationAdvisorAgent().run(context)
     context.agent_results["OptimizationAdvisor"] = optimization_result
-    
+
     return create_analysis_result(context)
 ```
 
@@ -633,7 +633,7 @@ results = await asyncio.gather(*[
 class AnalysisService:
     def __init__(self):
         self.user_sessions = {}  # NO!
-        
+
 # ✅ DO: Pure functions
 async def analyze(request: AnalysisRequest) -> AnalysisResult:
     """Stateless analysis - no side effects"""
@@ -685,7 +685,6 @@ return result
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: October 15, 2025  
+**Document Version**: 1.0
+**Last Updated**: October 15, 2025
 **Status**: Specification Complete
-

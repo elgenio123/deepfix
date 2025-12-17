@@ -1,0 +1,16 @@
+:3000 {
+	root * /srv/public
+
+	# Fallback to index.html for SPA routing (React Router)
+	try_files {path} /index.html
+	file_server
+
+	# Enable compression
+	encode gzip
+
+	# Logging
+	log {
+		output stdout
+		format console
+	}
+}

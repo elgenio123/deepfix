@@ -74,7 +74,7 @@ result = client.get_diagnosis(
     deepchecks - WARNING - Could not find model's classes, using the observed classes. In order to make sure the classes used by the model are inferred correctly, please use the model_classes argument
     UserWarning: n_jobs value 1 overridden to 1 by setting random_state. Use no seed for parallelism.
     UserWarning: n_jobs value 1 overridden to 1 by setting random_state. Use no seed for parallelism.
-    
+
 
 
 
@@ -109,7 +109,7 @@ result = client.get_diagnosis(
 
     FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
     FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
-    
+
 
 
 ```python
@@ -244,5 +244,3 @@ result.to_text()
 
 
     ''
-
-
