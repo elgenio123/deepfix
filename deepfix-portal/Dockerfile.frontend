@@ -8,7 +8,6 @@ COPY deepfix-portal/package-lock.json deepfix-portal/package.json ./
 COPY deepfix-portal/tsconfig.json deepfix-portal/vite.config.ts deepfix-portal/vite-plugin-meta-images.ts deepfix-portal/postcss.config.js deepfix-portal/components.json ./
 COPY deepfix-portal/client ./client
 COPY deepfix-portal/shared ./shared
-COPY deepfix-portal/attached_assets ./attached_assets
 COPY deepfix-portal/script ./script
 RUN npm install
 RUN npm run build
