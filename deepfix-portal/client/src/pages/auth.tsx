@@ -88,10 +88,8 @@ export default function AuthPage() {
   async function onSignup(values: z.infer<typeof signupSchema>) {
     setIsSubmitting(true);
     try {
-      const result = await signup(values.name, values.email, values.password);
-      setSignupEmail(result.email);
-      setSignupSuccess(true);
-      signupForm.reset();
+      await signup(values.name, values.email, values.password);
+      await login(values.email, values.password);
     } catch (error) {
       console.error(error);
     } finally {
