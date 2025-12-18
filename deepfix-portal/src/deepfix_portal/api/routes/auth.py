@@ -237,9 +237,7 @@ async def resend_verification(
 
     if not user:
         # Don't reveal if email exists or not for security
-        return ResendVerificationResponse(
-            message="If an account exists with this email, a verification link has been sent."
-        )
+        return ResendVerificationResponse(message="A verification link has been sent.")
 
     if user.email_verified:
         return ResendVerificationResponse(message="Email is already verified.")
@@ -271,9 +269,7 @@ async def resend_verification(
         # Log error but return success message for security
         print(f"Failed to send verification email: {e}")
 
-    return ResendVerificationResponse(
-        message="If an account exists with this email, a verification link has been sent."
-    )
+    return ResendVerificationResponse(message="A verification link has been sent.")
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
