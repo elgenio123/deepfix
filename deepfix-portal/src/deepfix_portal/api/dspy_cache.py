@@ -5,14 +5,14 @@ This module provides a custom cache that stores LLM request/response pairs
 in the database with hit count tracking, following DSPy's cache customization patterns.
 """
 
+import copy
 import json
 import logging
 from datetime import datetime, timezone
-from hashlib import sha256
+import os
 from typing import Any, Dict, Optional
 
 import dspy.clients
-import orjson
 from sqlalchemy.exc import IntegrityError
 
 from .database import SessionLocal
@@ -42,41 +42,14 @@ class DSPyDatabaseCache(dspy.clients.Cache):
                      Note: enable_disk_cache and enable_memory_cache are ignored
                      as this cache replaces those mechanisms.
         """
-        # We don't call super().__init__() because we're replacing the default cache
-        # behavior entirely with our database implementation
-        # pylint: disable=super-init-not-called
+        super().__init__(
+            enable_disk_cache=True,
+            enable_memory_cache=False,
+            disk_cache_dir=os.getenv("DSPY_CACHEDIR", ".dspy_cache"),
+            disk_size_limit_bytes=1024 * 1024 * 10,
+            memory_max_entries=1000000,
+        )
         LOGGER.info("Initialized DSPy database cache")
-
-    def cache_key(
-        self,
-        request: Dict[str, Any],
-        ignored_args_for_cache_key: list[str] = ["api_key", "api_base", "base_url"],
-    ) -> str:
-        """Compute cache key from request.
-
-        The cache key is a SHA256 hash of the request parameters, excluding
-        ignored arguments. Uses orjson for deterministic serialization with
-        recursive key sorting to ensure identical requests always produce the
-        same hash, regardless of dictionary key ordering.
-
-        Args:
-            request: The LLM request dictionary containing messages, model, etc.
-            ignored_args_for_cache_key: Optional list of keys to ignore when
-                computing the cache key. Defaults to ["api_key", "api_base", "base_url"].
-
-        Returns:
-            SHA256 hash string to use as cache key.
-        """
-
-        # Filter out ignored arguments from the request
-        params = {
-            k: v for k, v in request.items() if k not in ignored_args_for_cache_key
-        }
-
-        # Use orjson with OPT_SORT_KEYS for deterministic, recursive key sorting
-        # This ensures that {"a": 1, "b": 2} and {"b": 2, "a": 1} produce the same hash
-        cache_bytes = orjson.dumps(params, option=orjson.OPT_SORT_KEYS)
-        return sha256(cache_bytes).hexdigest()
 
     def get(
         self,
@@ -97,7 +70,21 @@ class DSPyDatabaseCache(dspy.clients.Cache):
         Returns:
             Cached response object if found, None otherwise.
         """
-        key = self.cache_key(request, ignored_args_for_cache_key)
+        try:
+            key = self.cache_key(request, ignored_args_for_cache_key)
+        except Exception:
+            LOGGER.debug(f"Failed to generate cache key for request: {request}")
+            return None
+
+        if self.enable_disk_cache and key in self.disk_cache:
+            response = self.disk_cache[key]
+            response = copy.deepcopy(response)
+            if hasattr(response, "usage"):
+                # Clear the usage data when cache is hit, because no LM call is made
+                response.usage = {}
+                response.cache_hit = True
+            return response
+
         db = SessionLocal()
 
         try:
@@ -117,6 +104,11 @@ class DSPyDatabaseCache(dspy.clients.Cache):
                     cache_entry.model_name,
                     cache_entry.hit_count,
                 )
+                if self.enable_disk_cache:
+                    self.disk_cache[key] = response
+                if hasattr(response, "usage"):
+                    response.usage = {}
+                    response.cache_hit = True
                 return response
 
             # Cache miss
@@ -155,8 +147,14 @@ class DSPyDatabaseCache(dspy.clients.Cache):
         key = self.cache_key(request, ignored_args_for_cache_key)
         model_name = request.get("model", "unknown")
 
-        db = SessionLocal()
+        if self.enable_disk_cache:
+            try:
+                self.disk_cache[key] = value
+            except Exception as e:
+                # Disk cache writing can fail for different reasons, e.g. disk full or the `value` is not picklable.
+                LOGGER.debug(f"Failed to put value in disk cache: {value}, {e}")
 
+        db = SessionLocal()
         try:
             # Check if entry already exists (race condition protection)
             existing = db.query(DSPyCache).filter(DSPyCache.cache_key == key).first()
