@@ -22,7 +22,7 @@ services:
       - deepfix-network
     labels:
       - "traefik.enable=true"
-  
+
   # ===================
   # Pinggy Tunnel
   # ===================
@@ -80,7 +80,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
-      - FRONTEND_URL=http://localhost
+      - FRONTEND_URL=https://deepfix.delcaux.com
       - ENVIRONMENT=production
     restart: unless-stopped
     networks:
