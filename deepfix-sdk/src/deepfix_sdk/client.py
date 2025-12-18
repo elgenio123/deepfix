@@ -381,6 +381,10 @@ class DeepFixClient:
         Note:
             Requires the DEEPFIX_API_KEY environment variable to be set for authentication.
         """
+        console.print(
+            f"[dim]Connecting to: {self._analyze_endpoint}[/dim]",
+            style="dim",
+        )
         with Live(
             Spinner("dots", text="[cyan]Running analysis...[/cyan]", style="cyan"),
             console=console,
