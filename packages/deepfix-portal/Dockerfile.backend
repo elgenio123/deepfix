@@ -17,15 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy workspace structure (needed for uv to resolve workspace dependencies)
 COPY pyproject.toml ./pyproject.toml
-COPY packages/deepfix-core ./deepfix-core
-COPY packages/deepfix-portal ./deepfix-portal
-COPY packages/deepfix-server ./deepfix-server
+COPY packages/deepfix-core ./packages/deepfix-core
+COPY packages/deepfix-portal ./packages/deepfix-portal
+COPY packages/deepfix-server ./packages/deepfix-server
 
 # Install Python deps into a project-local venv (same pattern as working Dockerfile)
-WORKDIR /app/deepfix-portal
 RUN uv venv .venv
-RUN uv pip install ../deepfix-core ../deepfix-server
-RUN uv pip install .
+RUN uv pip install  /app/packages/deepfix-core
+RUN uv pip install  /app/packages/deepfix-server
+RUN uv pip install  /app/packages/deepfix-portal
+WORKDIR /app/packages/deepfix-portal
 
 # Create .deepfix directory with proper permissions for the app user
 RUN mkdir -p .deepfix && chown -R app:app .deepfix
@@ -33,10 +34,10 @@ RUN mkdir -p .cache && chown -R app:app .cache
 RUN mkdir -p .mplconfig && chown -R app:app .mplconfig
 
 USER app
-ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
-ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
-ENV DSPY_CACHEDIR=/app/deepfix-portal/.cache
-ENV MPLCONFIGDIR=/app/deepfix-portal/.mplconfig
+ENV PATH="/app/.venv/bin:${PATH}"
+ENV DEEPFIX_HOME=/app/packages/deepfix-portal/.deepfix
+ENV DSPY_CACHEDIR=/app/packages/deepfix-portal/.cache
+ENV MPLCONFIGDIR=/app/packages/deepfix-portal/.mplconfig
 
 EXPOSE 5041
 

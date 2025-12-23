@@ -24,10 +24,10 @@ WORKDIR /app
 RUN uv venv /opt/venv
 
 # Install dependencies into the venv first (use lock/info from pyproject)
-COPY packages/deepfix-server ./deepfix-server
-COPY packages/deepfix-core ./deepfix-core
+COPY packages/deepfix-server ./packages/deepfix-server
+COPY packages/deepfix-core ./packages/deepfix-core
 
-COPY pyproject.toml ./
+COPY pyproject.toml ./pyproject.toml
 
 #RUN . /opt/venv/bin/activate \
 #    && uv pip install -r deepfix-server/pyproject.toml
