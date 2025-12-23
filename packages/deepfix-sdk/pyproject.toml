@@ -7,7 +7,6 @@ requires-python = ">=3.11.0"
 dependencies = [
     "anywidget>=0.9.18",
     "datasets>=4.0.0",
-    "httpx>=0.28.1",
     "huggingface-hub[hf-xet]>=0.34.4",
     "kaleido>=1.1.0",
     "mlflow>=3.3.2",
