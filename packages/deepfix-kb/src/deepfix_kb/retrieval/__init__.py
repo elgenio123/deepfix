@@ -2,7 +2,13 @@
 
 from .base import BaseRetriever, RetrievalResult
 from .tavily_client import TavilySearchRetriever
-from .perplexity_client import PerplexitySonarRetriever
+from .perplexity_client import (
+    PerplexitySonarRetriever,
+    PerplexityError,
+    PerplexityConfigError,
+    PerplexityAPIError,
+    PerplexityResponseError,
+)
 from .hybrid_retriever import HybridRetriever, RetrievalStrategy
 
 __all__ = [
@@ -10,6 +16,10 @@ __all__ = [
     "RetrievalResult",
     "TavilySearchRetriever",
     "PerplexitySonarRetriever",
+    "PerplexityError",
+    "PerplexityConfigError",
+    "PerplexityAPIError",
+    "PerplexityResponseError",
     "HybridRetriever",
     "RetrievalStrategy",
 ]

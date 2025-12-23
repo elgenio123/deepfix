@@ -13,6 +13,44 @@ from .base import BaseRetriever, RetrievalResult
 
 logger = logging.getLogger(__name__)
 
+
+# ============================================================================
+# Custom Exceptions
+# ============================================================================
+
+
+class PerplexityError(Exception):
+    """Base exception for Perplexity-related errors."""
+
+    pass
+
+
+class PerplexityConfigError(PerplexityError):
+    """Raised when Perplexity client is not properly configured."""
+
+    pass
+
+
+class PerplexityAPIError(PerplexityError):
+    """Raised when Perplexity API call fails."""
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        original_error: Optional[Exception] = None,
+    ):
+        super().__init__(message)
+        self.status_code = status_code
+        self.original_error = original_error
+
+
+class PerplexityResponseError(PerplexityError):
+    """Raised when response parsing or validation fails."""
+
+    pass
+
+
 # Perplexity Sonar models available through OpenRouter
 PERPLEXITY_MODELS = {
     "sonar": "perplexity/sonar",  # Fast, lightweight Q&A
@@ -286,8 +324,9 @@ class PerplexitySonarRetriever(BaseRetriever):
             answer and extracted citations.
 
         Raises:
-            ValueError: If API key is not configured.
-            Exception: If DSPy call fails.
+            PerplexityConfigError: If API key is not configured.
+            PerplexityAPIError: If the API call fails.
+            PerplexityResponseError: If response parsing fails.
         """
         logger.info(f"Perplexity query ({self.model_name}): '{query[:100]}...'")
 
@@ -330,9 +369,19 @@ class PerplexitySonarRetriever(BaseRetriever):
             logger.info(f"Perplexity returned response with {len(citations)} citations")
             return [result]
 
+        except ValueError as e:
+            # Configuration errors (e.g., missing API key)
+            logger.error(f"Perplexity configuration error: {e}")
+            raise PerplexityConfigError(str(e)) from e
+        except AttributeError as e:
+            # Response parsing errors (e.g., missing 'answer' field)
+            logger.error(f"Perplexity response error: {e}")
+            raise PerplexityResponseError(f"Failed to parse response: {e}") from e
         except Exception as e:
-            logger.error(f"Perplexity query failed: {e}")
-            raise
+            # API or network errors
+            error_msg = f"Perplexity API call failed: {e}"
+            logger.error(error_msg)
+            raise PerplexityAPIError(error_msg, original_error=e) from e
 
     def _extract_citations(self, content: str) -> List[str]:
         """Extract citation URLs from Perplexity Sonar response.
@@ -416,6 +465,13 @@ class PerplexitySonarRetriever(BaseRetriever):
                 },
             )
 
+        except ValueError as e:
+            logger.error(f"Perplexity configuration error: {e}")
+            raise PerplexityConfigError(str(e)) from e
+        except AttributeError as e:
+            logger.error(f"Perplexity response error: {e}")
+            raise PerplexityResponseError(f"Failed to parse response: {e}") from e
         except Exception as e:
-            logger.error(f"Perplexity research failed: {e}")
-            raise
+            error_msg = f"Perplexity research failed: {e}"
+            logger.error(error_msg)
+            raise PerplexityAPIError(error_msg, original_error=e) from e
