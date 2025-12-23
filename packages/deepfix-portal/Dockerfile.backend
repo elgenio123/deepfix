@@ -17,9 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy workspace structure (needed for uv to resolve workspace dependencies)
 COPY pyproject.toml ./pyproject.toml
-COPY deepfix-core ./deepfix-core
-COPY deepfix-portal ./deepfix-portal
-COPY deepfix-server ./deepfix-server
+COPY packages/deepfix-core ./deepfix-core
+COPY packages/deepfix-portal ./deepfix-portal
+COPY packages/deepfix-server ./deepfix-server
 
 # Install Python deps into a project-local venv (same pattern as working Dockerfile)
 WORKDIR /app/deepfix-portal

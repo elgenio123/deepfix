@@ -46,7 +46,7 @@ services:
   deepfix-server:
     build:
       context: .
-      dockerfile: deepfix-server/Dockerfile
+      dockerfile: packages/deepfix-server/Dockerfile
     image: deepfix-server:latest
     env_file:
       - .env
@@ -68,8 +68,8 @@ services:
   # ===================
   deepfix-portal:
     build:
-      context: .
-      dockerfile: deepfix-portal/Dockerfile.frontend
+      context: ./packages/deepfix-portal
+      dockerfile: Dockerfile.frontend
     image: deepfix-portal:latest
     #ports:
     #  - "3000:3000"
@@ -77,7 +77,7 @@ services:
     networks:
       - deepfix-network
     volumes:
-      - ./deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
+      - ./packages/deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - deepfix-portal-api
       - traefik
@@ -99,7 +99,7 @@ services:
   deepfix-portal-api:
     build:
       context: .
-      dockerfile: deepfix-portal/Dockerfile.backend
+      dockerfile: packages/deepfix-portal/Dockerfile.backend
     image: deepfix-portal-api:latest
     env_file:
       - .env
@@ -168,46 +168,6 @@ services:
       - "traefik.http.routers.mlflow-http.rule=PathPrefix(`/mlflow`)"
       - "traefik.http.routers.mlflow-http.entrypoints=web"
       - "traefik.http.routers.mlflow-http.priority=100"
-
-  # ===================
-  # Jaeger Tracing
-  # ===================
-  jaeger:
-    image: cr.jaegertracing.io/jaegertracing/jaeger:2.13.0
-    container_name: jaeger
-    ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
-      - "5778:5778"
-      - "9411:9411"
-    environment:
-      - LOG_LEVEL=debug
-      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
-      - SPAN_STORAGE_TYPE=badger
-      - BADGER_EPHEMERAL=false
-      - BADGER_DIRECTORY_VALUE=/badger/data
-      - BADGER_DIRECTORY_KEY=/badger/key
-    volumes:
-      - ./server_data/badger:/badger
-    networks:
-      - deepfix-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:16686"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jaeger.rule=Host(`localhost`) && PathPrefix(`/jaeger`)"
-      - "traefik.http.routers.jaeger.entrypoints=web,websecure"
-      - "traefik.http.routers.jaeger.tls=true"
-      - "traefik.http.routers.jaeger.priority=100"
-      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
-      - "traefik.http.routers.jaeger-http.rule=PathPrefix(`/jaeger`)"
-      - "traefik.http.routers.jaeger-http.entrypoints=web"
-      - "traefik.http.routers.jaeger-http.priority=100"
 
   # ===================
   # PostgreSQL Database

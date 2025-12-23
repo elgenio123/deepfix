@@ -45,14 +45,14 @@ services:
   # ===================
   deepfix-portal:
     build:
-      context: .
-      dockerfile: deepfix-portal/Dockerfile.frontend
+      context: ./packages/deepfix-portal
+      dockerfile: Dockerfile.frontend
     image: deepfix-portal:latest
     restart: unless-stopped
     networks:
       - deepfix-network
     volumes:
-      - ./deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
+      - ./packages/deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - deepfix-portal-api
       - traefik
@@ -74,7 +74,7 @@ services:
   deepfix-portal-api:
     build:
       context: .
-      dockerfile: deepfix-portal/Dockerfile.backend
+      dockerfile: packages/deepfix-portal/Dockerfile.backend
     image: deepfix-portal-api:latest
     env_file:
       - .env
