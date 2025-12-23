@@ -95,6 +95,21 @@ This repository contains multiple packages:
 
 See the [Architecture Documentation](docs/architecture/overview.md) for details.
 
+## Deployment
+
+### Initial Deployment
+
+```bash
+# Build images
+docker compose -f docker-compose.prod.yml build
+
+# Start services
+docker compose -f docker-compose.prod.yml up -d
+
+# Verify all services are healthy
+docker compose -f docker-compose.prod.yml ps
+```
+
 ## 📝 License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
