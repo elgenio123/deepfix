@@ -83,7 +83,7 @@ class ArtifactAnalysisCoordinator(Agent):
 
         # 3. Optimization recommendations (grounded with KnowledgeBridge)
         LOGGER.info("Generating optimization recommendations...")
-        optimization_result = await self.optimization_advisor_agent.acall(
+        optimization_result = await self.optimization_advisor_agent.arun(
             artifacts_analysis=cross_artifact_result.analysis,
             constraints=None,
         )

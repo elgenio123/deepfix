@@ -4,7 +4,6 @@ import dspy
 
 from deepfix_kb import KnowledgeBridge, KnowledgeResponse
 from deepfix_core.models import Analysis
-
 from ..config import LLMConfig
 from .base import Agent
 from deepfix_core.models import AgentResult
@@ -34,7 +33,7 @@ class OptimizationAdvisorAgent(Agent):
         self.llm = dspy.ChainOfThought(signature)
         self.knowledge_bridge = knowledge_bridge
 
-    async def forward(
+    async def aforward(
         self,
         artifacts_analysis: List[Analysis],
         constraints: Optional[str] = None,
@@ -63,6 +62,24 @@ class OptimizationAdvisorAgent(Agent):
         return AgentResult(
             agent_name=self.agent_name,
             analysis=response.analysis,
+        )
+
+    async def arun(
+        self,
+        artifacts_analysis: List[Analysis],
+        constraints: Optional[str] = None,
+    ) -> AgentResult:
+        try:
+            return await self.acall(artifacts_analysis, constraints)
+        except Exception as e:
+            LOGGER.error(
+                f"Error with agent {self.agent_name}:\n {traceback.format_exc()}"
+            )
+            return AgentResult(agent_name=self.agent_name, error_message=str(e))
+
+    def forward(self, **kwargs):
+        raise NotImplementedError(
+            "Use acall in async mode. forward method is not defined"
         )
 
     async def _retrieve_knowledge(self, analyses: List[Analysis]) -> str:
@@ -100,7 +117,7 @@ class OptimizationAdvisorAgent(Agent):
             except Exception as e:
                 # Log but continue with other queries
                 # knowledge_parts.append(f"Retrieval failed: {str(e)}")
-                pass
+                print(f"Retrieval failed: {str(e)}")
 
         if not knowledge_parts:
             return "No external knowledge could be retrieved."
