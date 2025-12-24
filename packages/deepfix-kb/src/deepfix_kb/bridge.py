@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, Union
+from deepfix_core.models import Analysis
 
 from .retrieval import (
     HybridRetriever,
@@ -185,7 +184,7 @@ class KnowledgeBridge:
 
     async def query(
         self,
-        query: str,
+        query: Union[str, Analysis],
         context: Optional[str] = None,
         sources: Optional[List[str]] = None,
         max_results: int = 5,
@@ -302,7 +301,7 @@ class KnowledgeBridge:
 
     def _enhance_query(
         self,
-        query: str,
+        query: Union[str, Analysis],
         context: Optional[str],
     ) -> str:
         """Enhance query with additional context.
@@ -310,13 +309,46 @@ class KnowledgeBridge:
         When agents provide context about their current analysis,
         this context can help retrieve more relevant information.
 
+        For Analysis objects:
+        - Query is extracted from findings.description
+        - Context is built from evidence, severity, and recommendations
+
         Args:
-            query: Original query.
-            context: Additional context from the agent.
+            query: Original query string or Analysis object.
+            context: Additional context from the agent (used for string queries).
 
         Returns:
-            Enhanced query string.
+            Enhanced query string optimized for knowledge retrieval.
         """
+        if isinstance(query, Analysis):
+            # Extract the main query from findings description
+            main_query = query.findings.description
+
+            # Build context from analysis details
+            context_parts = []
+
+            # Add evidence as context
+            if query.findings.evidence:
+                context_parts.append(f"Evidence: {query.findings.evidence}")
+
+            # Add severity for prioritization
+            context_parts.append(f"Severity: {query.findings.severity.value}")
+
+            # Add recommendation context
+            if query.recommendations.action:
+                context_parts.append(f"Proposed action: {query.recommendations.action}")
+            if query.recommendations.rationale:
+                context_parts.append(f"Rationale: {query.recommendations.rationale}")
+
+            analysis_context = "\n".join(context_parts)
+
+            return (
+                f"ML Training Issue: {main_query}\n\n"
+                f"Context:\n{analysis_context}\n\n"
+                f"Find best practices, research, and solutions for this issue."
+            )
+
+        # String query handling
         if not context:
             return query
 

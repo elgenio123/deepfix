@@ -18,14 +18,6 @@ class OptimizationAdvisorAgent(Agent):
     and uses KnowledgeBridge to retrieve relevant external knowledge (web search,
     scientific papers, best practices) to provide evidence-based optimization
     recommendations.
-
-    Example:
-        >>> bridge = KnowledgeBridge()
-        >>> advisor = OptimizationAdvisorAgent(knowledge_bridge=bridge)
-        >>> result = await advisor.forward(
-        ...     artifacts_analysis="Training shows overfitting after epoch 10",
-        ...     optimization_areas=["regularization", "data_augmentation"]
-        ... )
     """
 
     def __init__(
@@ -86,15 +78,14 @@ class OptimizationAdvisorAgent(Agent):
 
         for analysis in analyses:
             try:
-                ctx = analysis.model_dump()
-                query = analysis.findings.description
-                ctx["findings"].pop("description")
                 response: KnowledgeResponse = await self.knowledge_bridge.query(
-                    query=query, max_results=3, synthesize=True, context=ctx
+                    query=analysis,
+                    max_results=3,
+                    synthesize=True,
                 )
 
                 if response.synthesis:
-                    knowledge_parts.append(f"## {query}\n{response.synthesis}")
+                    knowledge_parts.append(f"{response.synthesis}")
 
                     # Add citations
                     if response.total_citations:
@@ -105,7 +96,8 @@ class OptimizationAdvisorAgent(Agent):
 
             except Exception as e:
                 # Log but continue with other queries
-                knowledge_parts.append(f"## {query}\n(Retrieval failed: {str(e)})")
+                # knowledge_parts.append(f"Retrieval failed: {str(e)}")
+                pass
 
         if not knowledge_parts:
             return "No external knowledge could be retrieved."
