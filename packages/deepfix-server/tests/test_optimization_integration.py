@@ -11,7 +11,28 @@ mock_kb.KnowledgeBridge = MagicMock
 mock_kb.KnowledgeResponse = MagicMock
 sys.modules["deepfix_kb"] = mock_kb
 
-from deepfix_server.agents.optimizationadvisor import OptimizationAdvisorAgent
+
+class MockFindings:
+    """Mock Findings for testing."""
+
+    def __init__(self):
+        self.description = "Model shows overfitting after epoch 10"
+
+
+class MockAnalysis:
+    """Mock Analysis model for testing."""
+
+    def __init__(self):
+        self.findings = MockFindings()
+
+    def model_dump(self):
+        return {
+            "findings": {
+                "description": "Model shows overfitting after epoch 10",
+                "severity": "high",
+            },
+            "category": "training",
+        }
 
 
 class MockKnowledgeResponse:
@@ -33,71 +54,67 @@ def mock_knowledge_bridge():
     return bridge
 
 
-def test_optimization_advisor_builds_queries_from_areas(mock_knowledge_bridge):
-    """Test query generation from optimization areas."""
+@pytest.fixture
+def sample_analyses():
+    """Sample analyses for testing."""
+    return [MockAnalysis()]
+
+
+@pytest.mark.asyncio
+async def test_retrieve_knowledge_calls_bridge(mock_knowledge_bridge, sample_analyses):
+    """Test that _retrieve_knowledge calls KnowledgeBridge with analysis data."""
+    from deepfix_server.agents.optimizationadvisor import OptimizationAdvisorAgent
+
     agent = OptimizationAdvisorAgent(knowledge_bridge=mock_knowledge_bridge)
 
-    queries = agent._build_knowledge_queries(
-        optimization_areas=["learning_rate", "data_augmentation"],
-        artifacts_analysis="Model not converging",
-    )
+    knowledge = await agent._retrieve_knowledge(sample_analyses)
 
-    assert len(queries) > 0
-    assert any("learning rate" in q.lower() for q in queries)
-    assert any("augmentation" in q.lower() for q in queries)
+    # Assert KnowledgeBridge was called
+    mock_knowledge_bridge.query.assert_called_once()
+    # Assert synthesis is included in output
+    assert "Regularization" in knowledge
 
 
-def test_optimization_advisor_handles_overfitting_keyword(mock_knowledge_bridge):
-    """Test that overfitting keyword triggers additional query."""
+@pytest.mark.asyncio
+async def test_retrieve_knowledge_includes_citations(
+    mock_knowledge_bridge, sample_analyses
+):
+    """Test that citations are included in retrieved knowledge."""
+    from deepfix_server.agents.optimizationadvisor import OptimizationAdvisorAgent
+
     agent = OptimizationAdvisorAgent(knowledge_bridge=mock_knowledge_bridge)
 
-    queries = agent._build_knowledge_queries(
-        optimization_areas=["regularization"],
-        artifacts_analysis="Model shows severe overfitting",
-    )
+    knowledge = await agent._retrieve_knowledge(sample_analyses)
 
-    assert any("overfitting" in q.lower() for q in queries)
+    assert "https://example.com" in knowledge
 
 
-def test_optimization_advisor_handles_gradient_keyword(mock_knowledge_bridge):
-    """Test that gradient issues trigger additional query."""
+@pytest.mark.asyncio
+async def test_retrieve_knowledge_handles_empty_analyses(mock_knowledge_bridge):
+    """Test graceful handling of empty analyses list."""
+    from deepfix_server.agents.optimizationadvisor import OptimizationAdvisorAgent
+
     agent = OptimizationAdvisorAgent(knowledge_bridge=mock_knowledge_bridge)
 
-    queries = agent._build_knowledge_queries(
-        optimization_areas=["regularization"],
-        artifacts_analysis="Training shows vanishing gradients",
-    )
+    knowledge = await agent._retrieve_knowledge([])
 
-    assert any("vanishing" in q.lower() or "gradient" in q.lower() for q in queries)
+    assert "No external knowledge" in knowledge
 
 
-def test_optimization_advisor_limits_queries(mock_knowledge_bridge):
-    """Test that query count is limited to 3."""
+@pytest.mark.asyncio
+async def test_retrieve_knowledge_passes_analysis_to_query(
+    mock_knowledge_bridge, sample_analyses
+):
+    """Test that Analysis object is passed directly to bridge.query()."""
+    from deepfix_server.agents.optimizationadvisor import OptimizationAdvisorAgent
+
     agent = OptimizationAdvisorAgent(knowledge_bridge=mock_knowledge_bridge)
 
-    queries = agent._build_knowledge_queries(
-        optimization_areas=[
-            "learning_rate",
-            "regularization",
-            "data_augmentation",
-            "optimizer",
-        ],
-        artifacts_analysis="Model shows overfitting with vanishing gradients",
-    )
+    await agent._retrieve_knowledge(sample_analyses)
 
-    assert len(queries) <= 3
-
-
-def test_optimization_advisor_maps_known_areas(mock_knowledge_bridge):
-    """Test that known optimization areas are mapped to specific queries."""
-    agent = OptimizationAdvisorAgent(knowledge_bridge=mock_knowledge_bridge)
-
-    for area in ["learning_rate", "regularization", "batch_size", "optimizer"]:
-        queries = agent._build_knowledge_queries(
-            optimization_areas=[area], artifacts_analysis="Test analysis"
-        )
-        assert len(queries) >= 1
-        # Should not be a generic query for known areas
-        assert (
-            queries[0] != f"best practices for {area} optimization in machine learning"
-        )
+    # Check that the Analysis object was passed as query
+    call_kwargs = mock_knowledge_bridge.query.call_args.kwargs
+    query_arg = call_kwargs.get("query")
+    assert query_arg is not None
+    assert hasattr(query_arg, "findings")
+    assert query_arg.findings.description == "Model shows overfitting after epoch 10"

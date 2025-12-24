@@ -4,24 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from enum import StrEnum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from .base import BaseRetriever, RetrievalResult
+from ..models import RetrievalResult, RetrievalStrategy
+from .base import BaseRetriever
 
 logger = logging.getLogger(__name__)
-
-
-class RetrievalStrategy(StrEnum):
-    """Strategies for combining retrieval results from multiple sources."""
-
-    PARALLEL = "parallel"  # Query all sources in parallel, merge results
-    CASCADING = "cascading"  # Try sources sequentially until sufficient results
-    WEB_FIRST = "web_first"  # Prioritize web search results
-    AI_FIRST = "ai_first"  # Prioritize Perplexity AI results
-    LOCAL_FIRST = "local_first"  # Prioritize local knowledge base
 
 
 class HybridRetrieverConfig(BaseModel):

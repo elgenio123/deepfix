@@ -3,6 +3,7 @@ import traceback
 from typing import List, Optional
 
 from deepfix_core.models import Artifacts
+from deepfix_kb import KnowledgeBridge
 from concurrent.futures import ThreadPoolExecutor
 from .agents.artifact_analyzers import (
     DatasetArtifactsAnalyzer,
@@ -11,6 +12,7 @@ from .agents.artifact_analyzers import (
 )
 from .agents.base import Agent, ArtifactAnalyzer
 from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
+from .agents.optimizationadvisor import OptimizationAdvisorAgent
 from .config import LLMConfig
 from .logging import get_logger
 from .models import AgentContext, AgentResult, ArtifactAnalysisResult
@@ -27,10 +29,17 @@ class ArtifactAnalysisCoordinator(Agent):
     ):
         super().__init__(config=config)
 
+        # Initialize KnowledgeBridge for OptimizationAdvisor
+        self.knowledge_bridge = KnowledgeBridge()
+
         # initialize agents and loaders
         self.analyzer_agents = self._initialize_analyzer_agents()
         self.cross_artifact_reasoning_agent = CrossArtifactReasoningAgent(
             llm_config=self._llm_config
+        )
+        self.optimization_advisor_agent = OptimizationAdvisorAgent(
+            knowledge_bridge=self.knowledge_bridge,
+            llm_config=self._llm_config,
         )
 
     async def _analyze_one_artifact(self, artifact: Artifacts) -> AgentResult:
@@ -67,15 +76,23 @@ class ArtifactAnalysisCoordinator(Agent):
 
         # 2. Cross-artifact reasoning
         LOGGER.info("Cross-artifact reasoning...")
-        out = await self.cross_artifact_reasoning_agent.arun(
+        cross_artifact_result = await self.cross_artifact_reasoning_agent.arun(
             previous_analyses=context.agent_results, output_language=context.language
         )
-        context.agent_results[out.agent_name] = out
+        context.agent_results[cross_artifact_result.agent_name] = cross_artifact_result
 
-        # 3. Output results
+        # 3. Optimization recommendations (grounded with KnowledgeBridge)
+        LOGGER.info("Generating optimization recommendations...")
+        optimization_result = await self.optimization_advisor_agent.acall(
+            artifacts_analysis=cross_artifact_result.analysis,
+            constraints=None,
+        )
+        context.agent_results[optimization_result.agent_name] = optimization_result
+
+        # 4. Output results
         output = ArtifactAnalysisResult(
             context=context,
-            summary=out.additional_outputs.get("summary", None),
+            summary=cross_artifact_result.additional_outputs.get("summary", None),
         )
         return output
 

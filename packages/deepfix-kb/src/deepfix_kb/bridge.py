@@ -6,97 +6,14 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 from deepfix_core.models import Analysis
 
+from .models import KnowledgeResponse, RetrievalResult, RetrievalStrategy
 from .retrieval import (
     HybridRetriever,
     PerplexitySonarRetriever,
-    RetrievalResult,
-    RetrievalStrategy,
     TavilySearchRetriever,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class Agent(dspy.Module):
-    """Base class for all analysis agents.
-
-    Provides common functionality for LLM configuration and context management.
-    Subclasses should implement the forward method and system_prompt property.
-
-    Attributes:
-        _llm_config: Optional LLM configuration for the agent.
-        agent_name: Name of the agent derived from class name.
-    """
-
-    def __init__(self, config: Optional[LLMConfig] = None):
-        """Initialize the agent.
-
-        Args:
-            config: Optional LLM configuration. If None, a warning is logged
-                and dspy-settings should be configured separately.
-        """
-        super().__init__()
-        assert (config is None) or isinstance(config, LLMConfig), (
-            "config must be an instance of LLMConfig"
-        )
-        self._llm_config = config
-        self.agent_name = self.__class__.__name__.replace("agent", "")
-        if config is None:
-            LOGGER.warning(
-                "No LLM config provided, Make sure to use dspy-settings.configure(...) to configure the LLM."
-            )
-
-    @contextmanager
-    def _llm_context(self):
-        """Context manager for LLM configuration.
-
-        Yields a dspy context with the configured LLM if config is provided,
-        otherwise yields a null context.
-
-        Yields:
-            dspy context with LLM configuration or null context.
-        """
-        if self._llm_config is None:
-            with nullcontext():
-                yield
-            return
-        with dspy.context(
-            lm=dspy.LM(
-                model=self._llm_config.model_name,
-                cache=self._llm_config.cache,
-                api_base=self._llm_config.base_url,
-                api_key=self._llm_config.api_key,
-                temperature=self._llm_config.temperature,
-                max_tokens=self._llm_config.max_tokens,
-            ),
-            track_usage=self._llm_config.track_usage,
-        ):
-            yield
-
-    def forward(self, *args, **kwargs) -> Any:
-        """Forward method to be implemented by subclasses.
-
-        Args:
-            *args: Variable positional arguments.
-            **kwargs: Variable keyword arguments.
-
-        Returns:
-            Result of the agent's analysis.
-
-        Raises:
-            NotImplementedError: Always raised, must be implemented by subclasses.
-        """
-        raise NotImplementedError("Subclasses must implement this method")
-
-    @property
-    def system_prompt(self) -> str:
-        """System prompt for the agent.
-
-        Returns:
-            Empty string by default. Subclasses should override to provide
-            their specific system prompt.
-        """
-        return ""
 
 
 class KnowledgeBridge:
@@ -153,28 +70,22 @@ class KnowledgeBridge:
         logger.info("Initializing KnowledgeBridge")
 
         # Initialize retrievers
-        self.tavily = TavilySearchRetriever(api_key=tavily_api_key)
-        self.perplexity = PerplexitySonarRetriever(
+        tavily = TavilySearchRetriever(api_key=tavily_api_key)
+        perplexity = PerplexitySonarRetriever(
             api_key=openrouter_api_key,
             model=perplexity_model,
         )
 
         # Local KB is optional and requires additional setup
-        self.local_kb = None
+        local_kb = None
         if enable_local_kb:
-            try:
-                from .knowledge_base.manager import KnowledgeBaseManager
-
-                # Note: Would need embed_model configuration
-                logger.info("Local KB enabled but requires embed_model configuration")
-            except ImportError:
-                logger.warning("Local KB dependencies not available")
+            raise ValueError("Local KB not implemented yet")
 
         # Initialize hybrid retriever
         self.retriever = HybridRetriever(
-            tavily=self.tavily,
-            perplexity=self.perplexity,
-            local_kb=self.local_kb,
+            tavily=tavily,
+            perplexity=perplexity,
+            local_kb=local_kb,
         )
 
         self.default_strategy = default_strategy
@@ -248,6 +159,7 @@ class KnowledgeBridge:
         self,
         query: str,
         max_results: int = 5,
+        sources: List[str] = ["web"],
         **kwargs: Any,
     ) -> List[RetrievalResult]:
         """Perform a web search using Tavily.
@@ -257,6 +169,7 @@ class KnowledgeBridge:
         Args:
             query: Search query.
             max_results: Maximum results.
+            sources: Limit to specific sources ["web", "perplexity", "local_kb"].
             **kwargs: Additional Tavily parameters.
 
         Returns:
@@ -264,7 +177,7 @@ class KnowledgeBridge:
         """
         return await self.retriever.retrieve(
             query=query,
-            sources=["web"],
+            sources=sources,
             max_total_results=max_results,
             **kwargs,
         )

@@ -11,16 +11,12 @@ from ..models import AgentResult
 class OptimizationRecommendationSignature(dspy.Signature):
     """Generate optimization recommendations grounded in external knowledge.
 
-    Uses cross-artifact analysis and retrieved knowledge from KnowledgeBridge
+    Uses analysis from previous agents and retrieved knowledge from KnowledgeBridge
     to provide evidence-based optimization recommendations with citations.
     """
 
-    system_prompt: str = dspy.InputField(desc="System prompt for optimization expert")
-    artifacts_analysis: str = dspy.InputField(
+    artifacts_analysis: List[Analysis] = dspy.InputField(
         desc="Analysis from previous agents (training dynamics, data quality, etc.)"
-    )
-    optimization_areas: List[str] = dspy.InputField(
-        desc="Specific areas to focus optimization on"
     )
     constraints: Optional[str] = dspy.InputField(
         desc="Optional user constraints or requirements", default=None
@@ -29,7 +25,7 @@ class OptimizationRecommendationSignature(dspy.Signature):
         desc="External research and best practices from KnowledgeBridge (web search, papers)"
     )
 
-    analysis: str = dspy.OutputField(
+    analysis: List[Analysis] = dspy.OutputField(
         desc="Detailed recommendations with citations to retrieved sources"
     )
 

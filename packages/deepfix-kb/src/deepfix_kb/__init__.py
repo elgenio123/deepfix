@@ -7,7 +7,6 @@ This package provides a unified knowledge retrieval system that combines:
 
 Example:
     >>> from deepfix_kb import KnowledgeBridge
-    >>> from deepfix_kb.tools import create_knowledge_tools
     >>>
     >>> # Initialize the bridge
     >>> bridge = KnowledgeBridge()
@@ -15,33 +14,29 @@ Example:
     >>> # Direct query
     >>> response = await bridge.query("How to fix gradient vanishing?")
     >>> print(response.synthesis)
-    >>>
-    >>> # Create tools for agents
-    >>> tools = create_knowledge_tools(bridge)
 """
 
-from .bridge import KnowledgeBridge, KnowledgeQuery, KnowledgeResponse
+from .bridge import KnowledgeBridge
+from .models import KnowledgeResponse, RetrievalResult, RetrievalStrategy
 from .retrieval import (
     BaseRetriever,
     HybridRetriever,
     PerplexitySonarRetriever,
-    RetrievalResult,
-    RetrievalStrategy,
     TavilySearchRetriever,
 )
 
 __all__ = [
     # Main interface
     "KnowledgeBridge",
-    "KnowledgeQuery",
     "KnowledgeResponse",
+    # Models
+    "RetrievalResult",
+    "RetrievalStrategy",
     # Retrievers
     "BaseRetriever",
-    "RetrievalResult",
     "TavilySearchRetriever",
     "PerplexitySonarRetriever",
     "HybridRetriever",
-    "RetrievalStrategy",
 ]
 
 __version__ = "0.1.0"

@@ -36,7 +36,7 @@ class Agent(dspy.Module):
             "config must be an instance of LLMConfig"
         )
         self._llm_config = config
-        self.agent_name = self.__class__.__name__.replace("agent", "")
+        self.agent_name = self.__class__.__name__
         if config is None:
             LOGGER.warning(
                 "No LLM config provided, Make sure to use dspy-settings.configure(...) to configure the LLM."

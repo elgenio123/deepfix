@@ -26,7 +26,12 @@ class OptimizationAdvisorAgent(Agent):
         llm_config: Optional[LLMConfig] = None,
     ):
         super().__init__(config=llm_config)
-        self.llm = dspy.ChainOfThought(OptimizationRecommendationSignature)
+        signature = type(
+            f"{self.agent_name}Signature",
+            (OptimizationRecommendationSignature,),
+            {"__doc__": self.system_prompt},
+        )
+        self.llm = dspy.ChainOfThought(signature)
         self.knowledge_bridge = knowledge_bridge
 
     async def forward(
@@ -50,9 +55,7 @@ class OptimizationAdvisorAgent(Agent):
         # Call LLM with retrieved knowledge
         with self._llm_context():
             response = self.llm(
-                system_prompt=self.system_prompt,
                 artifacts_analysis=artifacts_analysis,
-                optimization_areas=optimization_areas,
                 constraints=constraints,
                 retrieved_knowledge=knowledge_context,
             )

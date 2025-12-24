@@ -4,42 +4,11 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 
-from pydantic import BaseModel, Field
+from ..models import RetrievalResult
 
 logger = logging.getLogger(__name__)
-
-
-class RetrievalResult(BaseModel):
-    """Standardized result from any retrieval source.
-
-    This model provides a unified format for results coming from different
-    retrieval sources (web search, AI research, local knowledge base).
-
-    Attributes:
-        content: The main content/text retrieved.
-        source: The source name or title.
-        source_type: Type identifier ("web", "perplexity", "local_kb").
-        url: Optional URL for web sources.
-        relevance_score: Optional relevance/similarity score.
-        citations: Optional list of citation URLs.
-        metadata: Optional additional metadata.
-    """
-
-    content: str = Field(..., description="The main content/text retrieved")
-    source: str = Field(..., description="The source name or title")
-    source_type: str = Field(
-        ..., description="Type identifier: 'web', 'perplexity', 'local_kb'"
-    )
-    url: Optional[str] = Field(None, description="URL for web sources")
-    relevance_score: Optional[float] = Field(
-        None, description="Relevance/similarity score", ge=0.0, le=1.0
-    )
-    citations: Optional[List[str]] = Field(None, description="List of citation URLs")
-    metadata: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
 
 
 class BaseRetriever(ABC):
