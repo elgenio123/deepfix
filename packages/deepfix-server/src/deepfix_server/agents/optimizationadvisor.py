@@ -3,10 +3,11 @@ from typing import List, Optional
 import dspy
 
 from deepfix_kb import KnowledgeBridge, KnowledgeResponse
+from deepfix_core.models import Analysis
 
 from ..config import LLMConfig
 from .base import Agent
-from .models import AgentResult
+from deepfix_core.models import AgentResult
 from .signatures import OptimizationRecommendationSignature
 
 
@@ -38,8 +39,7 @@ class OptimizationAdvisorAgent(Agent):
 
     async def forward(
         self,
-        artifacts_analysis: str,
-        optimization_areas: List[str],
+        artifacts_analysis: List[Analysis],
         constraints: Optional[str] = None,
     ) -> AgentResult:
         """Generate optimization recommendations based on previous agent analyses.
@@ -47,18 +47,13 @@ class OptimizationAdvisorAgent(Agent):
         Args:
             artifacts_analysis: Analysis from previous agents (training dynamics,
                 data quality signals, cross-artifact insights).
-            optimization_areas: Specific areas to focus on (e.g., "regularization",
-                "learning_rate", "data_augmentation").
             constraints: Optional user constraints or requirements.
 
         Returns:
             AgentResult with grounded recommendations and citations.
         """
-        # Build queries from optimization context
-        queries = self._build_knowledge_queries(optimization_areas, artifacts_analysis)
-
         # Retrieve knowledge from KnowledgeBridge
-        knowledge_context = await self._retrieve_knowledge(queries)
+        knowledge_context = await self._retrieve_knowledge(artifacts_analysis)
 
         # Call LLM with retrieved knowledge
         with self._llm_context():
@@ -75,80 +70,27 @@ class OptimizationAdvisorAgent(Agent):
             analysis=response.analysis,
         )
 
-    def _build_knowledge_queries(
-        self,
-        optimization_areas: List[str],
-        artifacts_analysis: str,
-    ) -> List[str]:
-        """Build intelligent queries from optimization context.
-
-        Transforms optimization areas and analysis context into specific
-        queries for the knowledge retrieval system.
-
-        Args:
-            optimization_areas: Areas to optimize (e.g., "regularization").
-            artifacts_analysis: Context from previous agent analyses.
-
-        Returns:
-            List of query strings for KnowledgeBridge.
-        """
-        queries = []
-
-        # Map optimization areas to specific questions
-        area_query_templates = {
-            "regularization": "best practices for regularization in deep learning to prevent overfitting",
-            "learning_rate": "optimal learning rate scheduling and warmup strategies for neural networks",
-            "data_augmentation": "effective data augmentation techniques for improving model generalization",
-            "batch_size": "batch size optimization for training stability and convergence",
-            "optimizer": "modern optimizer selection criteria for deep learning training",
-            "architecture": "neural network architecture improvements for better performance",
-            "early_stopping": "early stopping strategies and checkpoint selection",
-            "gradient": "gradient issues diagnosis and solutions in deep learning",
-        }
-
-        for area in optimization_areas:
-            area_lower = area.lower().replace(" ", "_")
-            if area_lower in area_query_templates:
-                queries.append(area_query_templates[area_lower])
-            else:
-                # Generic query for unknown areas
-                queries.append(
-                    f"best practices for {area} optimization in machine learning"
-                )
-
-        # Add context-aware query if analysis mentions specific issues
-        if "overfitting" in artifacts_analysis.lower():
-            queries.append("how to diagnose and fix overfitting in neural networks")
-        if (
-            "gradient" in artifacts_analysis.lower()
-            and "vanishing" in artifacts_analysis.lower()
-        ):
-            queries.append("solutions for vanishing gradient problem in deep networks")
-        if "learning rate" in artifacts_analysis.lower():
-            queries.append("learning rate tuning for training instability")
-
-        return queries[:3]  # Limit to top 3 queries for efficiency
-
-    async def _retrieve_knowledge(self, queries: List[str]) -> str:
+    async def _retrieve_knowledge(self, analyses: List[Analysis]) -> str:
         """Retrieve and format knowledge from KnowledgeBridge.
 
         Args:
-            queries: List of queries to execute.
+            analyses: List of analyses to execute.
 
         Returns:
             Formatted knowledge context string with citations.
         """
-        if not queries:
+        if not analyses:
             return "No external knowledge retrieved."
 
         knowledge_parts = []
 
-        for query in queries:
+        for analysis in analyses:
             try:
+                ctx = analysis.model_dump()
+                query = analysis.findings.description
+                ctx["findings"].pop("description")
                 response: KnowledgeResponse = await self.knowledge_bridge.query(
-                    query=query,
-                    max_results=3,
-                    synthesize=True,
+                    query=query, max_results=3, synthesize=True, context=ctx
                 )
 
                 if response.synthesis:

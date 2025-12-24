@@ -16,6 +16,7 @@ dependencies = [
     "structlog>=25.4.0",
     "typer",
     "deepfix-core",
+    "deepfix-kb",
     "seaborn",
 ]
 
@@ -37,6 +38,7 @@ line-ending = "auto"
 
 [tool.uv.sources]
 deepfix-core = {workspace = true}
+deepfix-kb = {workspace = true}
 
 [project.scripts]
 deepfix-server = "deepfix_server.cli:main"

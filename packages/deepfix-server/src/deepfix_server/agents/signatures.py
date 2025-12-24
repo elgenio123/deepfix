@@ -5,12 +5,7 @@ from typing import List, Optional
 import dspy
 from deepfix_core.models import Analysis
 
-from ..models import (
-    AgentResult,
-    EvidenceValidationResult,
-    KnowledgeItem,
-    QueryGenerationResult,
-)
+from ..models import AgentResult
 
 
 class OptimizationRecommendationSignature(dspy.Signature):

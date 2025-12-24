@@ -18,74 +18,86 @@ from .retrieval import (
 logger = logging.getLogger(__name__)
 
 
-class KnowledgeQuery(BaseModel):
-    """Input model for knowledge queries.
+class Agent(dspy.Module):
+    """Base class for all analysis agents.
+
+    Provides common functionality for LLM configuration and context management.
+    Subclasses should implement the forward method and system_prompt property.
 
     Attributes:
-        query: The question or topic to research.
-        context: Additional context from the calling agent.
-        sources: Specific sources to use (None = all available).
-        max_results: Maximum number of results to return.
-        require_citations: Whether citations are required.
-        strategy: Retrieval strategy to use.
+        _llm_config: Optional LLM configuration for the agent.
+        agent_name: Name of the agent derived from class name.
     """
 
-    query: str = Field(..., description="The question or topic to research")
-    context: Optional[str] = Field(
-        None, description="Additional context from the agent"
-    )
-    sources: Optional[List[str]] = Field(
-        None, description="Specific sources to use: 'web', 'perplexity', 'local_kb'"
-    )
-    max_results: int = Field(5, ge=1, le=20, description="Maximum results to return")
-    require_citations: bool = Field(True, description="Whether citations are required")
-    strategy: Optional[RetrievalStrategy] = Field(
-        None, description="Retrieval strategy to use"
-    )
+    def __init__(self, config: Optional[LLMConfig] = None):
+        """Initialize the agent.
 
+        Args:
+            config: Optional LLM configuration. If None, a warning is logged
+                and dspy-settings should be configured separately.
+        """
+        super().__init__()
+        assert (config is None) or isinstance(config, LLMConfig), (
+            "config must be an instance of LLMConfig"
+        )
+        self._llm_config = config
+        self.agent_name = self.__class__.__name__.replace("agent", "")
+        if config is None:
+            LOGGER.warning(
+                "No LLM config provided, Make sure to use dspy-settings.configure(...) to configure the LLM."
+            )
 
-class KnowledgeResponse(BaseModel):
-    """Output model for knowledge queries.
+    @contextmanager
+    def _llm_context(self):
+        """Context manager for LLM configuration.
 
-    Attributes:
-        query: The original query.
-        results: List of retrieval results.
-        synthesis: Optional AI-synthesized summary of results.
-        sources_used: List of sources that contributed results.
-        total_citations: All unique citations across results.
-        metadata: Additional response metadata.
-    """
+        Yields a dspy context with the configured LLM if config is provided,
+        otherwise yields a null context.
 
-    query: str = Field(..., description="The original query")
-    results: List[RetrievalResult] = Field(
-        default_factory=list, description="List of retrieval results"
-    )
-    synthesis: Optional[str] = Field(
-        None, description="AI-synthesized summary of results"
-    )
-    sources_used: List[str] = Field(
-        default_factory=list, description="Sources that contributed results"
-    )
-    total_citations: List[str] = Field(
-        default_factory=list, description="All unique citations"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
+        Yields:
+            dspy context with LLM configuration or null context.
+        """
+        if self._llm_config is None:
+            with nullcontext():
+                yield
+            return
+        with dspy.context(
+            lm=dspy.LM(
+                model=self._llm_config.model_name,
+                cache=self._llm_config.cache,
+                api_base=self._llm_config.base_url,
+                api_key=self._llm_config.api_key,
+                temperature=self._llm_config.temperature,
+                max_tokens=self._llm_config.max_tokens,
+            ),
+            track_usage=self._llm_config.track_usage,
+        ):
+            yield
 
+    def forward(self, *args, **kwargs) -> Any:
+        """Forward method to be implemented by subclasses.
 
-class QueryGenerator(Agent):
-    """Query generator for knowledge retrieval"""
+        Args:
+            *args: Variable positional arguments.
+            **kwargs: Variable keyword arguments.
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        super().__init__(config=llm_config)
-        self.query_generator = dspy.ChainOfThought(QueryGenerationSignature)
+        Returns:
+            Result of the agent's analysis.
 
-    def forward(self, request) -> QueryGenerationResult:
-        """Generate optimized queries using DSPy"""
-        with self._llm_context():
-            out = self.query_generator(request=request)
-        return out.result
+        Raises:
+            NotImplementedError: Always raised, must be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+    @property
+    def system_prompt(self) -> str:
+        """System prompt for the agent.
+
+        Returns:
+            Empty string by default. Subclasses should override to provide
+            their specific system prompt.
+        """
+        return ""
 
 
 class KnowledgeBridge:

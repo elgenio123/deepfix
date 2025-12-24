@@ -157,6 +157,32 @@ class EvidenceValidationResult(BaseModel):
     )
 
 
+class KnowledgeQuery(BaseModel):
+    """Input model for knowledge queries.
+
+    Attributes:
+        query: The question or topic to research.
+        context: Additional context from the calling agent.
+        sources: Specific sources to use (None = all available).
+        max_results: Maximum number of results to return.
+        require_citations: Whether citations are required.
+        strategy: Retrieval strategy to use.
+    """
+
+    query: str = Field(..., description="The question or topic to research")
+    context: Optional[str] = Field(
+        None, description="Additional context from the agent"
+    )
+    sources: Optional[List[str]] = Field(
+        None, description="Specific sources to use: 'web', 'perplexity', 'local_kb'"
+    )
+    max_results: int = Field(5, ge=1, le=20, description="Maximum results to return")
+    require_citations: bool = Field(True, description="Whether citations are required")
+    strategy: Optional[RetrievalStrategy] = Field(
+        None, description="Retrieval strategy to use"
+    )
+
+
 class KnowledgeResponse(BaseModel):
     """Structured knowledge response.
 
