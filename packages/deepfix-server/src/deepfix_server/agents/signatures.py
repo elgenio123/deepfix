@@ -1,17 +1,42 @@
 """DSPy signatures for agent reasoning"""
 
-from typing import List
+from typing import List, Optional
 
 import dspy
 from deepfix_core.models import Analysis
 
 from ..models import (
-    AgentKnowledgeRequest,
     AgentResult,
     EvidenceValidationResult,
     KnowledgeItem,
     QueryGenerationResult,
 )
+
+
+class OptimizationRecommendationSignature(dspy.Signature):
+    """Generate optimization recommendations grounded in external knowledge.
+
+    Uses cross-artifact analysis and retrieved knowledge from KnowledgeBridge
+    to provide evidence-based optimization recommendations with citations.
+    """
+
+    system_prompt: str = dspy.InputField(desc="System prompt for optimization expert")
+    artifacts_analysis: str = dspy.InputField(
+        desc="Analysis from previous agents (training dynamics, data quality, etc.)"
+    )
+    optimization_areas: List[str] = dspy.InputField(
+        desc="Specific areas to focus optimization on"
+    )
+    constraints: Optional[str] = dspy.InputField(
+        desc="Optional user constraints or requirements", default=None
+    )
+    retrieved_knowledge: str = dspy.InputField(
+        desc="External research and best practices from KnowledgeBridge (web search, papers)"
+    )
+
+    analysis: str = dspy.OutputField(
+        desc="Detailed recommendations with citations to retrieved sources"
+    )
 
 
 class ArtifactAnalysisSignature(dspy.Signature):
@@ -39,68 +64,4 @@ class CrossArtifactReasoningSignature(dspy.Signature):
     )
     summary: str = dspy.OutputField(
         desc="Summary of the cross-artifact reasoning & analysis"
-    )
-
-
-class QueryGenerationSignature(dspy.Signature):
-    """Transform agent knowledge request into optimized retrieval queries"""
-
-    request: AgentKnowledgeRequest = dspy.InputField(
-        desc="Context from requesting agent (findings, artifacts, constraints)"
-    )
-
-    result: QueryGenerationResult = dspy.OutputField(
-        desc="Query generation result with optimized queries, search strategy, rationale etc."
-    )
-
-
-class EvidenceValidationSignature(dspy.Signature):
-    """Validate and score retrieved evidences for a given question"""
-
-    question: str = dspy.InputField(description="Original question or query")
-    context: AgentKnowledgeRequest = dspy.InputField(
-        description="Requesting agent's context"
-    )
-    retrieved_evidences: List[KnowledgeItem] = dspy.InputField(
-        description="Retrieved evidences to validate"
-    )
-
-    result: List[EvidenceValidationResult] = dspy.OutputField(
-        desc="Evidence validation result for each evidence"
-    )
-
-
-class KnowledgeBridgeReActSignature(dspy.Signature):
-    """Retrieve evidence from knowledge base for a given question"""
-
-    request: AgentKnowledgeRequest = dspy.InputField(
-        description="Requesting agent's context"
-    )
-
-    queries: List[str] = dspy.OutputField(description="Generated queries")
-    retrieved_evidences: List[List[KnowledgeItem]] = dspy.OutputField(
-        description="List of retrieved evidences for each query"
-    )
-    evidence_validations: List[List[EvidenceValidationResult]] = dspy.OutputField(
-        desc="List of evidence validation results for each retrieved evidence"
-    )
-
-
-class ResponseSynthesisSignature(dspy.Signature):
-    """Synthesize multiple evidence pieces into coherent response"""
-
-    original_query: str = dspy.InputField(desc="Original knowledge request query")
-    evidence_items: List[KnowledgeItem] = dspy.InputField(
-        desc="Retrieved evidence items with scores"
-    )
-
-    synthesis: str = dspy.OutputField(desc="Coherent summary synthesizing all evidence")
-    key_insights: List[str] = dspy.OutputField(
-        desc="3-5 key insights extracted from evidence"
-    )
-    supporting_points: List[str] = dspy.OutputField(
-        desc="Main supporting points from evidence"
-    )
-    contradictions: str = dspy.OutputField(
-        desc="Any contradictions or caveats found in evidence"
     )

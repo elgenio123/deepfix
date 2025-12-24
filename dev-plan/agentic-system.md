@@ -14,7 +14,7 @@ Raw Artifacts
      ↓                    ↓
      └──────────┬─────────┘
                 ↓
-    CrossArtifactIntegrationAgent  (Sequential execution)
+    CrossArtifactReasoningAgent  (Sequential execution)
                 ↓
      OptimizationAdvisorAgent      (Uses integration insights)
 ```

@@ -74,6 +74,20 @@ class KnowledgeResponse(BaseModel):
     )
 
 
+class QueryGenerator(Agent):
+    """Query generator for knowledge retrieval"""
+
+    def __init__(self, llm_config: Optional[LLMConfig] = None):
+        super().__init__(config=llm_config)
+        self.query_generator = dspy.ChainOfThought(QueryGenerationSignature)
+
+    def forward(self, request) -> QueryGenerationResult:
+        """Generate optimized queries using DSPy"""
+        with self._llm_context():
+            out = self.query_generator(request=request)
+        return out.result
+
+
 class KnowledgeBridge:
     """Main interface for the knowledge retrieval system.
 
