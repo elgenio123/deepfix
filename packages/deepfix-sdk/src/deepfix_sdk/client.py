@@ -33,7 +33,7 @@ class DeepFixClient:
 
     def __init__(
         self,
-        api_url: str = "http://localhost:8844",
+        api_url: str = "http://localhost:8844/api/v1/analyse",
         mlflow_config: Optional[MLflowConfig] = None,
         artifact_config: Optional[ArtifactConfig] = None,
         timeout: int = 30,
@@ -59,7 +59,7 @@ class DeepFixClient:
         self.api_url = api_url
         self.timeout = timeout
 
-        self._analyze_endpoint = f"{self.api_url}/api/v1/analyse"
+        self._analyze_endpoint = self.api_url
         self._artifact_repo: Optional[ArtifactRepository] = None
 
     def _get_artifact_repository(self) -> ArtifactRepository:

@@ -211,7 +211,7 @@ async def analyse_artifacts(
         HTTPException: If authentication fails (401/403) or analysis fails (500).
     """
     start_time = time.perf_counter()
-    endpoint = "/api/v1/analyse"
+    endpoint = "/analyse"
 
     try:
         # 1. Decode request into AgentContext
