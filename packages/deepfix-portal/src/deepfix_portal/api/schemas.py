@@ -93,6 +93,13 @@ class APIKeyValidationResponse(BaseModel):
     user_is_active: bool
 
 
+class UserWithApiKeysResponse(BaseModel):
+    """Combined response with user info and their API keys."""
+
+    user: UserResponse
+    api_keys: list[APIKeyResponse]
+
+
 # Password Reset Schemas
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

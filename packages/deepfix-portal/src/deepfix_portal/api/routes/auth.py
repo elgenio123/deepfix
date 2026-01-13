@@ -391,3 +391,37 @@ async def get_current_user_endpoint(
         raise HTTPException(status_code=404, detail="User not found")
 
     return UserResponse.model_validate(user)
+
+
+@router.get("/me/with-keys")
+async def get_current_user_with_api_keys(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
+    """
+    Get current authenticated user along with their API keys.
+    This eliminates the need for separate /me and /api-keys requests.
+    """
+    from ..models import APIKey
+    from ..schemas import APIKeyResponse, UserWithApiKeysResponse
+
+    # Verify token and get user
+    user_id = verify_token(token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Fetch API keys for the user
+    api_keys = (
+        db.query(APIKey)
+        .filter(APIKey.user_id == user_id)
+        .order_by(APIKey.created_at.desc())
+        .all()
+    )
+
+    return UserWithApiKeysResponse(
+        user=UserResponse.model_validate(user),
+        api_keys=[APIKeyResponse.model_validate(key) for key in api_keys],
+    )

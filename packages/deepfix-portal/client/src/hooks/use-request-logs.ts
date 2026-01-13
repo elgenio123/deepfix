@@ -1,10 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-url";
-
-// Helper function to get auth token
-const getToken = (): string | null => {
-  return localStorage.getItem("deepfix_token");
-};
+import { getToken } from "@/lib/token";
 
 // Types
 export interface RequestLog {
