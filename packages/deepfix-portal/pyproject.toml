@@ -9,7 +9,7 @@ dependencies = [
     "bcrypt==4.0.1",
     "fastapi[standard]>=0.124.0",
     "passlib[bcrypt]>=1.7.4",
-    "psycopg2>=2.9.11",
+    "psycopg2-binary>=2.9.11",
     "python-jose[cryptography]>=3.5.0",
     "sqlalchemy>=2.0.44",
     "sqlmodel>=0.0.27",
