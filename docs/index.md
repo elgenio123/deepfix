@@ -42,7 +42,7 @@ uv run deepfix-server launch -e deepfix-server/.env -port 8844 -host 127.0.0.1
 
 ### 2. Request your API Key
 
-Request a [free API Key.](https://elearning.delcaux.com/deepcoach/)
+Request a [free API Key.](https://deepfix.delcaux.com/)
 
 ### 3. Diagnose Your Dataset
 

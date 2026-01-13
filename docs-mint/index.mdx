@@ -44,7 +44,7 @@ uv run deepfix-server launch -e deepfix-server/.env -port 8844 -host 127.0.0.1
 
 ### 2. Request your API Key
 
-Request a [free API Key.](https://elearning.delcaux.com/deepcoach/)
+Request a [free API Key.](https://deepfix.delcaux.com/)
 
 ### 3. Diagnose Your Dataset
 
@@ -54,7 +54,7 @@ from deepfix_sdk.zoo.datasets.foodwaste import load_train_and_val_datasets
 from deepfix_sdk.data.datasets import ImageClassificationDataset
 
 os.environ["DEEPFIX_API_KEY"] = ... # insert your API key
-client = DeepFixClient(api_url="https://deepfix.delcaux.com", timeout=120)
+client = DeepFixClient(api_url="https://deepfix.delcaux.com/api/v1/analyse", timeout=120)
 
 # Load and ingest dataset
 dataset_name = "cafetaria-foodwaste"
