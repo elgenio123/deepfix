@@ -54,13 +54,21 @@ export default function Dashboard() {
     }
   }, [user, isLoading, setLocation]);
 
-  if (isLoading || !user) {
+  // Only show full-page spinner on initial load, not refetches
+  if (!user && isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <RefreshCw className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  // Redirect if not authenticated (after loading completes)
+  if (!user) {
+    return null; // useEffect will redirect to /login
+  }
+
+  // At this point, user is guaranteed to be non-null
 
   const handleCopyKey = () => {
     if (user.apiKey) {
@@ -315,8 +323,8 @@ export default function Dashboard() {
                   {statsLoading
                     ? "-"
                     : stats?.avg_duration_ms
-                    ? `${(stats.avg_duration_ms / 1000).toFixed(2)}s`
-                    : "-"}
+                      ? `${(stats.avg_duration_ms / 1000).toFixed(2)}s`
+                      : "-"}
                 </div>
                 <p className="text-xs text-muted-foreground">Response time</p>
               </CardContent>
