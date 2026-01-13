@@ -71,7 +71,7 @@ services:
   # ===================
   deepfix-portal-api:
     build:
-      context: .
+      context: ./packages/deepfix-portal
       dockerfile: Dockerfile.backend
     image: deepfix-portal-api:latest
     env_file:
