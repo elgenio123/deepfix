@@ -48,9 +48,9 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+            className="text-xl md:text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            DeepFix automatically detects bugs, explains root causes, and generates precise fixes—integrated directly into your training pipeline.
+            DeepFix automatically detects bugs, explains possible causes, and guides you to fix them.
           </motion.p>
 
           <motion.div
