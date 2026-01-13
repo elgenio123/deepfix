@@ -4,7 +4,7 @@ WORKDIR /app
 # Install dependencies and build the React client
 # Note: context is now root, so paths are relative to deepfix-portal/
 COPY deepfix-portal/package-lock.json deepfix-portal/package.json ./
-COPY deepfix-portal/tsconfig.json deepfix-portal/vite.config.ts deepfix-portal/vite-plugin-meta-images.ts deepfix-portal/postcss.config.js deepfix-portal/components.json ./
+COPY deepfix-portal/tsconfig.json deepfix-portal/vite.config.ts deepfix-portal/postcss.config.js deepfix-portal/components.json ./
 COPY deepfix-portal/client ./client
 COPY deepfix-portal/shared ./shared
 COPY deepfix-portal/attached_assets ./attached_assets
@@ -24,8 +24,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
- && rm -rf /var/lib/apt/lists/* \
- && adduser --disabled-password --no-create-home --gecos "" app
+    && rm -rf /var/lib/apt/lists/* \
+    && adduser --disabled-password --no-create-home --gecos "" app
 
 # Copy workspace structure (needed for uv to resolve workspace dependencies)
 COPY pyproject.toml ./pyproject.toml
