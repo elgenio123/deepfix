@@ -12,20 +12,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
- && rm -rf /var/lib/apt/lists/* \
- && adduser --disabled-password --no-create-home --gecos "" app
+    && rm -rf /var/lib/apt/lists/* \
+    && adduser --disabled-password --no-create-home --gecos "" app
 
 # Copy workspace structure (needed for uv to resolve workspace dependencies)
 COPY pyproject.toml ./pyproject.toml
 COPY packages/deepfix-core ./packages/deepfix-core
 COPY packages/deepfix-portal ./packages/deepfix-portal
 COPY packages/deepfix-server ./packages/deepfix-server
+COPY packages/deepfix-kb ./packages/deepfix-kb
 
 # Install Python deps into a project-local venv (same pattern as working Dockerfile)
 RUN uv venv .venv
 RUN uv pip install  /app/packages/deepfix-core
 RUN uv pip install  /app/packages/deepfix-server
 RUN uv pip install  /app/packages/deepfix-portal
+RUN uv pip install  /app/packages/deepfix-kb
 WORKDIR /app/packages/deepfix-portal
 
 # Create .deepfix directory with proper permissions for the app user
