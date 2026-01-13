@@ -174,14 +174,14 @@ export default function Landing() {
       </section>
 
       {/* Results Preview Section */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-16 bg-muted/30">
         <div className="container px-4 mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-5xl font-bold tracking-tight mb-6"
+              className="text-3xl md:text-4xl font-bold tracking-tight mb-4"
             >
               Instant, Actionable Reports
             </motion.h2>
@@ -190,102 +190,107 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-xl text-muted-foreground max-w-2xl mx-auto"
+              className="text-lg text-muted-foreground max-w-xl mx-auto"
             >
-              Get a full diagnosis with severity ratings, root cause analysis, and ready-to-apply fixes.
+              Severity ratings, root cause analysis, and ready-to-apply fixes.
             </motion.p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-3xl mx-auto space-y-4">
             {/* Summary Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="rounded-xl border bg-card p-6 shadow-sm"
+              className="rounded-lg border bg-card p-4 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-primary mb-3">Summary</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                The consolidated analysis reveals a high-quality dataset with minor issues like imbalance, multicollinearity, and outliers that can be addressed through preprocessing (scaling, PCA, transformations) and feature selection to enhance model efficiency. The model configuration is promising with coherent defaults but critically lacks a trained state, reproducibility, and metadata, necessitating immediate training with fixed seeds and class weighting.
+              <h3 className="text-sm font-bold text-primary mb-2">Summary</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                High-quality dataset with minor issues (imbalance, multicollinearity, outliers) addressable through preprocessing. Model configuration is promising but lacks trained state and reproducibility.
               </p>
             </motion.div>
 
             {/* Summary Statistics Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="rounded-xl border bg-card p-6 shadow-sm"
+              transition={{ delay: 0.05 }}
+              className="rounded-lg border bg-card p-4 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-primary mb-4">Summary Statistics</h3>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                <div className="flex items-center gap-4">
-                  <span className="text-muted-foreground">Total Findings</span>
-                  <span className="text-2xl font-bold">6</span>
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Total Findings</span>
+                  <span className="text-xl font-bold">6</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-muted-foreground">Severity Distribution</span>
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white">HIGH: 2</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-500 text-white">MEDIUM: 3</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white">LOW: 1</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Severity:</span>
+                  <div className="flex gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">HIGH: 2</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-500 text-white">MEDIUM: 3</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white">LOW: 1</span>
                   </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Search & Filter Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="rounded-xl border bg-card p-6 shadow-sm"
-            >
-              <h3 className="text-lg font-bold text-primary mb-4">Search & Filter</h3>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-background mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span className="text-muted-foreground">Search findings, evidence, or actions...</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Filter by severity:</span>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 text-sm rounded border border-foreground/20 hover:bg-muted transition-colors">HIGH</button>
-                  <button className="px-3 py-1 text-sm rounded border border-foreground/20 hover:bg-muted transition-colors">MEDIUM</button>
-                  <button className="px-3 py-1 text-sm rounded border border-foreground/20 hover:bg-muted transition-colors">LOW</button>
                 </div>
               </div>
             </motion.div>
 
             {/* Issues by Severity Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="rounded-xl border bg-card p-6 shadow-sm"
+              transition={{ delay: 0.1 }}
+              className="rounded-lg border bg-card p-4 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-primary mb-1">Issues by Severity</h3>
-              <p className="text-sm text-muted-foreground mb-6">Finding • Evidence • Action • Rationale</p>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-primary">Issues by Severity</h3>
+                <span className="text-xs text-muted-foreground">Finding • Evidence • Action</span>
+              </div>
 
-              {/* HIGH Severity Accordion */}
-              <div className="border rounded-lg overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-red-500">HIGH</span>
-                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500 text-white">2</span>
+              <div className="space-y-2">
+                {/* HIGH Severity Accordion */}
+                <div className="border rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-red-500">HIGH</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white">2</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
+                  <div className="px-3 py-3 border-t bg-background space-y-2">
+                    <p className="text-sm text-foreground leading-relaxed">
+                      <span className="font-semibold">1. High multicollinearity</span> (22+ pairs &gt;0.9 correlation) may inflate variance and reduce model stability.
+                    </p>
+                    <p className="text-sm text-muted-foreground">2. Missing reproducibility seeds...</p>
+                  </div>
                 </div>
-                <div className="px-4 py-4 border-t bg-background">
-                  <p className="text-foreground leading-relaxed">
-                    <span className="font-semibold">1. High multicollinearity (22+ pairs &gt;0.9 correlation)</span> combined with varying feature scales and potential outliers may inflate variance and reduce model stability, especially for tree-based boosting.
-                  </p>
+
+                {/* MEDIUM Severity - Collapsed */}
+                <div className="border rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-orange-500">MEDIUM</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-orange-500 text-white">3</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* LOW Severity - Collapsed */}
+                <div className="border rounded-md overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-green-500">LOW</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-green-500 text-white">1</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </motion.div>
