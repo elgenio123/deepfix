@@ -33,7 +33,7 @@ class DeepFixClient:
 
     def __init__(
         self,
-        api_url: str = "http://localhost:8844/api/v1/analyse",
+        api_url: str = "https://deepfix.delcaux.com/api/v1/analyse",
         mlflow_config: Optional[MLflowConfig] = None,
         artifact_config: Optional[ArtifactConfig] = None,
         timeout: int = 30,
