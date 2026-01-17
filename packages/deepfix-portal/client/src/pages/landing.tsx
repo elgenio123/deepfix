@@ -36,11 +36,11 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight mb-8"
+            className="text-4xl md:text-6xl font-bold tracking-normal leading-snug mb-8"
           >
-            Automated Bug Diagnosis for <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-purple-500 animate-gradient-x">
-              Machine Learning Models
+            Know Your ML Model Works <br />
+            <span className="text-primary">
+              Before You Hit Train Again
             </span>
           </motion.h1>
 
@@ -48,9 +48,9 @@ export default function Landing() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl md:text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+            className="text-xl md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
           >
-            DeepFix automatically detects bugs, explains possible causes, and guides you to fix them.
+            Standard linters check your syntax. DeepFix checks your logic. Automatically scan your dataset and model architecture to catch silent bugs and data quality issues.
           </motion.p>
 
           <motion.div
@@ -74,26 +74,26 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 relative">
+      <section className="py-8 relative">
         <div className="absolute inset-0 bg-muted/40 skew-y-3 transform origin-top-left -z-10" />
         <div className="container px-4 mx-auto">
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
               icon={<Zap className="w-8 h-8 text-yellow-500" />}
-              title="Auto-Assessment"
-              description="Automatically scan your entire model architecture and dataset for hidden pitfalls, shape mismatches, and numerical instability."
+              title="Validate Your Dataset"
+              description="Don't feed your model garbage. DeepFix instantly spots class imbalances, data leakage between train/test splits, and unnormalized inputs."
               delay={0}
             />
             <FeatureCard
               icon={<Code2 className="w-8 h-8 text-blue-500" />}
-              title="Prioritized Solutions"
-              description="Receive actionable fixes ranked by impact. We don't just find the bug; we write the patch code for you."
+              title="Solidify Your Knowledge"
+              description="Receive actionable fixes ranked by impact. We guide you through the process of fixing the issue."
               delay={0.1}
             />
             <FeatureCard
               icon={<Shield className="w-8 h-8 text-green-500" />}
-              title="Workflow Integration"
-              description="Seamlessly integrates with PyTorch, TensorFlow, and MLflow. Add one line of code to your existing training script."
+              title="Integrate with Your Workflow"
+              description="Seamlessly integrates with Scikit-learn, PyTorch, and MLflow. Add one line of code to your existing script."
               delay={0.2}
             />
           </div>
@@ -101,7 +101,7 @@ export default function Landing() {
       </section>
 
       {/* Code Snippet Section */}
-      <section className="py-32">
+      <section className="py-20">
         <div className="container px-4 mx-auto flex flex-col lg:flex-row items-center gap-16">
           <div className="flex-1 space-y-10">
             <motion.div
@@ -117,7 +117,7 @@ export default function Landing() {
               <ul className="space-y-6">
                 {[
                   "Native Python SDK support",
-                  "Zero-config PyTorch & TensorFlow hooks",
+                  "Zero-config PyTorch & Scikit-learn hooks",
                   "Automated dataset statistical analysis",
                   "Instant detailed diagnosis reports"
                 ].map((item, i) => (
@@ -174,14 +174,14 @@ export default function Landing() {
       </section>
 
       {/* Results Preview Section */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-12 bg-muted/30">
         <div className="container px-4 mx-auto">
           <div className="text-center mb-10">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold tracking-tight mb-4"
+              className="text-2xl md:text-3xl font-bold tracking-tight mb-4"
             >
               Instant, Actionable Reports
             </motion.h2>
