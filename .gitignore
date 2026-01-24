@@ -7,6 +7,8 @@ __pycache__/
 *.so
 /server_mlflow_data
 
+nohup.out
+
 # Distribution / packaging
 .Python
 build/
