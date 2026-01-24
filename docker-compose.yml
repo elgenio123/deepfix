@@ -5,7 +5,7 @@ services:
   # ===================
   traefik:
     image: traefik:v3.0
-    container_name: traefik
+    container_name: traefik-deepfix
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
