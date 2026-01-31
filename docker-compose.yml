@@ -20,6 +20,10 @@ services:
       - deepfix-network
     labels:
       - "traefik.enable=true"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
 
   # ===================
   # Tunnel
@@ -33,6 +37,10 @@ services:
     restart: unless-stopped
     networks:
       - deepfix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
 
   # ===================
   # DeepFix Portal Frontend
@@ -51,6 +59,10 @@ services:
       - deepfix-portal-api
       - proxy-deepfix
       - tunnel
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
     ports:
       - "3000:3000"
     labels:
@@ -81,6 +93,10 @@ services:
     restart: unless-stopped
     networks:
       - deepfix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
     depends_on:
       - proxy-deepfix
     labels:
