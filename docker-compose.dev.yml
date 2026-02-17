@@ -4,8 +4,8 @@ services:
   # Reverse Proxy
   # ===================
   traefik:
-    image: traefik:v3.0
-    container_name: traefik
+    image: traefik:v3.6
+    container_name: traefik-deepfix
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -47,6 +47,8 @@ services:
       dockerfile: Dockerfile.frontend
     image: deepfix-portal:latest
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     networks:
       - deepfix-network
     volumes:
@@ -78,8 +80,8 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
-      - FRONTEND_URL=https://deepfix.delcaux.com
-      - ENVIRONMENT=production
+      - FRONTEND_URL=http://deepfix-portal:3000
+      - ENVIRONMENT=development
     restart: unless-stopped
     networks:
       - deepfix-network

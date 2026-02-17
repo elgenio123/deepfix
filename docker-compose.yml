@@ -3,15 +3,14 @@ services:
   # ===================
   # Reverse Proxy
   # ===================
-  traefik:
-    image: traefik:v3.0
-    container_name: traefik
+  proxy-deepfix:
+    image: traefik:v3.6
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "80:80"
-      - "443:443"
+    #ports:
+    #  - "80:80"
+    #  - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -21,22 +20,27 @@ services:
       - deepfix-network
     labels:
       - "traefik.enable=true"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
 
   # ===================
-  # Pinggy Tunnel
+  # Tunnel
   # ===================
-  pinggy:
-    image: alpine:latest
-    container_name: pinggy
+  tunnel:
+    image: cloudflare/cloudflared:1811-8aebc38b2fc4
+    container_name: tunnel-deepfix
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - proxy-deepfix
     restart: unless-stopped
-    env_file:
-      - .env
-    command: >
-      sh -c "apk add --no-cache openssh-client && ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -p 443 -R0:traefik:80 $${PINGGY_SSH_USER}@pro.pinggy.io"
     networks:
       - deepfix-network
-    depends_on:
-      - traefik
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
 
   # ===================
   # DeepFix Portal Frontend
@@ -53,11 +57,17 @@ services:
       - ./packages/deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - deepfix-portal-api
-      - traefik
-      - pinggy
+      - proxy-deepfix
+      - tunnel
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+    ports:
+      - "3000:3000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal.rule=Host(`localhost`)"
+      - "traefik.http.routers.deepfix-portal.rule=Host(`${HOST}`)"
       - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
       - "traefik.http.routers.deepfix-portal.tls=true"
       - "traefik.http.routers.deepfix-portal.priority=1"
@@ -78,16 +88,20 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
-      - FRONTEND_URL=https://deepfix.delcaux.com
+      - FRONTEND_URL=https://${HOST}
       - ENVIRONMENT=production
     restart: unless-stopped
     networks:
       - deepfix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
     depends_on:
-      - traefik
+      - proxy-deepfix
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.deepfix-portal-api.rule=Host(`${HOST}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.deepfix-portal-api.entrypoints=web,websecure"
       - "traefik.http.routers.deepfix-portal-api.tls=true"
       - "traefik.http.routers.deepfix-portal-api.priority=100"
