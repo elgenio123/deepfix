@@ -29,18 +29,21 @@ class ArtifactAnalysisCoordinator(Agent):
     ):
         super().__init__(config=config)
 
+        # TODO: fix KnowledgeBridge
         # Initialize KnowledgeBridge for OptimizationAdvisor
-        self.knowledge_bridge = KnowledgeBridge()
+        # self.knowledge_bridge = KnowledgeBridge()
 
         # initialize agents and loaders
         self.analyzer_agents = self._initialize_analyzer_agents()
         self.cross_artifact_reasoning_agent = CrossArtifactReasoningAgent(
             llm_config=self._llm_config
         )
-        self.optimization_advisor_agent = OptimizationAdvisorAgent(
-            knowledge_bridge=self.knowledge_bridge,
-            llm_config=self._llm_config,
-        )
+
+        # TODO: fix KnowledgeBridge
+        # self.optimization_advisor_agent = OptimizationAdvisorAgent(
+        #     knowledge_bridge=self.knowledge_bridge,
+        #     llm_config=self._llm_config,
+        # )
 
     async def _analyze_one_artifact(self, artifact: Artifacts) -> AgentResult:
         agent_name = None
@@ -81,13 +84,14 @@ class ArtifactAnalysisCoordinator(Agent):
         )
         context.agent_results[cross_artifact_result.agent_name] = cross_artifact_result
 
+        # TODO: fix KnowledgeBridge
         # 3. Optimization recommendations (grounded with KnowledgeBridge)
-        LOGGER.info("Generating optimization recommendations...")
-        optimization_result = await self.optimization_advisor_agent.arun(
-            artifacts_analysis=cross_artifact_result.analysis,
-            constraints=None,
-        )
-        context.agent_results[optimization_result.agent_name] = optimization_result
+        # LOGGER.info("Generating optimization recommendations...")
+        # optimization_result = await self.optimization_advisor_agent.arun(
+        #     artifacts_analysis=cross_artifact_result.analysis,
+        #     constraints=None,
+        # )
+        # context.agent_results[optimization_result.agent_name] = optimization_result
 
         # 4. Output results
         output = ArtifactAnalysisResult(
@@ -154,28 +158,10 @@ class ArtifactAnalysisCoordinator(Agent):
         return ctx
 
     def forward(self, context: AgentContext) -> ArtifactAnalysisResult:
-        # 1. Analyze artifacts
-        LOGGER.info(
-            f"Analyzing {len(context.artifacts)} artifacts linked to dataset {context.dataset_name}..."
-        )
-        with ThreadPoolExecutor(max_workers=len(context.artifacts)) as executor:
-            results = list(executor.map(self._analyze_one_artifact, context.artifacts))
-        for result in results:
-            context.agent_results[result.agent_name] = result
-
-        # 2. Cross-artifact reasoning
-        LOGGER.info("Cross-artifact reasoning...")
-        out = self.cross_artifact_reasoning_agent.run(
-            previous_analyses=context.agent_results, output_language=context.language
-        )
-        context.agent_results[out.agent_name] = out
-
-        # 3. Output results
-        output = ArtifactAnalysisResult(
-            context=context,
-            summary=out.additional_outputs.get("summary", None),
-        )
-        return output
+        """Run aforward synchronously in a separate thread to avoid event loop conflicts."""
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.aforward(context))
+            return future.result()
 
     def _initialize_analyzer_agents(self) -> List[ArtifactAnalyzer]:
         """Initialize specialized analyzer agents"""
