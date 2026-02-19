@@ -12,7 +12,7 @@ import httpx
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
-
+from functools import lru_cache
 
 def setup_dspy_logging(
     experiment_name: str,
@@ -60,7 +60,7 @@ def setup_dspy_logging(
         print("DSPy logging setup complete.")
     return
 
-
+@lru_cache(maxsize=1)
 def setup_logging(
     level: str = "INFO",
     log_file: Optional[Path] = None,
@@ -149,3 +149,6 @@ def get_logger(name: str) -> logging.Logger:
         Logger instance
     """
     return logging.getLogger(name)
+
+
+setup_logging()

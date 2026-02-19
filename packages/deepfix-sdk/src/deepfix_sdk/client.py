@@ -409,7 +409,9 @@ class DeepFixClient:
 
         if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
             console.print("[red]✗[/red] Analysis failed", style="bold red")
-            raise RuntimeError(f"Error during analysis: {out.error_messages}")
+            console.print(
+                f"Error during analysis: {{k:v for k,v in out.error_messages.items() if v is not None}}"
+            )
 
         console.print("[green]✓[/green] Analysis complete!", style="bold green")
         return out

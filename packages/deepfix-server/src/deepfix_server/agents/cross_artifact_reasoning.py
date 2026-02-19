@@ -26,13 +26,9 @@ class CrossArtifactReasoningAgent(Agent):
         previous_analyses: Dict[str, AgentResult],
         output_language: str = "english",
     ) -> AgentResult:
-        try:
-            return self(previous_analyses, output_language)
-        except Exception as e:
-            LOGGER.error(
-                f"Error with agent {self.agent_name}:\n {traceback.format_exc()}"
-            )
-            return AgentResult(agent_name=self.agent_name, error_message=str(e))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.arun(previous_analyses, output_language))
+            return future.result()
 
     async def arun(
         self,
@@ -52,28 +48,9 @@ class CrossArtifactReasoningAgent(Agent):
         previous_analyses: Dict[str, AgentResult],
         output_language: str = "english",
     ) -> AgentResult:
-        LOGGER.info("Running cross-artifact reasoning agent...")
-
-        assert len(previous_analyses) > 0, "At least one analysis must be provided"
-        with self._llm_context():
-            out = self.llm(
-                previous_analyses=previous_analyses, output_language=output_language
-            )
-        analyzed_artifacts = []
-        retrieved_knowledge = []
-        for result in previous_analyses.values():
-            if result.analyzed_artifacts is not None:
-                analyzed_artifacts.extend(result.analyzed_artifacts)
-            if result.retrieved_knowledge is not None:
-                retrieved_knowledge.extend(result.retrieved_knowledge)
-
-        return AgentResult(
-            agent_name=self.agent_name,
-            analysis=out.analysis,
-            analyzed_artifacts=analyzed_artifacts,
-            retrieved_knowledge=retrieved_knowledge,
-            additional_outputs={"summary": out.summary},
-        )
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.aforward(previous_analyses, output_language))
+            return future.result()
 
     async def aforward(
         self,

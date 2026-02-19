@@ -53,7 +53,7 @@ class OptimizationAdvisorAgent(Agent):
 
         # Call LLM with retrieved knowledge
         with self._llm_context():
-            response = self.llm(
+            response = await self.llm.acall(
                 artifacts_analysis=artifacts_analysis,
                 constraints=constraints,
                 retrieved_knowledge=knowledge_context,
@@ -78,9 +78,9 @@ class OptimizationAdvisorAgent(Agent):
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
     def forward(self, **kwargs):
-        raise NotImplementedError(
-            "Use acall in async mode. forward method is not defined"
-        )
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.aforward(**kwargs))
+            return future.result()
 
     async def _retrieve_knowledge(self, analyses: List[Analysis]) -> str:
         """Retrieve and format knowledge from KnowledgeBridge.

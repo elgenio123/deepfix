@@ -155,10 +155,9 @@ class ArtifactAnalyzer(Agent):
         Returns:
             AgentResult with analysis or error message if execution fails.
         """
-        try:
-            return self(context)
-        except Exception as e:
-            return AgentResult(agent_name=self.agent_name, error_message=str(e))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.arun(context))
+            return future.result()
 
     async def arun(self, context: AgentContext) -> AgentResult:
         """Run the analyzer asynchronously with error handling.
@@ -172,6 +171,7 @@ class ArtifactAnalyzer(Agent):
         try:
             return await self.acall(context)
         except Exception as e:
+            LOGGER.error(f"Error running {self.agent_name} agent: {e}")
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
     def forward(self, context: AgentContext) -> AgentResult:
@@ -183,19 +183,9 @@ class ArtifactAnalyzer(Agent):
         Returns:
             AgentResult containing analysis results and analyzed artifact types.
         """
-        LOGGER.info(f"Running {self.agent_name} agent...")
-
-        self._check_artifacts(context.artifacts)
-        prompt = self.prompt_builder.build_prompt(
-            artifacts=context.artifacts, context=None
-        )
-        with self._llm_context():
-            response = self.llm(artifacts=prompt, output_language=context.language)
-        return AgentResult(
-            agent_name=self.agent_name,
-            analysis=response.analysis,
-            analyzed_artifacts=[type(a).__name__ for a in context.artifacts],
-        )
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.aforward(context))
+            return future.result()
 
     async def aforward(self, context: AgentContext) -> AgentResult:
         """Analyze artifacts asynchronously and return results.
