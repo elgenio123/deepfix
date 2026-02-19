@@ -171,7 +171,7 @@ class ArtifactAnalyzer(Agent):
         try:
             return await self.acall(context)
         except Exception as e:
-            LOGGER.error(f"Error running {self.agent_name} agent: {e}")
+            LOGGER.error(f"Error running {self.agent_name} agent: {traceback.format_exc()}")
             return AgentResult(agent_name=self.agent_name, error_message=str(e))
 
     def forward(self, context: AgentContext) -> AgentResult:
