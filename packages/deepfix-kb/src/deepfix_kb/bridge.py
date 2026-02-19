@@ -117,7 +117,11 @@ class KnowledgeBridge:
         Returns:
             KnowledgeResponse with results, synthesis, and citations.
         """
-        logger.info(f"Knowledge query: '{query[:80]}...'")
+        if isinstance(query, Analysis):
+            # Extract the main query from findings description
+            logger.info(f"Knowledge query: '{str(query.findings.description)[:80]}...'")
+        else:
+            logger.info(f"Knowledge query: '{query[:80]}...'")
 
         # Enhance query with context if provided
         enhanced_query = self._enhance_query(query, context)
@@ -143,7 +147,7 @@ class KnowledgeBridge:
         sources_used = list(set(r.source_type for r in results))
 
         return KnowledgeResponse(
-            query=query,
+            query=str(query),
             results=results,
             synthesis=synthesis,
             sources_used=sources_used,

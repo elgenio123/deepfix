@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+import traceback
 import dspy
 
 from deepfix_kb import KnowledgeBridge, KnowledgeResponse
@@ -117,7 +117,7 @@ class OptimizationAdvisorAgent(Agent):
             except Exception as e:
                 # Log but continue with other queries
                 # knowledge_parts.append(f"Retrieval failed: {str(e)}")
-                print(f"Retrieval failed: {str(e)}")
+                print(f"Retrieval failed: {traceback.format_exc()}")
 
         if not knowledge_parts:
             return "No external knowledge could be retrieved."
