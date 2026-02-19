@@ -2,7 +2,8 @@ import traceback
 from typing import Dict, Optional
 
 import dspy
-
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent, AgentResult
@@ -100,7 +101,7 @@ class CrossArtifactReasoningAgent(Agent):
         - Inconsistent performance + data drift = deployment risk
 
         2. **Training-Configuration Consistency**:
-        - Aggressive hyperparameters + stable training = configuration mismatch
+        - Aggressive hyperparameters + stable training = config uration mismatch
         - Conservative settings + unstable training = underlying data issues
         - Parameter changes + performance shifts = causal relationships
 

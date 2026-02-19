@@ -1,13 +1,18 @@
 from typing import List, Optional
 import traceback
 import dspy
-
+import logging
 from deepfix_kb import KnowledgeBridge, KnowledgeResponse
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 from deepfix_core.models import Analysis
 from ..config import LLMConfig
+from ..logging import get_logger
 from .base import Agent
 from deepfix_core.models import AgentResult
 from .signatures import OptimizationRecommendationSignature
+
+LOGGER = get_logger(__name__)
 
 
 class OptimizationAdvisorAgent(Agent):
