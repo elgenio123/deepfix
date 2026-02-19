@@ -63,8 +63,6 @@ services:
       resources:
         limits:
           cpus: '0.50'
-    ports:
-      - "3000:3000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-portal.rule=Host(`${HOST}`)"
@@ -96,7 +94,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.50'
+          cpus: '2.00'
     depends_on:
       - proxy-deepfix
     labels:
