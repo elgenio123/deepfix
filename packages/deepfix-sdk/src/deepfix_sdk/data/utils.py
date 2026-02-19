@@ -400,7 +400,8 @@ class TabularDataStatistics(BaseDataStatistics):
         categorical_features: List[str],
         numerical_features: List[str],
     ) -> TabularStatistics:
-        feature_stats = dataset.describe().to_dict()
+        # TODO: implement feature statistics
+        feature_stats = None  # dataset.describe().to_dict()
         number_unique_values = dataset.nunique().to_dict()
         percentage_unique_values = (
             (dataset.nunique() * 100 / len(dataset)).round(2).to_dict()
