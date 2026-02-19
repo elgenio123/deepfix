@@ -1,10 +1,10 @@
 import asyncio
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional
 
 from deepfix_core.models import Artifacts
-from deepfix_kb import KnowledgeBridge
-from concurrent.futures import ThreadPoolExecutor
+
 from .agents.artifact_analyzers import (
     DatasetArtifactsAnalyzer,
     DeepchecksArtifactsAnalyzer,
@@ -12,7 +12,6 @@ from .agents.artifact_analyzers import (
 )
 from .agents.base import Agent, ArtifactAnalyzer
 from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
-from .agents.optimizationadvisor import OptimizationAdvisorAgent
 from .config import LLMConfig
 from .logging import get_logger
 from .models import AgentContext, AgentResult, ArtifactAnalysisResult
@@ -99,7 +98,7 @@ class ArtifactAnalysisCoordinator(Agent):
             summary=cross_artifact_result.additional_outputs.get("summary", None),
         )
         return output
-    
+
     def forward(self, context: AgentContext) -> ArtifactAnalysisResult:
         """Run aforward synchronously in a separate thread to avoid event loop conflicts."""
         with ThreadPoolExecutor(max_workers=1) as executor:

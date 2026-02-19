@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any, List, Literal, Optional
-from tavily import TavilyClient, AsyncTavilyClient
+
 from pydantic import BaseModel, Field
+from tavily import AsyncTavilyClient
 
 from .base import BaseRetriever, RetrievalResult
 

@@ -2,13 +2,14 @@
 Utility functions for authentication, password hashing, etc.
 """
 
-from passlib.context import CryptContext
+import hashlib
+import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
 from jose import JWTError, jwt
-import os
-import hashlib
-import secrets
+from passlib.context import CryptContext
 
 # Use SHA256 truncation for passwords longer than 72 bytes (bcrypt limit)
 pwd_context = CryptContext(

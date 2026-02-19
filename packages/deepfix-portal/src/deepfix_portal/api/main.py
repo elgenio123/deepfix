@@ -2,17 +2,15 @@
 FastAPI main application entry point
 """
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import os
-from pathlib import Path
 
-from .routes import analysis, auth, api_keys, users, request_logs
-from .database import engine, Base
 from deepfix_core.models import DatabaseBase  # Base for RequestLog table
 from deepfix_server.logging import setup_dspy_logging
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .database import Base, engine
+from .routes import analysis, api_keys, auth, request_logs, users
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

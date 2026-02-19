@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Any, Optional, Union
 
 import requests
 from deepfix_core.models import APIRequest, APIResponse, ArtifactPath, DataType
@@ -11,9 +11,7 @@ from rich.spinner import Spinner
 
 from .artifacts import ArtifactRepository, ArtifactStatus
 from .config import ArtifactConfig, MLflowConfig
-
 from .data.datasets import BaseDataset
-
 
 console = Console()
 
@@ -408,9 +406,9 @@ class DeepFixClient:
             out = APIResponse(**response.json())
 
         if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
-            console.print("[red]✗[/red] Analysis failed", style="bold red")
+            console.print("[red]✗[/red] Errors during analysis", style="bold red")
             console.print(
-                f"Error during analysis: {{k:v for k,v in out.error_messages.items() if v is not None}}"
+                f"Error during analysis: {out.error_messages}"
             )
 
         console.print("[green]✓[/green] Analysis complete!", style="bold green")

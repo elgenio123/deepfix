@@ -1,17 +1,17 @@
 from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Union
-from typing_extensions import runtime_checkable
+
 import numpy as np
 import pandas as pd
 from deepchecks.nlp import TextData
+from deepchecks.nlp.task_type import TTextLabel
 from deepchecks.tabular import Dataset as DeepchecksTabularDataset
 from deepchecks.vision import VisionData
-from deepchecks.nlp.task_type import TTextLabel
+from deepfix_core.models import DataType
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from torch import Tensor
 from torch.utils.data import Dataset
-
-from deepfix_core.models import DataType
+from typing_extensions import runtime_checkable
 
 from ..data.loader import (
     ClassificationVisionDataLoader,
@@ -19,7 +19,6 @@ from ..data.loader import (
     SegmentationVisionDataLoader,
 )
 from ..utils.logging import get_logger
-
 
 logger = get_logger(__name__)
 

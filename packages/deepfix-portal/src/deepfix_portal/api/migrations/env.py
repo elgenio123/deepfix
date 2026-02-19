@@ -3,16 +3,13 @@ Alembic environment configuration
 TODO: Configure this for your database setup
 """
 
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
 import os
-import sys
+from logging.config import fileConfig
 
+from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 from deepfix_portal.api.database import Base
-from deepfix_portal.api.models import User, APIKey  # Import all models here
 
 # this is the Alembic Config object
 config = context.config

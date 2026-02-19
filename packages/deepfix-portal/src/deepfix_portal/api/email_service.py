@@ -3,11 +3,12 @@ Email service for sending verification and password reset emails
 """
 
 import os
-import aiosmtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
 from urllib.parse import urlparse
+
+import aiosmtplib
 
 
 def get_smtp_config():

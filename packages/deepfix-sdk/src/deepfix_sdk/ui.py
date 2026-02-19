@@ -5,6 +5,7 @@ import os
 from typing import Optional
 
 import streamlit as st
+
 from deepfix_sdk.client import DeepFixClient
 from deepfix_sdk.config import ArtifactConfig, MLflowConfig
 

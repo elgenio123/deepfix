@@ -2,40 +2,40 @@
 Authentication routes
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from datetime import datetime, timezone, timedelta
-
 from ..database import get_db
+from ..dependencies import get_current_user
+from ..email_service import send_password_reset_email, send_verification_email
 from ..models import User
 from ..schemas import (
-    LoginRequest,
-    SignupRequest,
     AuthResponse,
-    UserResponse,
-    SignupResponse,
     EmailVerificationRequest,
     EmailVerificationResponse,
-    ResendVerificationRequest,
-    ResendVerificationResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    LoginRequest,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    SignupRequest,
+    SignupResponse,
+    UserResponse,
 )
 from ..utils import (
+    create_access_token,
+    create_verification_token,
     hash_password,
     verify_password,
-    create_access_token,
     verify_token,
-    create_verification_token,
     verify_verification_token,
 )
-from ..dependencies import get_current_user
-from ..email_service import send_verification_email, send_password_reset_email
 
 router = APIRouter()
 

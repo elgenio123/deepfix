@@ -5,19 +5,20 @@ This module provides the API endpoint for analyzing ML artifacts,
 replicating the functionality of LitServe-based deepfix-server.
 """
 
-import dspy
 import json
 import logging
 import os
 import time
 import traceback
 from typing import Any, Optional
-from langfuse import get_client, observe
+
+import dspy
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
 from deepfix_server.config import LLMConfig
 from deepfix_server.coordinators import ArtifactAnalysisCoordinator
 from deepfix_server.models import AgentContext
 from fastapi import APIRouter, Depends, HTTPException
+from langfuse import get_client, observe
 from sqlalchemy.orm import Session
 
 from ..database import get_db

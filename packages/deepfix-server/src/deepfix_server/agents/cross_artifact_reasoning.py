@@ -1,9 +1,10 @@
+import asyncio
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Optional
 
 import dspy
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
+
 from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent, AgentResult

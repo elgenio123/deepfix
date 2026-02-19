@@ -1,9 +1,9 @@
+import os
 import traceback
 
 import litserve as ls
 from deepfix_core.models import APIRequest, APIResponse, DatasetArtifacts
 from fastapi import HTTPException
-import os
 
 from .config import LLMConfig
 from .coordinators import ArtifactAnalysisCoordinator

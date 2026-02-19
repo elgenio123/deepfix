@@ -1,10 +1,10 @@
 """Integration tests for OptimizationAdvisorAgent with KnowledgeBridge."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
-
 # Mock deepfix_kb imports before importing the agent
 import sys
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 mock_kb = MagicMock()
 mock_kb.KnowledgeBridge = MagicMock

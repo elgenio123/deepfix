@@ -9,11 +9,14 @@ from functools import lru_cache
 from typing import Optional, Tuple
 
 from fastapi import Depends, Header, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+)
 from sqlalchemy.orm import Session
 
-from .database import get_db, SessionLocal
+from .database import SessionLocal, get_db
 from .models import APIKey, User
 from .schemas import APIKeyValidationResponse
 from .utils import verify_token

@@ -4,6 +4,7 @@ SQLAlchemy database models shared across deepfix packages.
 
 import uuid
 from datetime import datetime
+
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, text
 from sqlalchemy.orm import declarative_base
 

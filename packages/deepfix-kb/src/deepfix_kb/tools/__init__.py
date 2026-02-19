@@ -1,9 +1,9 @@
 """DSPy tool definitions for agent consumption."""
 
 from .dspy_tools import (
-    WebSearchTool,
-    ResearchTool,
     KnowledgeLookupTool,
+    ResearchTool,
+    WebSearchTool,
     create_knowledge_tools,
 )
 from .schemas import ToolInput, ToolOutput

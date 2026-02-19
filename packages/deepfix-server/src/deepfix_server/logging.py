@@ -7,12 +7,14 @@ different log levels, formats, and output destinations.
 
 import logging
 import logging.handlers
-import mlflow
-import httpx
 import sys
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Optional
-from functools import lru_cache
+
+import httpx
+import mlflow
+
 
 def setup_dspy_logging(
     experiment_name: str,

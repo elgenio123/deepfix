@@ -5,8 +5,9 @@ import os
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-from platformdirs import user_data_dir
+
 from omegaconf import DictConfig, OmegaConf
+from platformdirs import user_data_dir
 from pydantic import BaseModel, Field
 
 # Defaults

@@ -4,11 +4,11 @@ Database configuration and session management
 
 import os
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError
-from fastapi import HTTPException
 
 # Enable defensive checks for stale/broken connections (e.g., Postgres idle
 # timeouts). This prevents "Software caused connection abort" errors from

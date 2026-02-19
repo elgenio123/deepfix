@@ -15,24 +15,24 @@ Run with: pytest tests/test_knowledge_bridge_e2e.py -v
 """
 
 import os
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from deepfix_kb import KnowledgeBridge
-from deepfix_kb.config import KnowledgeBridgeConfig, TavilyConfig, PerplexityConfig
+from deepfix_kb.config import KnowledgeBridgeConfig, PerplexityConfig, TavilyConfig
 from deepfix_kb.retrieval import (
     BaseRetriever,
-    RetrievalResult,
-    TavilySearchRetriever,
-    PerplexitySonarRetriever,
     HybridRetriever,
-    RetrievalStrategy,
-    PerplexityError,
-    PerplexityConfigError,
     PerplexityAPIError,
+    PerplexityConfigError,
+    PerplexityError,
+    PerplexitySonarRetriever,
+    RetrievalResult,
+    RetrievalStrategy,
+    TavilySearchRetriever,
 )
 from deepfix_kb.tools import create_knowledge_tools
-
 
 # ============================================================================
 # Fixtures

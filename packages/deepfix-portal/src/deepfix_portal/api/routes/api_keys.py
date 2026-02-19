@@ -4,23 +4,24 @@ API Key management routes
 
 import secrets
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from ..database import get_db
+from ..dependencies import (
+    _api_key_cache_bucket,
+    _cached_api_key_lookup,
+    get_current_user,
+    verify_service_token,
+)
 from ..models import APIKey, User
 from ..schemas import (
     APIKeyCreate,
     APIKeyResponse,
     APIKeyValidationRequest,
     APIKeyValidationResponse,
-)
-from ..dependencies import (
-    get_current_user,
-    verify_service_token,
-    _cached_api_key_lookup,
-    _api_key_cache_bucket,
 )
 
 router = APIRouter()
@@ -36,7 +37,7 @@ async def list_api_keys(
     # Get API keys for current user
     api_keys = (
         db.query(APIKey)
-        .filter(APIKey.user_id == current_user.id, APIKey.is_active == True)
+        .filter(APIKey.user_id == current_user.id, APIKey.is_active)
         .all()
     )
     return api_keys

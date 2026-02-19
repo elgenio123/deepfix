@@ -2,15 +2,15 @@
 
 from ..models import RetrievalResult, RetrievalStrategy
 from .base import BaseRetriever
-from .tavily_client import TavilySearchRetriever
-from .perplexity_client import (
-    PerplexitySonarRetriever,
-    PerplexityError,
-    PerplexityConfigError,
-    PerplexityAPIError,
-    PerplexityResponseError,
-)
 from .hybrid_retriever import HybridRetriever
+from .perplexity_client import (
+    PerplexityAPIError,
+    PerplexityConfigError,
+    PerplexityError,
+    PerplexityResponseError,
+    PerplexitySonarRetriever,
+)
+from .tavily_client import TavilySearchRetriever
 
 __all__ = [
     "BaseRetriever",

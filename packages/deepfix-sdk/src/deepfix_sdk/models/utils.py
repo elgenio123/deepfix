@@ -40,7 +40,7 @@ def get_model_metadata(model: Any) -> ModelCheckpointArtifacts:
                     serialized_params[key] = (
                         list(value) if isinstance(value, tuple) else value
                     )
-                except:
+                except Exception:
                     serialized_params[key] = str(value)
             elif isinstance(value, dict):
                 serialized_params[key] = value

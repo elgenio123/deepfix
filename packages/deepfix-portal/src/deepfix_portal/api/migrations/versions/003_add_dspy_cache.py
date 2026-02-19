@@ -7,10 +7,8 @@ Create Date: 2024-12-14 00:00:00.000000
 """
 
 from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
-
 
 # revision identifiers, used by Alembic.
 revision = "003_add_dspy_cache"

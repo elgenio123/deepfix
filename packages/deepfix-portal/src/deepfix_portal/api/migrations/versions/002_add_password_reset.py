@@ -6,10 +6,9 @@ Create Date: 2024-01-02 00:00:00.000000
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import DateTime, Text
-
 
 # revision identifiers, used by Alembic.
 revision = "002_add_password_reset"

@@ -1,15 +1,15 @@
-from typing import List, Optional
-import traceback
-import dspy
-import logging
-from deepfix_kb import KnowledgeBridge, KnowledgeResponse
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
-from deepfix_core.models import Analysis
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional
+
+import dspy
+from deepfix_core.models import AgentResult, Analysis
+from deepfix_kb import KnowledgeBridge, KnowledgeResponse
+
 from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent
-from deepfix_core.models import AgentResult
 from .signatures import OptimizationRecommendationSignature
 
 LOGGER = get_logger(__name__)
@@ -119,7 +119,7 @@ class OptimizationAdvisorAgent(Agent):
                         )
                         knowledge_parts.append(f"Sources:\n{citations}")
 
-            except Exception as e:
+            except Exception:
                 # Log but continue with other queries
                 # knowledge_parts.append(f"Retrieval failed: {str(e)}")
                 print(f"Retrieval failed: {traceback.format_exc()}")
