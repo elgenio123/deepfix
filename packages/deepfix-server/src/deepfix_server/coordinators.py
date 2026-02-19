@@ -99,6 +99,12 @@ class ArtifactAnalysisCoordinator(Agent):
             summary=cross_artifact_result.additional_outputs.get("summary", None),
         )
         return output
+    
+    def forward(self, context: AgentContext) -> ArtifactAnalysisResult:
+        """Run aforward synchronously in a separate thread to avoid event loop conflicts."""
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.aforward(context))
+            return future.result()
 
     async def arun(self, context: AgentContext) -> ArtifactAnalysisResult:
         """Run the coordinator asynchronously with error handling.
@@ -131,18 +137,9 @@ class ArtifactAnalysisCoordinator(Agent):
         Returns:
             ArtifactAnalysisResult containing analysis results from all agents.
         """
-        try:
-            return self(context)
-        except Exception as e:
-            LOGGER.error(
-                f"Error with coordinator {self.agent_name}:\n {traceback.format_exc()}"
-            )
-            error_result = AgentResult(agent_name=self.agent_name, error_message=str(e))
-            context.agent_results[self.agent_name] = error_result
-            return ArtifactAnalysisResult(
-                context=context,
-                summary=None,
-            )
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(asyncio.run, self.arun(context))
+            return future.result()
 
     def _get_analyzer_agent(self, artifact: Artifacts) -> ArtifactAnalyzer:
         for analyzer_agent in self.analyzer_agents:
@@ -156,12 +153,6 @@ class ArtifactAnalysisCoordinator(Agent):
         ctx = AgentContext()
         ctx.insert_artifact(artifact)
         return ctx
-
-    def forward(self, context: AgentContext) -> ArtifactAnalysisResult:
-        """Run aforward synchronously in a separate thread to avoid event loop conflicts."""
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(asyncio.run, self.aforward(context))
-            return future.result()
 
     def _initialize_analyzer_agents(self) -> List[ArtifactAnalyzer]:
         """Initialize specialized analyzer agents"""
