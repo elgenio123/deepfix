@@ -120,7 +120,7 @@ We welcome contributions! Please see the [Contributing Guidelines](docs/contribu
 
 ## 📧 Support
 
-- **Documentation**: [Full Documentation](https://delcaux-labs.github.io/deepfix/)
+- **Documentation**: [Full Documentation](https://docs.delcaux.com)
 - **Issues**: [GitHub Issues](https://github.com/delcaux-labs/deepfix/issues)
 - **Email**: Contact us at fadel.seydou@delcaux.com
 
