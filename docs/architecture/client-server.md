@@ -1,148 +1,91 @@
-# Client-Server Architecture
+---
+title: "Client–Server Architecture"
+description: "DeepFix client–server responsibilities, communication patterns, and design constraints."
+---
 
-This document details the client-server architecture of DeepFix, including component responsibilities, communication protocols, and design decisions.
+
+This page details the client–server architecture of DeepFix: what each side is responsible for, how they communicate, and the main design constraints.
 
 ## Overview
 
-DeepFix follows a client-server architecture that separates artifact computation (client) from AI-powered analysis (server). This design enables scalability, flexibility, and maintainability.
+DeepFix separates artifact computation (client) from AI-powered analysis (server). This enables scalability, flexibility, and maintainability.
+
+
+![Architecture Diagram](./diagrams/architecture.png)
 
 ## Architecture Decision
 
-**Server State Management: Hybrid (Stateless + In-Memory Cache)**
+**Server state management: hybrid (stateless + in-memory cache).**
 
-- Stateless core API for horizontal scalability
-- In-memory LRU cache for KnowledgeBridge (upgradeable to Redis)
-- MLflow as the persistent artifact store
-- Local-first deployment model
+- Stateless core API for horizontal scalability.
+- In-memory LRU cache for knowledge retrieval (upgradeable to Redis).
+- MLflow as the persistent artifact store.
+- Local-first deployment model.
 
-**Key Design Choices:**
+### Key Design Choices
 
-| Aspect | Decision | Rationale |
-|--------|----------|-----------|
-| Communication | REST API | Simple, HTTP-based, widely supported |
-| Artifact Storage | Server pulls from MLflow | Simplifies client, centralizes access control |
-| State Management | Stateless + cache | Enables scaling, simpler deployment |
-| Deployment | Local-first | Matches current usage, easier migration |
+| Aspect            | Decision                      | Rationale                                          |
+|-------------------|-------------------------------|----------------------------------------------------|
+| Communication     | REST API                      | Simple, HTTP-based, widely supported               |
+| Artifact Storage  | Server pulls from MLflow      | Simplifies client, centralizes access control      |
+| State Management  | Stateless + cache             | Enables scaling, simpler deployment                |
+| Deployment        | Local-first                   | Matches expected usage, easier to run and debug    |
 
 ## Server Responsibilities
 
 The DeepFix server is responsible for:
 
-### 1. Artifact Retrieval
+### 1. AI-Powered Analysis
 
-- Connect to MLflow tracking server using provided URI
-- Fetch artifacts for specified run_id or dataset_name
-- Download and cache artifacts locally (temporary storage)
-- Handle missing or incomplete artifacts gracefully
+- Execute the multi-agent analysis pipeline.
+- Coordinate agent execution (parallel where possible).
+- Aggregate agent results into unified output.
+- Generate natural-language summaries and recommendations.
 
-**Implementation Notes:**
-- Reuse `ArtifactsManager` from `deepfix-core/artifacts/`
-- Use MLflow Python client for artifact downloads
-- Implement parallel downloads for multiple artifact types
-- Store downloaded artifacts in ephemeral temp directory (clean up after analysis)
+The server does **not**:
 
-### 2. AI-Powered Analysis
+- Train models.
+- Compute metrics or run training loops.
 
-- Execute multi-agent analysis pipeline
-- Coordinate agent execution (parallel where possible)
-- Aggregate agent results into unified output
-- Generate natural language summaries
+### 2. Knowledge Retrieval
 
-**NOT responsible for**: Training models or computing metrics
+- Query the knowledge base via a `KnowledgeBridge`.
+- Cache knowledge retrieval results.
+- Validate retrieved knowledge against the agent context.
+- Attach knowledge citations to responses.
 
-**Implementation Notes:**
-- Reuse agent system from `deepfix-server/agents/`
-- Maintain agent execution order:
-  - Parallel: TrainingAnalyzer, DatasetAnalyzer, DeepchecksAnalyzer
-  - Sequential: CrossArtifactIntegration → OptimizationAdvisor
-- Implement timeout handling per agent
-- Support partial results when some agents fail
+The server does **not** own:
 
-### 3. Knowledge Retrieval
+- Knowledge base updates or curation.
 
-- Query knowledge base using KnowledgeBridge
-- Cache knowledge retrieval results
-- Validate retrieved knowledge against agent context
-- Provide knowledge citations in responses
+### 3. Result Formatting
 
-**NOT responsible for**: Knowledge base updates or curation
+- Transform agent results into the API response schema.
+- Prioritize findings by severity and confidence.
+- Format recommendations as concrete steps.
 
-**Implementation Notes:**
-- Reuse `KnowledgeBridge` from `deepfix-kb/`
-- Implement in-memory LRU cache for query results
-- Cache key: hash(query + domain + query_type)
-- TTL: 24 hours
+### 4. Error Handling
 
-### 4. Result Formatting
-
-- Transform agent results into API response format
-- Generate natural language summaries
-- Prioritize findings by severity and confidence
-- Format recommendations with actionable steps
-
-**NOT responsible for**: Result persistence or visualization
-
-### 5. Error Handling
-
-- Validate incoming requests against schema
-- Handle MLflow connection failures
-- Manage agent execution errors
-- Provide detailed error messages with recovery suggestions
-
-**NOT responsible for**: Client-side error recovery
-
-## Server Constraints
-
-### Performance Constraints
-
-| Metric | Constraint | Rationale |
-|--------|-----------|-----------|
-| Response Time | <60s (typical) | User expectation for interactive analysis |
-| Timeout | 300s (max) | Hard limit to prevent resource exhaustion |
-| Concurrent Requests | 10 simultaneous | Local-first deployment assumption |
-| Memory Usage | <4GB per analysis | Supports deployment on standard machines |
-| Knowledge Query Time | <2s | Interactive query experience |
-
-### Resource Constraints
-
-- **Cache Size**: Max 1GB or 1000 entries (LRU eviction)
-- **Artifact Storage**: Temporary only, cleaned after analysis
-- **Database**: No persistent state (optional SQLite for artifact tracking)
-- **Network**: Must handle MLflow server on different host
-
-### Operational Constraints
-
-- **Stateless Design**: No session state between requests
-- **No User Authentication**: Relies on network security (add later)
-- **No Artifact Storage**: Server doesn't persist artifacts beyond analysis
-- **Single Tenant**: No multi-tenancy support in v1
-
-### Compatibility Constraints
-
-- **Python Version**: 3.11+
-- **MLflow Version**: Compatible with 2.0+
-- **Artifact Formats**: Must handle legacy and current formats
-- **API Version**: Semantic versioning (v1 = stable)
+- Validate incoming requests against the schema.
+- Handle MLflow connection failures.
+- Manage agent timeouts and execution errors.
+- Return structured error messages.
 
 ## Server Boundaries
 
-**What Server DOES:**
+**What the server does:**
 
-- ✅ Fetch artifacts from MLflow
-- ✅ Run AI analysis on artifacts
-- ✅ Query and cache knowledge
-- ✅ Return structured results
-- ✅ Health monitoring
+- ✅ Run AI analysis on artifacts.
+- ✅ Query and cache knowledge.
+- ✅ Return structured results.
 
-**What Server DOES NOT:**
+**What the server does not do:**
 
-- ❌ Compute or generate artifacts
-- ❌ Store artifacts permanently
-- ❌ Log to MLflow
-- ❌ Train models
-- ❌ Manage user sessions
-- ❌ Persist analysis history (v1)
-- ❌ Update knowledge base (v1)
+- ❌ Compute or generate artifacts.
+- ❌ Store artifacts permanently.
+- ❌ Log to MLflow.
+- ❌ Train models.
+- ❌ Manage user sessions.
 
 ## Client Responsibilities
 
@@ -150,131 +93,82 @@ The DeepFix SDK (client) is responsible for:
 
 ### 1. Artifact Computation
 
-- Generate datasets, deepchecks reports, model checkpoints
-- Compute training metrics and logs
-- Run data quality checks
-- Extract dataset statistics
-
-**Implementation Notes:**
-- Use existing data loading and processing pipelines
-- Integrate with PyTorch Lightning for training artifacts
-- Use Deepchecks for data quality reports
-- Generate artifacts in MLflow-compatible formats
+- Generate datasets, Deepchecks reports, model checkpoints.
+- Compute training metrics and logs.
+- Run data quality checks and extract statistics.
 
 ### 2. Artifact Recording
 
-- Store artifacts in MLflow tracking server
-- Tag artifacts with metadata (dataset_name, model_name, etc.)
-- Version artifacts appropriately
-- Handle artifact storage failures
-
-**Implementation Notes:**
-- Use MLflow Python API for artifact logging
-- Implement retry logic for failed uploads
-- Support offline mode with local artifact storage
-- Clean up temporary artifacts after successful upload
+- Store artifacts in an MLflow tracking server or local store.
+- Tag artifacts with metadata (dataset name, run ID, etc.).
+- Handle artifact upload errors and retries.
 
 ### 3. Workflow Integration
 
-- Integrate with PyTorch Lightning callbacks
-- Integrate with MLflow experiments
-- Support Jupyter notebooks and scripts
-- Provide command-line interface
-
-**Implementation Notes:**
-- Create Lightning callback for automatic analysis
-- Provide context managers for MLflow integration
-- Support both synchronous and asynchronous workflows
-- Handle workflow-specific errors gracefully
+- Integrate with PyTorch Lightning (callbacks/hooks).
+- Integrate with MLflow experiments.
+- Support notebooks, scripts, and pipelines.
 
 ### 4. Client Communication
 
-- Send analysis requests to DeepFix server
-- Handle server responses and errors
-- Implement retry logic for transient failures
-- Support offline mode with graceful degradation
-
-**Implementation Notes:**
-- Use `requests` library for HTTP communication
-- Implement exponential backoff retry strategy
-- Cache server responses when appropriate
-- Provide clear error messages to users
+- Send analysis requests to the DeepFix server.
+- Handle server responses and errors.
+- Implement retry logic for transient failures.
+- Provide clear error messages to users.
 
 ### 5. Result Processing
 
-- Parse server responses
-- Format results for display
-- Integrate results into workflows
-- Store results in MLflow (optional)
-
-**NOT responsible for**: Running AI analysis or querying knowledge base
+- Parse server responses.
+- Display results in notebooks, logs, or UIs.
+- Optionally store results back into MLflow.
 
 ## Client Boundaries
 
-**What Client DOES:**
+**What the client does:**
 
-- ✅ Compute artifacts (datasets, checks, metrics)
-- ✅ Store artifacts in MLflow
-- ✅ Send analysis requests
-- ✅ Display results to users
-- ✅ Integrate with ML workflows
+- ✅ Compute artifacts (datasets, checks, metrics).
+- ✅ Store artifacts in MLflow.
+- ✅ Send analysis requests.
+- ✅ Render results to users.
 
-**What Client DOES NOT:**
+**What the client does not do:**
 
-- ❌ Run AI analysis
-- ❌ Query knowledge base directly
-- ❌ Manage server state
-- ❌ Store analysis results permanently (optional)
+- ❌ Run AI analysis.
+- ❌ Query the knowledge base directly.
+- ❌ Manage server state.
 
 ## Communication Protocol
 
 ### REST API
 
-The client and server communicate via REST API:
+The client and server communicate via a JSON-over-HTTP API.
 
-**Endpoint**: `POST /v1/analyse`
+- **Endpoint**: `POST /v1/analyse`
+- **Protocol**: HTTP/HTTPS
+- **Format**: JSON
 
-**Request Format:**
+**Request format:**
+
 ```json
 {
   "dataset_name": "my-dataset",
-  "model_name": "my-model",
-  "dataset_artifacts": {
-    "metadata": {...},
-    "statistics": {...}
-  },
-  "deepchecks_artifacts": {
-    "reports": [...],
-    "checks": [...]
-  },
-  "model_checkpoint_artifacts": {
-    "checkpoint_path": "...",
-    "metadata": {...}
-  },
-  "training_artifacts": {
-    "metrics": {...},
-    "logs": [...]
-  },
+  "dataset_artifacts": {},
+  "deepchecks_artifacts": {},
+  "model_checkpoint_artifacts": {},
+  "training_artifacts": {},
   "language": "english"
 }
 ```
 
-**Response Format:**
+**Response format:**
+
 ```json
 {
-  "agent_results": {
-    "DatasetArtifactsAnalyzer": {
-      "findings": [...],
-      "confidence": 0.95,
-      "severity": "high"
-    },
-    "DeepchecksArtifactsAnalyzer": {...},
-    ...
-  },
+  "agent_results": {},
   "summary": "Cross-artifact summary...",
   "additional_outputs": {
-    "recommendations": [...],
-    "citations": [...]
+    "recommendations": [],
+    "citations": []
   },
   "error_messages": {}
 }
@@ -282,81 +176,67 @@ The client and server communicate via REST API:
 
 ### Error Handling
 
-**Server Errors:**
+Typical server errors:
 
-- `400 Bad Request`: Invalid request format
-- `404 Not Found`: Artifacts not found in MLflow
-- `500 Internal Server Error`: Server processing error
-- `503 Service Unavailable`: Server overloaded or unavailable
-- `504 Gateway Timeout`: Request timeout
+- `400 Bad Request`: invalid request.
+- `404 Not Found`: artifacts not found.
+- `500 Internal Server Error`: server error.
+- `503 Service Unavailable`: overloaded or offline.
 
-**Client Errors:**
+Typical client-side handling:
 
-- Connection errors: Retry with exponential backoff
-- Timeout errors: Increase timeout or retry
-- Validation errors: Fix request format
-- Server errors: Log error and notify user
+- Retry with backoff on transient errors.
+- Surface validation errors clearly.
+- Log and expose server-side error messages.
 
 ## Workflow Patterns
 
-### 1. Synchronous Analysis
+### Synchronous Analysis
 
-```
+```text
 Client → Ingest Artifacts → Request Analysis → Wait for Results → Display
 ```
 
-**Use Case**: Immediate feedback after training
+Use when you want immediate feedback after training or data preparation.
 
-### 2. Asynchronous Analysis
+### Asynchronous Analysis
 
-```
+```text
 Client → Ingest Artifacts → Request Analysis → Continue Work → Poll for Results
 ```
 
-**Use Case**: Long-running analysis
+Use for long-running analyses or batch jobs.
 
-### 3. Batch Analysis
+### Batch Analysis
 
-```
+```text
 Client → Ingest Multiple Artifacts → Request Multiple Analyses → Aggregate Results
 ```
 
-**Use Case**: Analyzing multiple experiments
+Use to analyze many experiments or datasets together.
 
 ## Design Rationale
 
-### Why Client-Server?
+### Why Client–Server?
 
-1. **Separation of Concerns**: Clear separation of computation and analysis
-2. **Scalability**: Independent scaling of analysis service
-3. **Flexibility**: Client can work offline with graceful degradation
-4. **Maintainability**: Easier to update and maintain components
+1. Separation of concerns between computation and analysis.
+2. Independent scaling of the analysis service.
+3. Easier updates to analysis logic without touching training code.
 
 ### Why Stateless Server?
 
-1. **Scalability**: Easy horizontal scaling
-2. **Reliability**: No session state to manage
-3. **Simplicity**: Easier deployment and maintenance
-4. **Fault Tolerance**: No state corruption issues
+1. Easier horizontal scaling and load balancing.
+2. No session state to manage or migrate.
+3. More robust restarts and deployments.
 
 ### Why MLflow for Artifacts?
 
-1. **Standardization**: Industry-standard artifact storage
-2. **Integration**: Works with existing ML workflows
-3. **Persistence**: Reliable artifact storage and versioning
-4. **Tooling**: Rich ecosystem of tools
-
-### Why In-Memory Cache?
-
-1. **Performance**: Fast knowledge retrieval
-2. **Simplicity**: No external cache dependency
-3. **Upgradeable**: Can migrate to Redis if needed
-4. **Cost**: No additional infrastructure needed
+1. Integrates with existing ML workflows.
+2. Standard artifact tracking and versioning.
+3. Rich ecosystem and UI.
 
 ## Related Documentation
 
-- [Architecture Overview](overview.md) - High-level system architecture
-- [Agent System](agents.md) - Agent architecture
-- [API Reference](../api-reference/index.md) - API documentation
-
-> **Note:** Workflow and Service specifications are available in the `specs/` directory at the repository root.
+- [Architecture Overview](/architecture/overview)
+- [Agent System](/architecture/agents)
+- [API Reference](/api-reference/introduction)

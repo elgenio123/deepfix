@@ -1,127 +1,103 @@
-# Architecture Overview
+---
+title: "Architecture Overview"
+description: "High-level overview of the DeepFix architecture, components, and data flow."
+---
 
-This document provides a high-level overview of the DeepFix architecture, including system components, data flow, and design principles.
+This page gives a high-level overview of the DeepFix architecture: the main components, how they interact, and the guiding design principles.
 
 ## System Overview
 
-DeepFix is a distributed system for AI-powered ML artifact analysis. It follows a client-server architecture that separates artifact computation from intelligent analysis.
+DeepFix is a distributed system for AI-powered ML artifact analysis. It follows a client–server architecture that separates artifact computation from intelligent analysis.
 
-```
-┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│   DeepFix SDK   │────────▶│  DeepFix Server  │────────▶│  LLM Provider   │
-│   (Client)      │         │   (Analysis)     │         │   (OpenAI/etc)  │
-└─────────────────┘         └──────────────────┘         └─────────────────┘
-        │                            │
-        │                            │
-        ▼                            ▼
-┌─────────────────┐         ┌──────────────────┐
-│     MLflow      │         │  Knowledge Base  │
-│ (Artifact Store)│         │   (Best Practices│
-└─────────────────┘         └──────────────────┘
-```
+![Architecture Diagram](./diagrams/architecture.png)
 
 ## Core Components
 
-### 1. DeepFix SDK (Client)
+### DeepFix SDK (Client)
 
 The SDK is responsible for:
 
-- **Artifact Computation**: Generating datasets, running checks, collecting metrics
-- **Artifact Recording**: Storing artifacts in MLflow
-- **Workflow Integration**: Integrating with PyTorch Lightning, MLflow, etc.
-- **Client Communication**: Sending analysis requests to the server
+- Artifact computation (datasets, checks, metrics)
+- Artifact recording in MLflow
+- Workflow integration (PyTorch Lightning, ML pipelines)
+- Client communication with the DeepFix server
 
 **Location**: `deepfix-sdk/`
 
-### 2. DeepFix Server
+See also: [SDK API Reference](/api-reference/sdk).
+
+### DeepFix Server
 
 The server is responsible for:
 
-- **Artifact Retrieval**: Fetching artifacts from MLflow
-- **AI-Powered Analysis**: Running specialized analysis agents
-- **Knowledge Retrieval**: Querying best practices knowledge base
-- **Result Synthesis**: Combining agent results into actionable insights
+- Running specialized analysis agents
+- Querying the knowledge base
+- Synthesizing and returning results
 
 **Location**: `deepfix-server/`
 
-### 3. DeepFix Core
+See also: [Server Architecture](/architecture/client-server) and [Server API Reference](/api-reference/server).
+
+### DeepFix Core
 
 Shared models and types:
 
-- **Data Models**: APIRequest, APIResponse, artifact types
-- **Type Definitions**: DataType, ArtifactPath, etc.
+- Data models: `APIRequest`, `APIResponse`, artifact models
+- Type definitions: data types, artifact paths, enums
 
 **Location**: `deepfix-core/`
 
-### 4. Knowledge Base
+See also: [Core API Reference](/api-reference/core).
+
+### Knowledge Base
 
 Stores best practices and domain knowledge:
 
-- **Architecture Best Practices**: Model design patterns
-- **Data Quality Best Practices**: Dataset quality standards
-- **Training Best Practices**: Training optimization strategies
+- Architecture best practices
+- Data quality best practices
+- Training best practices
 
 **Location**: `deepfix-kb/`, `documents/`
 
 ## Architecture Principles
 
-### 1. Separation of Concerns
+### Separation of Concerns
 
-- **Client**: Handles computation and workflow integration
-- **Server**: Focuses on AI-powered analysis
-- Clear boundaries between components
+- Client handles computation and workflow integration.
+- Server focuses on AI-powered analysis and reasoning.
+- Clear boundaries between SDK, Server, and Core.
 
-### 2. Stateless Server
+### Stateless Server
 
-- No session state between requests
-- Enables horizontal scaling
-- Easier deployment and maintenance
+- No session state between requests.
+- Enables horizontal scaling and simpler deployment.
 
-### 3. Artifact Storage
+### Artifact Storage
 
-- MLflow as the single source of truth for artifacts
-- Server pulls artifacts on-demand
-- Client handles artifact generation and storage
+- MLflow is the source of truth for artifacts.
+- Client generates artifacts and logs them to MLflow.
 
-### 4. Agentic Analysis
+### Agentic Analysis
 
-- Specialized agents for different artifact types
-- Parallel agent execution where possible
-- Cross-artifact reasoning for holistic insights
+- Specialized agents for different artifact types (datasets, deepchecks, checkpoints, training).
+- Parallel agent execution where possible.
+- Cross-artifact reasoning for holistic insights.
 
-### 5. Local-First Design
+### Local-First Design
 
-- Designed for local deployment
-- Can scale to cloud if needed
-- Minimal external dependencies
+- Designed for local deployment on a single machine.
+- Can scale out to cloud and container deployments.
+- Minimal external dependencies.
 
 ## Data Flow
 
 ### Analysis Request Flow
 
-```
-1. Client computes artifacts (datasets, checks, metrics)
-   ↓
-2. Client stores artifacts in MLflow
-   ↓
-3. Client sends analysis request to server
-   ↓
-4. Server retrieves artifacts from MLflow
-   ↓
-5. Server runs analysis agents in parallel
-   ↓
-6. Server queries knowledge base
-   ↓
-7. Server synthesizes results
-   ↓
-8. Server returns structured response to client
-   ↓
-9. Client displays results to user
-```
+![Analysis Request Flow](./diagrams/workflow.png)
 
 ### Agent Execution Flow
 
-```
+```text
 AnalyseArtifactsAPI
     ↓
 AgentContext (decode request)
@@ -147,62 +123,56 @@ APIResponse
 
 ### Client (SDK)
 
-- **Language**: Python 3.11+
-- **Key Libraries**:
+- Language: Python 3.11+
+- Key libraries:
   - `requests` for HTTP communication
   - `mlflow` for artifact tracking
   - `pydantic` for data validation
 
 ### Server
 
-- **Language**: Python 3.11+
-- **Framework**: FastAPI (via LitServe)
-- **Key Libraries**:
+- Language: Python 3.11+
+- Framework: FastAPI (via LitServe)
+- Key libraries:
   - `dspy` for LLM orchestration
-  - `litserve` for API serving
+  - `litserve` for serving
   - `pydantic v2` for validation
-  - `llama-index-retrievers-bm25` for knowledge retrieval
+  - `llama-index-retrievers-bm25` for retrieval
 
 ### Core
 
-- **Language**: Python 3.11+
-- **Key Libraries**:
-  - `pydantic` for data models
+- Language: Python 3.11+
+- Key libraries: `pydantic` for data models
 
 ## Communication Protocol
 
 ### REST API
 
-- **Protocol**: HTTP/HTTPS
-- **Format**: JSON
-- **Endpoints**:
-  - `POST /v1/analyse` - Analyze artifacts
+- Protocol: HTTP/HTTPS
+- Format: JSON
+- Main endpoint: `POST /v1/analyse`
 
-### Request Format
+**Example Request:**
 
 ```json
 {
   "dataset_name": "my-dataset",
-  "dataset_artifacts": {...},
-  "deepchecks_artifacts": {...},
-  "model_checkpoint_artifacts": {...},
-  "training_artifacts": {...},
+  "dataset_artifacts": {},
+  "deepchecks_artifacts": {},
+  "model_checkpoint_artifacts": {},
+  "training_artifacts": {},
   "language": "english"
 }
 ```
 
-### Response Format
+**Example Response:**
 
 ```json
 {
-  "agent_results": {
-    "DatasetArtifactsAnalyzer": {...},
-    "DeepchecksArtifactsAnalyzer": {...},
-    ...
-  },
+  "agent_results": {},
   "summary": "Cross-artifact summary",
-  "additional_outputs": {...},
-  "error_messages": {...}
+  "additional_outputs": {},
+  "error_messages": {}
 }
 ```
 
@@ -210,9 +180,9 @@ APIResponse
 
 ### Local Deployment
 
-```
+```text
 ┌─────────────────────────────────────┐
-│         Local Machine               │
+│           Local Machine             │
 │                                     │
 │  ┌──────────┐    ┌──────────────┐  │
 │  │  Client  │───▶│    Server    │  │
@@ -226,66 +196,33 @@ APIResponse
 └─────────────────────────────────────┘
 ```
 
-### Docker Deployment
+### Docker / Compose Deployment
 
-```
-┌─────────────────────────────────────┐
-│      Docker Compose                 │
-│                                     │
-│  ┌──────────────┐  ┌─────────────┐ │
-│  │ deepfix-     │  │ mlflow      │ │
-│  │ server       │  │ server      │ │
-│  │ container    │  │ container   │ │
-│  └──────────────┘  └─────────────┘ │
-│                                     │
-└─────────────────────────────────────┘
-```
+See [Docker Deployment](/deployment/docker) for details on running DeepFix in containers alongside MLflow.
 
 ## Design Decisions
 
-### Why Client-Server?
+### Why Client–Server?
 
-- **Scalability**: Independent scaling of analysis service
-- **Separation**: Clear separation of computation and analysis
-- **Flexibility**: Client can work offline with graceful degradation
+- Scalability: independently scale analysis.
+- Separation: clear boundary between computation and analysis.
+- Flexibility: SDK can work in offline or degraded mode.
 
 ### Why MLflow for Artifacts?
 
-- **Standardization**: Industry-standard artifact storage
-- **Integration**: Works with existing ML workflows
-- **Persistence**: Reliable artifact storage and versioning
-
-### Why Stateless Server?
-
-- **Scalability**: Easy horizontal scaling
-- **Reliability**: No session state to manage
-- **Simplicity**: Easier to deploy and maintain
+- Standardized artifact storage and tracking.
+- Integration with existing ML workflows.
+- Versioning and reproducibility.
 
 ### Why Agentic Architecture?
 
-- **Specialization**: Each agent focuses on specific artifact type
-- **Parallelism**: Agents can run in parallel
-- **Extensibility**: Easy to add new agents
-
-## Future Extensions
-
-### Planned Enhancements
-
-1. **Multi-Tenancy**: Support for multiple users/tenants
-2. **Authentication**: User authentication and authorization
-3. **Result Persistence**: Store analysis history
-4. **Streaming Analysis**: Real-time analysis updates
-5. **Cloud Deployment**: Support for cloud platforms
-
-### Scalability Path
-
-1. **Current**: Single server, local deployment
-2. **Next**: Horizontal scaling with load balancer
-3. **Future**: Distributed agents with message queue
+- Specialization per artifact type.
+- Easy to add new agents.
+- Parallelizable execution.
 
 ## Related Documentation
 
-- [Client-Server Architecture](client-server.md) - Detailed client-server design
-- [Agent System](agents.md) - Agent architecture and execution
-- [API Reference](../api-reference/index.md) - API documentation
-- [Deployment Guide](../deployment/docker.md) - Deployment instructions
+- [Client–Server Architecture](/architecture/client-server)
+- [Agent System](/architecture/agents)
+- [API Reference](/api-reference/introduction)
+- [Docker Deployment](/deployment/docker)
