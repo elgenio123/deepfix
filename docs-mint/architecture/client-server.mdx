@@ -10,6 +10,9 @@ This page details the client–server architecture of DeepFix: what each side is
 
 DeepFix separates artifact computation (client) from AI-powered analysis (server). This enables scalability, flexibility, and maintainability.
 
+
+![Architecture Diagram](./diagrams/architecture.png)
+
 ## Architecture Decision
 
 **Server state management: hybrid (stateless + in-memory cache).**
@@ -32,20 +35,7 @@ DeepFix separates artifact computation (client) from AI-powered analysis (server
 
 The DeepFix server is responsible for:
 
-### 1. Artifact Retrieval
-
-- Connect to MLflow tracking server.
-- Fetch artifacts for a given `dataset_name` or run ID.
-- Download and cache artifacts locally (ephemeral storage).
-- Handle missing or incomplete artifacts gracefully.
-
-Implementation details:
-
-- Reuses `ArtifactsManager` from DeepFix Core.
-- Uses MLflow Python client for downloads.
-- Can parallelize downloads for multiple artifact types.
-
-### 2. AI-Powered Analysis
+### 1. AI-Powered Analysis
 
 - Execute the multi-agent analysis pipeline.
 - Coordinate agent execution (parallel where possible).
@@ -57,7 +47,7 @@ The server does **not**:
 - Train models.
 - Compute metrics or run training loops.
 
-### 3. Knowledge Retrieval
+### 2. Knowledge Retrieval
 
 - Query the knowledge base via a `KnowledgeBridge`.
 - Cache knowledge retrieval results.
@@ -68,13 +58,13 @@ The server does **not** own:
 
 - Knowledge base updates or curation.
 
-### 4. Result Formatting
+### 3. Result Formatting
 
 - Transform agent results into the API response schema.
 - Prioritize findings by severity and confidence.
 - Format recommendations as concrete steps.
 
-### 5. Error Handling
+### 4. Error Handling
 
 - Validate incoming requests against the schema.
 - Handle MLflow connection failures.
@@ -85,7 +75,6 @@ The server does **not** own:
 
 **What the server does:**
 
-- ✅ Fetch artifacts from MLflow.
 - ✅ Run AI analysis on artifacts.
 - ✅ Query and cache knowledge.
 - ✅ Return structured results.

@@ -9,19 +9,7 @@ This page gives a high-level overview of the DeepFix architecture: the main comp
 
 DeepFix is a distributed system for AI-powered ML artifact analysis. It follows a client–server architecture that separates artifact computation from intelligent analysis.
 
-```text
-┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│   DeepFix SDK   │────────▶│  DeepFix Server  │────────▶│  LLM Provider   │
-│   (Client)      │         │   (Analysis)     │         │   (OpenAI/etc)  │
-└─────────────────┘         └──────────────────┘         └─────────────────┘
-        │                            │
-        │                            │
-        ▼                            ▼
-┌─────────────────┐         ┌──────────────────┐
-│     MLflow      │         │  Knowledge Base  │
-│ (Artifact Store)│         │ (Best Practices) │
-└─────────────────┘         └──────────────────┘
-```
+![Architecture Diagram](./diagrams/architecture.png)
 
 ## Core Components
 
@@ -42,7 +30,6 @@ See also: [SDK API Reference](/api-reference/sdk).
 
 The server is responsible for:
 
-- Retrieving artifacts from MLflow
 - Running specialized analysis agents
 - Querying the knowledge base
 - Synthesizing and returning results
@@ -88,7 +75,6 @@ Stores best practices and domain knowledge:
 ### Artifact Storage
 
 - MLflow is the source of truth for artifacts.
-- Server pulls artifacts on demand.
 - Client generates artifacts and logs them to MLflow.
 
 ### Agentic Analysis
@@ -107,25 +93,7 @@ Stores best practices and domain knowledge:
 
 ### Analysis Request Flow
 
-```text
-1. Client computes artifacts (datasets, checks, metrics)
-   ↓
-2. Client stores artifacts in MLflow
-   ↓
-3. Client sends analysis request to server
-   ↓
-4. Server retrieves artifacts from MLflow
-   ↓
-5. Server runs analysis agents in parallel
-   ↓
-6. Server queries knowledge base
-   ↓
-7. Server synthesizes results
-   ↓
-8. Server returns structured response to client
-   ↓
-9. Client displays results to user
-```
+![Analysis Request Flow](./diagrams/workflow.png)
 
 ### Agent Execution Flow
 
