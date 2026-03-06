@@ -10,7 +10,6 @@ This page details the client–server architecture of DeepFix: what each side is
 
 DeepFix separates artifact computation (client) from AI-powered analysis (server). This enables scalability, flexibility, and maintainability.
 
-
 ![Architecture Diagram](./diagrams/architecture.png)
 
 ## Architecture Decision
@@ -191,29 +190,22 @@ Typical client-side handling:
 
 ## Workflow Patterns
 
+The sequence diagram below illustrates the end-to-end DeepFix workflow, divided into two main phases:
+
+1. **Phase 1: Artifact Computation (Client-Side)**
+   The DeepFix SDK operates entirely on the client. It computes dataset statistics, runs data quality checks via Deepchecks, and securely logs the resulting artifacts to MLflow.
+
+2. **Phase 2: AI-Powered Diagnosis (Client to Server)**
+   When a diagnosis is requested, the SDK retrieves the stored artifacts and sends them as an API payload to the DeepFix server. The server orchestrates multiple analysis agents in parallel, queries an external LLM provider, and uses a Cross-Artifact Reasoner alongside a Knowledge Base. The final result is a synthesized, unified diagnosis containing prioritized recommendations returned to the user.
+
+![Workflow Diagram](./diagrams/workflow.png)
+
+
 ### Synchronous Analysis
 
 ```text
 Client → Ingest Artifacts → Request Analysis → Wait for Results → Display
 ```
-
-Use when you want immediate feedback after training or data preparation.
-
-### Asynchronous Analysis
-
-```text
-Client → Ingest Artifacts → Request Analysis → Continue Work → Poll for Results
-```
-
-Use for long-running analyses or batch jobs.
-
-### Batch Analysis
-
-```text
-Client → Ingest Multiple Artifacts → Request Multiple Analyses → Aggregate Results
-```
-
-Use to analyze many experiments or datasets together.
 
 ## Design Rationale
 
