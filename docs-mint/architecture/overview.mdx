@@ -95,29 +95,6 @@ Stores best practices and domain knowledge:
 
 ![Analysis Request Flow](./diagrams/workflow.png)
 
-### Agent Execution Flow
-
-```text
-AnalyseArtifactsAPI
-    ↓
-AgentContext (decode request)
-    ↓
-ArtifactAnalysisCoordinator
-    ↓
-┌─────────────────────────────────────┐
-│  Parallel Agent Execution           │
-│  - DatasetArtifactsAnalyzer         │
-│  - DeepchecksArtifactsAnalyzer      │
-│  - ModelCheckpointArtifactsAnalyzer │
-│  - TrainingArtifactsAnalyzer        │
-└─────────────────────────────────────┘
-    ↓
-CrossArtifactReasoningAgent (sequential)
-    ↓
-Synthesize results
-    ↓
-APIResponse
-```
 
 ## Technology Stack
 
@@ -177,24 +154,6 @@ APIResponse
 ```
 
 ## Deployment Architecture
-
-### Local Deployment
-
-```text
-┌─────────────────────────────────────┐
-│           Local Machine             │
-│                                     │
-│  ┌──────────┐    ┌──────────────┐  │
-│  │  Client  │───▶│    Server    │  │
-│  └──────────┘    └──────────────┘  │
-│       │                 │           │
-│       ▼                 ▼           │
-│  ┌──────────┐    ┌──────────────┐  │
-│  │  MLflow  │    │ Knowledge KB │  │
-│  └──────────┘    └──────────────┘  │
-│                                     │
-└─────────────────────────────────────┘
-```
 
 ### Docker / Compose Deployment
 
