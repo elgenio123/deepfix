@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Optional
 
 import dspy
+from deepfix_kb import KnowledgeBridge
+from deepfix_kb.tools import create_knowledge_tools
 
 from ..config import LLMConfig
 from ..logging import get_logger
@@ -14,14 +16,23 @@ LOGGER = get_logger(__name__)
 
 
 class CrossArtifactReasoningAgent(Agent):
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
+    def __init__(
+        self,
+        llm_config: Optional[LLMConfig] = None,
+        knowledge_bridge: Optional[KnowledgeBridge] = None,
+    ):
         super().__init__(config=llm_config)
+        self.knowledge_bridge = knowledge_bridge
         signature = type(
             f"{self.agent_name}Signature",
             (CrossArtifactReasoningSignature,),
             {"__doc__": self.system_prompt},
         )
-        self.llm = dspy.ChainOfThought(signature)
+        if self.knowledge_bridge:
+            tools = create_knowledge_tools(self.knowledge_bridge)
+            self.llm = dspy.ReAct(signature, tools=tools)
+        else:
+            self.llm = dspy.ChainOfThought(signature)
 
     def run(
         self,
@@ -29,7 +40,9 @@ class CrossArtifactReasoningAgent(Agent):
         output_language: str = "english",
     ) -> AgentResult:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(asyncio.run, self.arun(previous_analyses, output_language))
+            future = executor.submit(
+                asyncio.run, self.arun(previous_analyses, output_language)
+            )
             return future.result()
 
     async def arun(
@@ -51,7 +64,9 @@ class CrossArtifactReasoningAgent(Agent):
         output_language: str = "english",
     ) -> AgentResult:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(asyncio.run, self.aforward(previous_analyses, output_language))
+            future = executor.submit(
+                asyncio.run, self.aforward(previous_analyses, output_language)
+            )
             return future.result()
 
     async def aforward(
