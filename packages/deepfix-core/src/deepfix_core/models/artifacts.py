@@ -854,7 +854,7 @@ class DatasetArtifacts(Artifacts):
                 TaskType.IMAGE_CLASSIFICATION,
                 TaskType.IMAGE_SEGMENTATION,
             ]:
-                return ObjectDetectionStatistics.from_dict(d)
+                return VisionStatistics.from_dict(d)
             elif task_type in [
                 TaskType.TABULAR_CLASSIFICATION,
                 TaskType.TABULAR_REGRESSION,
@@ -870,7 +870,7 @@ class DatasetArtifacts(Artifacts):
 
         if "train_statistics" in d:
             d["train_statistics"] = load_statistics(d["train_statistics"])
-        if "test_statistics" in d:
+        if "test_statistics" in d and d["test_statistics"] is not None:
             d["test_statistics"] = load_statistics(d["test_statistics"])
 
         return cls(**d)

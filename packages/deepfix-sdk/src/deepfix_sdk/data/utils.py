@@ -167,7 +167,7 @@ class VisionDataStatistics(BaseDataStatistics):
         # Initialize accumulators
         num_samples = len(dataset)
         if num_samples == 0:
-            return {"mean": None, "std": None}
+            return VisionStatistics(num_samples=0)
 
         # Get first sample to determine number of channels
         first_image = dataset[0]["image"]
@@ -232,7 +232,7 @@ class VisionDataStatistics(BaseDataStatistics):
                     image = image / 255.0
 
             # Flatten spatial dimensions (H, W) and keep channel dimension
-            image_flat = image.reshape(C, -1)  # Shape: (C, H*W)
+            image_flat = image.permute(2, 0, 1).reshape(C, -1)  # Shape: (C, H*W)
 
             # Accumulate sums
             sum_pixels += image_flat.sum(dim=1).to(

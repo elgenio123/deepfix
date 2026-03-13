@@ -10,6 +10,7 @@ from typing import Any
 from deepfix_core.models import ModelCheckpointArtifacts
 
 
+# TODO: extend to PyTorch models
 def get_model_metadata(model: Any) -> ModelCheckpointArtifacts:
     if not hasattr(model, "get_params"):
         raise ValueError(
