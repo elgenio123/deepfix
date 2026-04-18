@@ -73,17 +73,6 @@ ENV PATH="/opt/venv/bin:$PATH" \
 
 WORKDIR /app
 
-# Create directories with proper ownership
-RUN mkdir -p /logs \
-    && chown -R deepfix:deepfix /logs /app
-
-VOLUME /logs
-
-# Copy startup script and fix permissions
-COPY --chown=deepfix:deepfix deepfix-server/start_server_docker.sh .
-COPY README.md .
-RUN sed -i 's/\r$//' start_server_docker.sh && chmod +x start_server_docker.sh
-
 # Expose ports
 EXPOSE 8844
 
@@ -97,4 +86,4 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 # Switch to non-root user
 USER deepfix
 
-CMD ["./start_server_docker.sh"]
+CMD ["uv", "run", "deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "2", "-fast-queue"]

@@ -61,12 +61,14 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-fadel841@deepfix-db:5432/deepfix_portal
       - FRONTEND_URL=http://deepfix-portal:3000
+      - DEEPFIX_SERVER_URL=http://deepfix-server:8844
       - ENVIRONMENT=development
     restart: unless-stopped
     ports:
       - "5041:5041"
     depends_on:
       - traefik
+      - deepfix-server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
@@ -77,6 +79,20 @@ services:
       - "traefik.http.routers.deepfix-portal-api-http.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-api-http.priority=100"
+
+  # ===================
+  # DeepFix Server (Analysis Engine)
+  # ===================
+  deepfix-server:
+    build:
+      context: .
+      dockerfile: ./packages/deepfix-server/Dockerfile
+    image: deepfix-server:latest
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "8844:8844"
 
   deepfix-db:
     image: postgres:16-alpine

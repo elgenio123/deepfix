@@ -81,8 +81,6 @@ pip install -e .
 - **`ACCESS_TOKEN_EXPIRE_MINUTES`** (optional): JWT access token lifetime in minutes (default: `30`).
 - **`DEEPFIX_PORTAL_SERVICE_TOKEN`** (required for server-to-server validation):
   - Shared secret used by other DeepFix services (such as `deepfix-server`) when calling the `/api/api-keys/validate` endpoint via the `X-Service-Token` header.
-- **`NODE_ENV`**:
-  - When set to `production`, the backend will attempt to serve the built frontend assets from `dist/public`.
 
 You can set these in your shell, `.env` file, or container/orchestration configuration.
 

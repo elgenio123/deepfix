@@ -17,8 +17,7 @@ FROM astral/uv:python3.11-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    NODE_ENV=production
+    PYTHONUNBUFFERED=1
 
 # System deps for compiling wheels like bcrypt/psycopg2, plus create non-root user
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -33,7 +32,6 @@ COPY deepfix-core ./deepfix-core
 COPY deepfix-portal ./deepfix-portal
 COPY deepfix-server ./deepfix-server
 
-# Bring in the built frontend so FastAPI can serve it when NODE_ENV=production
 COPY --from=frontend-builder /app/dist/public ./deepfix-portal/src/deepfix_portal/dist/public
 
 # Install Python deps into a project-local venv
@@ -47,7 +45,6 @@ RUN mkdir -p /app/deepfix-portal/.deepfix && chown -R app:app /app/deepfix-porta
 
 USER app
 ENV PATH="/app/deepfix-portal/.venv/bin:${PATH}"
-ENV NODE_ENV=
 ENV DEEPFIX_HOME=/app/deepfix-portal/.deepfix
 
 EXPOSE 5041

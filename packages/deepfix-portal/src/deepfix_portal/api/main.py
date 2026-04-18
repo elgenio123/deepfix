@@ -5,7 +5,6 @@ FastAPI main application entry point
 import os
 
 from deepfix_core.models import DatabaseBase  # Base for RequestLog table
-from deepfix_server.logging import setup_dspy_logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -49,12 +48,6 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "ok", "message": "DeepFix Portal Backend is running"}
 
-
-if os.getenv("MLFLOW_EXP_NAME") and os.getenv("MLFLOW_TRACKING_URI"):
-    setup_dspy_logging(
-        experiment_name=os.getenv("MLFLOW_EXP_NAME"),
-        tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
-    )
 
 if __name__ == "__main__":
     import uvicorn

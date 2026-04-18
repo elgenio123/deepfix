@@ -126,7 +126,7 @@ def run_analyse_artifacts_api(
     """
 
     server = ls.LitServer(
-        AnalyseArtifactsAPI(api_path="/api/v1/analyse", enable_async=True),
+        AnalyseArtifactsAPI(api_path="/analyse", enable_async=True),
         workers_per_device=workers_per_device,
         fast_queue=fast_queue,
     )

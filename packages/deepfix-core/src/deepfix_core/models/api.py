@@ -41,6 +41,9 @@ class APIResponse(BaseModel):
     error_messages: Optional[Dict[str, Optional[str]]] = Field(
         default=None, description="Error messages if the agents failed"
     )
+    dataset_name: Optional[str] = Field(
+        default=None, description="Name of the dataset analyzed"
+    )
 
     def get_results_as_dataframe(self) -> pd.DataFrame:
         """Convert all agent results to a single pandas DataFrame.
