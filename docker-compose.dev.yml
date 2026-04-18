@@ -63,6 +63,7 @@ services:
     depends_on:
       - traefik
       - deepfix-server
+      - deepfix-db
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-portal-api.rule=Host(`localhost`) && PathPrefix(`/api`)"

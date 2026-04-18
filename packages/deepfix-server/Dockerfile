@@ -31,9 +31,8 @@ RUN uv pip install /app/packages/deepfix-server
 RUN uv pip install opentelemetry-distro opentelemetry-exporter-otlp
 RUN . .venv/bin/activate && opentelemetry-bootstrap -a requirements > /tmp/otel-reqs.txt && uv pip install -r /tmp/otel-reqs.txt
 
-# Create .deepfix directory with proper permissions for the deepfix user
-# Also ensure the entire /app directory is owned by deepfix
-RUN mkdir -p /app/.deepfix && chown -R deepfix:deepfix /app
+# Create .deepfix and .cache directories with proper permissions for the deepfix user
+RUN mkdir -p /app/.deepfix /app/.cache && chown -R deepfix:deepfix /app/.deepfix /app/.cache
 
 USER deepfix
 ENV PATH="/app/.venv/bin:${PATH}"
