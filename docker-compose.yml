@@ -87,6 +87,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
       - FRONTEND_URL=https://${HOST}
+      - DEEPFIX_SERVER_URL=http://deepfix-server:8844
       - ENVIRONMENT=production
     restart: unless-stopped
     networks:
@@ -97,6 +98,7 @@ services:
           cpus: '2.00'
     depends_on:
       - proxy-deepfix
+      - deepfix-server
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.deepfix-portal-api.rule=Host(`${HOST}`) && PathPrefix(`/api`)"
@@ -107,6 +109,24 @@ services:
       - "traefik.http.routers.deepfix-portal-api-http.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-api-http.priority=100"
+
+  # ===================
+  # DeepFix Server (Analysis Engine)
+  # ===================
+  deepfix-server:
+    build:
+      context: .
+      dockerfile: ./packages/deepfix-server/Dockerfile
+    image: deepfix-server:latest
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - deepfix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
 
 # ===================
 # Networks

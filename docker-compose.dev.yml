@@ -20,9 +20,7 @@ services:
     labels:
       - "traefik.enable=true"
 
-  # ===================
-  # DeepFix Portal Frontend
-  # ===================
+
   deepfix-portal:
     build:
       context: ./packages/deepfix-portal
@@ -47,10 +45,6 @@ services:
       - "traefik.http.routers.deepfix-portal-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-http.priority=1"
 
-
-  # ===================
-  # DeepFix Portal API (Backend)
-  # ===================
   deepfix-portal-api:
     build:
       context: .
@@ -80,9 +74,6 @@ services:
       - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-api-http.priority=100"
 
-  # ===================
-  # DeepFix Server (Analysis Engine)
-  # ===================
   deepfix-server:
     build:
       context: .
