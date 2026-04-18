@@ -46,7 +46,9 @@ class AnalyseArtifactsAPI(ls.LitAPI):
                 tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
             )
         else:
-            print(f"Error setting up DSPy logging: {traceback.format_exc()}")
+            LOGGER.warning(
+                "No MLflow tracking configured, LLMs traceswill not be sent to MLflow."
+            )
 
         self._ensure_initialized()
 

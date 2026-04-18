@@ -1,78 +1,45 @@
-# Multi-stage Dockerfile for DeepFix Server
-# Optimized for production deployment with smaller image size and faster builds
-
-# Stage 1: Builder stage
-FROM astral/uv:python3.11-bookworm-slim AS builder
-
-# Set environment variables for Python optimization
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-# Install system dependencies required for building Python packages
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-
-# Set working directory
+FROM astral/uv:python3.11-bookworm-slim AS runtime
 WORKDIR /app
-
-# Create virtual environment
-RUN uv venv /opt/venv
-
-# Install dependencies into the venv first (use lock/info from pyproject)
-COPY packages/deepfix-server ./packages/deepfix-server
-COPY packages/deepfix-core ./packages/deepfix-core
-COPY packages/deepfix-kb ./packages/deepfix-kb
-
-COPY pyproject.toml ./pyproject.toml
-
-#RUN . /opt/venv/bin/activate \
-#    && uv pip install -r deepfix-server/pyproject.toml
-
-# Install project into the venv (non-editable)
-RUN . /opt/venv/bin/activate \
-    && uv pip install ./packages/deepfix-server \
-    && uv pip install pip \
-    && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
-    && uv pip install ./packages/deepfix-core && opentelemetry-bootstrap -a requirements | uv pip install --requirement -
-
-###############
-# Runtime stage
-###############
-FROM python:3.11-slim-bookworm AS runtime
 
 LABEL maintainer="fadel.seydou@delcaux.com"
 LABEL version="0.0.1"
 LABEL description="deepfix-server"
 
-# Install runtime dependencies including curl for health checks
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-       openssh-client \
-       curl \
-       tini \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # Create non-root user for security
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g ${GID} deepfix \
-    && useradd -u ${UID} -g deepfix -m -s /bin/bash deepfix
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -s /bin/bash deepfix
 
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
+# Copy workspace structure (needed for uv to resolve workspace dependencies)
+COPY pyproject.toml ./pyproject.toml
+COPY packages/deepfix-core ./packages/deepfix-core
+COPY packages/deepfix-server ./packages/deepfix-server
+COPY packages/deepfix-kb ./packages/deepfix-kb
 
-# Ensure venv takes precedence
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+# Install Python deps into a project-local venv
+RUN uv venv .venv
+RUN uv pip install /app/packages/deepfix-core
+RUN uv pip install /app/packages/deepfix-kb
+RUN uv pip install /app/packages/deepfix-server
+RUN uv pip install opentelemetry-distro opentelemetry-exporter-otlp
+RUN . .venv/bin/activate && opentelemetry-bootstrap -a requirements > /tmp/otel-reqs.txt && uv pip install -r /tmp/otel-reqs.txt
 
-WORKDIR /app
+# Create .deepfix directory with proper permissions for the deepfix user
+# Also ensure the entire /app directory is owned by deepfix
+RUN mkdir -p /app/.deepfix && chown -R deepfix:deepfix /app
+
+USER deepfix
+ENV PATH="/app/.venv/bin:${PATH}"
+ENV DEEPFIX_HOME=/app/.deepfix
+ENV DSPY_CACHEDIR=/app/.cache
+ENV MPLCONFIGDIR=/tmp/matplotlib
 
 # Expose ports
 EXPOSE 8844
@@ -84,7 +51,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Use tini as init system for proper signal handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Switch to non-root user
-USER deepfix
-
-CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "2", "-fast-queue"]
+# Launch the server
+CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "-fast-queue"]
