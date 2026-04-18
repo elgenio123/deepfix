@@ -26,6 +26,7 @@ RUN uv venv /opt/venv
 # Install dependencies into the venv first (use lock/info from pyproject)
 COPY packages/deepfix-server ./packages/deepfix-server
 COPY packages/deepfix-core ./packages/deepfix-core
+COPY packages/deepfix-kb ./packages/deepfix-kb
 
 COPY pyproject.toml ./pyproject.toml
 
@@ -34,10 +35,10 @@ COPY pyproject.toml ./pyproject.toml
 
 # Install project into the venv (non-editable)
 RUN . /opt/venv/bin/activate \
-    && uv pip install ./deepfix-server \
+    && uv pip install ./packages/deepfix-server \
     && uv pip install pip \
     && uv pip install opentelemetry-distro opentelemetry-exporter-otlp\
-    && uv pip install ./deepfix-core && uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
+    && uv pip install ./packages/deepfix-core && opentelemetry-bootstrap -a requirements | uv pip install --requirement -
 
 ###############
 # Runtime stage
@@ -86,4 +87,4 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 # Switch to non-root user
 USER deepfix
 
-CMD ["uv", "run", "deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "2", "-fast-queue"]
+CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "2", "-fast-queue"]
