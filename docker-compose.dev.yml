@@ -17,8 +17,6 @@ services:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./traefik/certs:/etc/traefik/certs:ro
-    networks:
-      - deepfix-network
     labels:
       - "traefik.enable=true"
 
@@ -33,8 +31,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    networks:
-      - deepfix-network
     volumes:
       - ./packages/deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
@@ -51,6 +47,7 @@ services:
       - "traefik.http.routers.deepfix-portal-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-http.priority=1"
 
+
   # ===================
   # DeepFix Portal API (Backend)
   # ===================
@@ -62,12 +59,12 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:6543/postgres
+      - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-fadel841@deepfix-db:5432/deepfix_portal
       - FRONTEND_URL=http://deepfix-portal:3000
       - ENVIRONMENT=development
     restart: unless-stopped
-    networks:
-      - deepfix-network
+    ports:
+      - "5041:5041"
     depends_on:
       - traefik
     labels:
@@ -81,10 +78,22 @@ services:
       - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
       - "traefik.http.routers.deepfix-portal-api-http.priority=100"
 
-# ===================
-# Networks
-# ===================
-networks:
-  deepfix-network:
-    driver: bridge
-    name: deepfix-network
+  deepfix-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: deepfix-admin
+      POSTGRES_PASSWORD: deepfix-fadel841
+      POSTGRES_DB: deepfix_portal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepfix-admin -d deepfix_portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
