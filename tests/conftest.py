@@ -8,6 +8,8 @@ try:
 
     if not hasattr(np, "Inf"):
         np.Inf = np.inf
+    if not hasattr(np, "NINF"):
+        np.NINF = -np.inf
 except Exception:
     pass
 
