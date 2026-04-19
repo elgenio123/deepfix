@@ -43,45 +43,16 @@ services:
           cpus: '0.25'
 
   # ===================
-  # DeepFix Portal Frontend
+  # DeepFix Portal (Unified)
   # ===================
   deepfix-portal:
     build:
-      context: ./packages/deepfix-portal
-      dockerfile: Dockerfile.frontend
+      context: .
+      dockerfile: ./packages/deepfix-portal/Dockerfile
     image: deepfix-portal:latest
     restart: unless-stopped
     networks:
       - deepfix-network
-    volumes:
-      - ./packages/deepfix-portal/Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - deepfix-portal-api
-      - proxy-deepfix
-      - tunnel
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal.rule=Host(`${HOST}`)"
-      - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
-      - "traefik.http.routers.deepfix-portal.tls=true"
-      - "traefik.http.routers.deepfix-portal.priority=1"
-      - "traefik.http.services.deepfix-portal.loadbalancer.server.port=3000"
-      - "traefik.http.routers.deepfix-portal-http.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.deepfix-portal-http.entrypoints=web"
-      - "traefik.http.routers.deepfix-portal-http.priority=1"
-
-  # ===================
-  # DeepFix Portal API (Backend)
-  # ===================
-  deepfix-portal-api:
-    build:
-      context: .
-      dockerfile: ./packages/deepfix-portal/Dockerfile.backend
-    image: deepfix-portal-api:latest
     env_file:
       - .env
     environment:
@@ -89,26 +60,20 @@ services:
       - FRONTEND_URL=https://${HOST}
       - DEEPFIX_SERVER_URL=http://deepfix-server:8844
       - ENVIRONMENT=production
-    restart: unless-stopped
-    networks:
-      - deepfix-network
+    depends_on:
+      - proxy-deepfix
+      - tunnel
+      - deepfix-server
     deploy:
       resources:
         limits:
-          cpus: '2.00'
-    depends_on:
-      - proxy-deepfix
-      - deepfix-server
+          cpus: '2.50'
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal-api.rule=Host(`${HOST}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.deepfix-portal-api.entrypoints=web,websecure"
-      - "traefik.http.routers.deepfix-portal-api.tls=true"
-      - "traefik.http.routers.deepfix-portal-api.priority=100"
-      - "traefik.http.services.deepfix-portal-api.loadbalancer.server.port=5041"
-      - "traefik.http.routers.deepfix-portal-api-http.rule=PathPrefix(`/api`)"
-      - "traefik.http.routers.deepfix-portal-api-http.entrypoints=web"
-      - "traefik.http.routers.deepfix-portal-api-http.priority=100"
+      - "traefik.http.routers.deepfix-portal.rule=Host(`${HOST}`)"
+      - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
+      - "traefik.http.routers.deepfix-portal.tls=true"
+      - "traefik.http.services.deepfix-portal.loadbalancer.server.port=5041"
 
   # ===================
   # DeepFix Server (Analysis Engine)
