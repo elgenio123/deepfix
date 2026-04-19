@@ -1,6 +1,8 @@
 import sys
+import os
 
 import pytest
+
 
 # Patch numpy early
 try:
@@ -54,3 +56,31 @@ def minimal_deepchecks_config() -> DeepchecksConfig:
         max_samples=20,
         random_state=42,
     )
+
+
+@pytest.fixture
+def api_url():
+    """Fixture providing the DeepFix API URL for tests."""
+    url = os.getenv("DEEPFIX_TEST_API_URL")
+    if url is None:
+        raise ValueError("DEEPFIX_TEST_API_URL is not set")
+    return url
+
+
+@pytest.fixture
+def coco_detection_paths() -> dict[str, str]:
+    """Fixture providing COCO detection dataset paths, skipping if not set."""
+    paths = {
+        "tr_images": os.getenv("TR_IMAGES_DIR_PATH"),
+        "tr_annotations": os.getenv("TR_ANNOTATIONS_PATH"),
+        "val_images": os.getenv("VAL_IMAGES_DIR_PATH"),
+        "val_annotations": os.getenv("VAL_ANNOTATIONS_PATH"),
+    }
+
+    if not all(paths.values()):
+        pytest.skip(
+            "Object detection dataset paths (TR_IMAGES_DIR_PATH, TR_ANNOTATIONS_PATH, "
+            "VAL_IMAGES_DIR_PATH, VAL_ANNOTATIONS_PATH) not fully set"
+        )
+
+    return paths

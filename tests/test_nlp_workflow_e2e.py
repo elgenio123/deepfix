@@ -16,14 +16,13 @@ def setup_env():
 class TestNLPWorkflowE2E:
     """End-to-end tests for the NLP workflow, reproducing the tutorial."""
 
-    def test_nlp_diagnosis_workflow(self):
+    def test_nlp_diagnosis_workflow(self, api_url: str):
         """
         Test the full diagnosis workflow for an NLP dataset.
         Reproduces logic from tutorials/nlp.ipynb.
         """
         # 1. Initialize Client
         print("1. Initializing client...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=300)
         print("2. Client initialized.")
 

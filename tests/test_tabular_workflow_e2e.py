@@ -21,14 +21,13 @@ def setup_env():
 class TestTabularWorkflowE2E:
     """End-to-end tests for the tabular workflow, reproducing the tutorial."""
 
-    def test_tabular_diagnosis_workflow(self):
+    def test_tabular_diagnosis_workflow(self, api_url: str):
         """
         Test the full diagnosis workflow for a tabular dataset.
         Reproduces logic from tutorials/tabular.ipynb.
         """
         # 1. Initialize Client
         print("1. Initializing client...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=120)
         print("2. Client initialized.")
 
@@ -98,14 +97,13 @@ class TestTabularWorkflowE2E:
         print("\nDeepFix Analysis Summary:")
         print(response.summary)
 
-    def test_tabular_diagnosis_without_model(self):
+    def test_tabular_diagnosis_without_model(self, api_url: str):
         """
         Test the diagnosis workflow without providing a fitted model.
         The SDK should handle model fitting internally.
         """
         # 1. Initialize Client
         print("1. Initializing client...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=120)
         print("2. Client initialized.")
 

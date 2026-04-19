@@ -1,6 +1,5 @@
 import os
 import pytest
-import os
 import sys
 
 # Ensure UTF-8 encoding for Windows terminal
@@ -56,14 +55,13 @@ class TransposeMNIST(Dataset):
 class TestVisionWorkflowE2E:
     """End-to-end tests for the Computer Vision workflow, reproducing the tutorial."""
 
-    def test_vision_classification_workflow(self):
+    def test_vision_classification_workflow(self, api_url: str):
         """
         Test the full diagnosis workflow for a Vision dataset.
         Reproduces logic from tutorials/computer-vision.ipynb.
         """
         # 1. Initialize Client
         print("1. Initializing client...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         # Vision tasks can be heavy, set long timeout
         client = DeepFixClient(api_url=api_url, timeout=300)
         print("2. Client initialized.")
@@ -105,14 +103,13 @@ class TestVisionWorkflowE2E:
         print("\nDeepFix Analysis Summary:")
         print(response.summary)
 
-    def test_foodwaste_classification_workflow(self):
+    def test_foodwaste_classification_workflow(self, api_url: str):
         """
         Test the full diagnosis workflow for the foodwaste dataset.
         Reproduces logic from tutorials/computer-vision.ipynb.
         """
         # 1. Initialize Client
         print("1. Initializing client...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=300)
         print("2. Client initialized.")
 
@@ -155,10 +152,9 @@ class TestVisionWorkflowE2E:
         print("\nDeepFix Analysis Summary:")
         print(response.summary)
 
-    def test_semantic_segmentation_workflow(self):
+    def test_semantic_segmentation_workflow(self, api_url: str):
         """Test the semantic segmentation workflow using COCO segmentation dataset."""
         print("\nRunning Semantic Segmentation workflow...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=300)
 
         dataset_name = "coco_segmentation"
@@ -185,27 +181,23 @@ class TestVisionWorkflowE2E:
         print("Semantic Segmentation workflow completed successfully.")
         print(f"Summary: {result.summary}")
 
-    def test_object_detection_workflow(self):
+    def test_object_detection_workflow(self, api_url: str, coco_detection_paths: dict):
         """Test the object detection workflow using COCO detection dataset."""
         print("\nRunning Object Detection workflow...")
-        api_url = os.getenv("DEEPFIX_TEST_API_URL")
         client = DeepFixClient(api_url=api_url, timeout=300)
 
-        print("Training images path: ", os.getenv("TR_IMAGES_DIR_PATH"))
-        print("Training annotations path: ", os.getenv("TR_ANNOTATIONS_PATH"))
-        print("Validation images path: ", os.getenv("VAL_IMAGES_DIR_PATH"))
-        print("Validation annotations path: ", os.getenv("VAL_ANNOTATIONS_PATH"))
+        print("Coco detection paths: ", coco_detection_paths)
 
         dataset_name = "coco_detection_dataset"
         train_data = ObjectDetectionDataset.from_coco(
             dataset_name=dataset_name,
-            images_directory_path=os.getenv("TR_IMAGES_DIR_PATH"),
-            annotations_path=os.getenv("TR_ANNOTATIONS_PATH"),
+            images_directory_path=coco_detection_paths["tr_images"],
+            annotations_path=coco_detection_paths["tr_annotations"],
         )
         val_data = ObjectDetectionDataset.from_coco(
             dataset_name=dataset_name,
-            images_directory_path=os.getenv("VAL_IMAGES_DIR_PATH"),
-            annotations_path=os.getenv("VAL_ANNOTATIONS_PATH"),
+            images_directory_path=coco_detection_paths["val_images"],
+            annotations_path=coco_detection_paths["val_annotations"],
         )
         print(f"Executing diagnosis for {dataset_name}...")
         result = client.get_diagnosis(
