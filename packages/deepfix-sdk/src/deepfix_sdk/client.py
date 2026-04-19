@@ -48,7 +48,7 @@ class DeepFixClient:
 
         Example:
             >>> client = DeepFixClient(
-            ...     api_url="http://localhost:8844",
+            ...     api_url="http://localhost:8844/api/v1/analyse",
             ...     timeout=120
             ... )
         """
@@ -389,7 +389,6 @@ class DeepFixClient:
             refresh_per_second=10,
         ):
             payload = request.model_dump()
-            # headers = {"X-API-Key": os.getenv("DEEPFIX_API_KEY")}
             headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
             response = requests.post(
                 self._analyze_endpoint,
@@ -407,9 +406,7 @@ class DeepFixClient:
 
         if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
             console.print("[red]✗[/red] Errors during analysis", style="bold red")
-            console.print(
-                f"Error during analysis: {out.error_messages}"
-            )
+            console.print(f"Error during analysis: {out.error_messages}")
 
         console.print("[green]✓[/green] Analysis complete!", style="bold green")
         return out
