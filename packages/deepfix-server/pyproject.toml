@@ -19,6 +19,7 @@ dependencies = [
     "deepfix-core",
     "deepfix-kb",
     "seaborn",
+    "pydantic-settings>=2.11.0",
 ]
 
 [tool.pytest.ini_options]

@@ -28,8 +28,8 @@ def launch(
     env_file: Optional[str] = typer.Option(
         None, "-e", "--env-file", help="Environment file to load"
     ),
-    workers_per_device: int = typer.Option(1, "-workers", help="Workers per device"),
-    fast_queue: bool = typer.Option(False, "-fast-queue", help="Fast queue"),
+    workers: int = typer.Option(1, "-workers", help="Number of worker processes"),
+    reload: bool = typer.Option(False, "--reload", help="Enable auto-reload"),
 ) -> None:
     """Launch DeepFix server."""
 
@@ -44,8 +44,8 @@ def launch(
     run_analyse_artifacts_api(
         port=port,
         host=host,
-        workers_per_device=workers_per_device,
-        fast_queue=fast_queue,
+        workers=workers,
+        reload=reload,
     )
 
 

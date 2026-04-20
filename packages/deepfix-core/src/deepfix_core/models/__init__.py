@@ -1,4 +1,11 @@
-from .analysis import AgentResult, Analysis, Finding, Recommendation, Severity
+from .analysis import (
+    AgentResult,
+    Analysis,
+    Finding,
+    Recommendation,
+    Severity,
+    AnalysisJobStatus,
+)
 from .api import APIRequest, APIResponse
 from .artifacts import (
     ArtifactPath,
@@ -29,6 +36,7 @@ __all__ = [
     "TrainingArtifacts",
     "DatasetArtifacts",
     "AgentResult",
+    "AnalysisJobStatus",
     "Severity",
     "Analysis",
     "Finding",
