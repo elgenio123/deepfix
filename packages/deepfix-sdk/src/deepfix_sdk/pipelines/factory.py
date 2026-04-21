@@ -28,7 +28,7 @@ LOGGER = get_logger(__name__)
 
 
 def create_run_name(dataset_name: str, model_name: Optional[str] = None) -> str:
-    if model_name is not None:
+    if model_name:
         return f"{dataset_name}___{model_name}"
     return dataset_name
 

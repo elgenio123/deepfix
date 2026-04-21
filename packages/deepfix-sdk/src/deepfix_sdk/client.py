@@ -362,9 +362,10 @@ class DeepFixClient:
         return request
 
     def _send_request(self, request: APIRequest) -> APIResponse:
-        """Send an analysis request to the DeepFix server using async polling.
+        """Send an analysis request to the DeepFix server.
 
-        Internal method that orchestrates job submission and status polling.
+        Internal method that handles both synchronous (v1) and asynchronous (v2)
+        interactions. Skips polling if results are returned immediately.
 
         Args:
             request (APIRequest): The API request object to send to the server.
@@ -376,26 +377,30 @@ class DeepFixClient:
             RuntimeError: If the job submission or polling fails, or if the analysis fails.
         """
         # 1. Submit the job
-        job_id = self._submit_job(request)
+        job_data = self._submit_job(request)
 
-        # 2. Poll for results
-        out = self._poll_for_results(job_id, polling_interval=5.0)
+        # 2. Check if results are immediate (synchronous v1)
+        if job_data.status == AnalysisJobStatus.COMPLETED.value and job_data.result:
+            out = job_data.result
+        else:
+            # 3. Poll for results (asynchronous v2)
+            out = self._poll_for_results(job_data.job_id, polling_interval=5.0)
 
         if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
-            console.print("[red]✗[/red] Errors during analysis", style="bold red")
+            console.print("[red]x[/red] Errors during analysis", style="bold red")
             console.print(f"Error details: {out.error_messages}")
 
-        console.print("[green]✓[/green] Analysis complete!", style="bold green")
+        console.print("[green]v[/green] Analysis complete!", style="bold green")
         return out
 
-    def _submit_job(self, request: APIRequest) -> str:
-        """Submit a background analysis job to the server.
+    def _submit_job(self, request: APIRequest) -> APIJobResponse:
+        """Submit an analysis job to the server.
 
         Args:
             request (APIRequest): The analysis request.
 
         Returns:
-            str: The unique job ID returned by the server.
+            APIJobResponse: The response from the server containing job metadata.
         """
         headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
 
@@ -404,32 +409,34 @@ class DeepFixClient:
             style="dim",
         )
 
+        # Use full client timeout for v1 (sync) and 30s for v2 (async submission)
+        request_timeout = self.timeout if "/v1/" in self.api_url else 0.5
+
         try:
             response = requests.post(
                 self.api_url,
                 json=request.model_dump(),
-                timeout=0.5,
+                timeout=request_timeout,
                 headers=headers,
             )
         except Exception as e:
             raise RuntimeError(f"Failed to connect to DeepFix server: {str(e)}")
 
-        if response.status_code != 202:
-            console.print("[red]✗[/red] Job submission failed", style="bold red")
+        if response.status_code not in [200, 202]:
+            console.print("[red]x[/red] Request failed", style="bold red")
             raise RuntimeError(
-                f"Error submitting analysis job: {response.status_code} - {response.text}"
+                f"Error from DeepFix server: {response.status_code} - {response.text}"
             )
 
         job_data = APIJobResponse.model_validate(response.json())
-        job_id = job_data.job_id
-        if not job_id:
+        if not job_data.job_id:
             raise RuntimeError("Server did not return a job_id")
 
         console.print(
-            f"[dim]Analysis job submitted with ID: {job_id}[/dim]", style="dim"
+            f"[dim]Request accepted (ID: {job_data.job_id})[/dim]", style="dim"
         )
 
-        return job_id
+        return job_data
 
     def _poll_for_results(
         self, job_id: str, polling_interval: float = 5.0
@@ -465,7 +472,7 @@ class DeepFixClient:
                     job_response = requests.get(
                         polling_url,
                         headers=headers,
-                        timeout=0.5,
+                        timeout=0.1,
                     )
                     if job_response.status_code != 200:
                         raise RuntimeError(
