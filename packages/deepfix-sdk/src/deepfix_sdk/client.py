@@ -16,6 +16,14 @@ from rich.console import Console
 from rich.live import Live
 from rich.spinner import Spinner
 import time
+from tenacity import (
+    Retrying,
+    stop_after_delay,
+    wait_fixed,
+    retry_if_result,
+    retry_if_exception_type,
+    RetryError,
+)
 
 from .artifacts import ArtifactRepository, ArtifactStatus
 from .config import ArtifactConfig, MLflowConfig
@@ -409,8 +417,7 @@ class DeepFixClient:
             style="dim",
         )
 
-        # Use full client timeout for v1 (sync) and 30s for v2 (async submission)
-        request_timeout = self.timeout if "/v1/" in self.api_url else 0.5
+        request_timeout = self.timeout if "/v1/" in self.api_url else 5.0
 
         try:
             response = requests.post(
@@ -439,7 +446,7 @@ class DeepFixClient:
         return job_data
 
     def _poll_for_results(
-        self, job_id: str, polling_interval: float = 5.0
+        self, job_id: str, polling_interval: float = 10.0
     ) -> APIResponse:
         """Poll the server for the results of a background job.
 
@@ -454,71 +461,84 @@ class DeepFixClient:
         # Determine base URL for polling (e.g., from .../api/v2/analyse to .../api)
         base_url = self.api_url.rstrip("/")
         if "/v2/analyse" in base_url:
-            base_url = base_url.replace("/v2/analyse", "")
+            base_url = base_url.split("/v2/analyse")[0]
         elif "/v1/analyse" in base_url:
-            base_url = base_url.replace("/v1/analyse", "")
+            base_url = base_url.split("/v1/analyse")[0]
+
+        def is_not_finished(job_data: Optional[APIJobResponse]) -> bool:
+            if job_data is None:
+                return True
+            return not job_data.is_finished
 
         start_time = time.time()
         with Live(
             Spinner("dots", text="[cyan]Analysis pending...[/cyan]", style="cyan"),
             console=console,
-            refresh_per_second=1,
+            refresh_per_second=10,
         ) as live:
-            while True:
-                if (time.time() - start_time) > self.timeout:
-                    raise RuntimeError("Analysis timed out")
-                try:
-                    polling_url = f"{base_url}/v2/jobs/{job_id}"
-                    job_response = requests.get(
-                        polling_url,
-                        headers=headers,
-                        timeout=0.1,
-                    )
-                    if job_response.status_code != 200:
-                        raise RuntimeError(
-                            f"Polling failed: {job_response.status_code}"
+            try:
+                for attempt in Retrying(
+                    stop=stop_after_delay(self.timeout),
+                    wait=wait_fixed(polling_interval),
+                    retry=retry_if_result(is_not_finished)
+                    | retry_if_exception_type((requests.RequestException, IOError)),
+                    reraise=False,
+                ):
+                    with attempt:
+                        polling_url = f"{base_url}/v2/jobs/{job_id}"
+                        job_response = requests.get(
+                            polling_url,
+                            headers=headers,
+                            timeout=2.0,
                         )
+                        if job_response.status_code != 200:
+                            raise requests.RequestException(
+                                f"Polling failed: {job_response.status_code}"
+                            )
 
-                    job_data = APIJobResponse.model_validate(job_response.json())
-                    status = job_data.status
+                        job_data = APIJobResponse.model_validate(job_response.json())
+                        status = job_data.status
 
-                    # Update spinner with current status
-                    live.update(
-                        Spinner(
-                            "dots",
-                            text=f"[cyan]Analysis in progress ({status.lower()})...[/cyan]",
-                            style="cyan",
-                        )
-                    )
-
-                    if status == AnalysisJobStatus.COMPLETED.value:
-                        live.update(
-                            Spinner("dots", text="[green]Processing results...[/green]")
-                        )
-                        if job_data.result is None:
-                            raise RuntimeError("Job completed but no result data found")
-                        return job_data.result
-
-                    elif status == AnalysisJobStatus.FAILED.value:
-                        error_msg = job_data.error or "Unknown error"
+                        # Update spinner with current status
                         live.update(
                             Spinner(
-                                "dots", text=f"[red]Analysis failed: {error_msg}[/red]"
+                                "dots",
+                                text=f"[cyan]Analysis in progress ({status.lower()})...[/cyan]",
+                                style="cyan",
                             )
                         )
-                        raise RuntimeError(f"DeepFix analysis failed: {error_msg}")
 
-                except Exception as e:
-                    if isinstance(e, RuntimeError):
-                        raise e
-                    live.update(
-                        Spinner(
-                            "dots",
-                            text=f"[yellow]Retrying polling ({str(e)})...[/yellow]",
-                        )
-                    )
+                        if status == AnalysisJobStatus.COMPLETED.value:
+                            live.update(
+                                Spinner(
+                                    "dots", text="[green]Processing results...[/green]"
+                                )
+                            )
+                            if job_data.result is None:
+                                raise RuntimeError(
+                                    "Job completed but no result data found"
+                                )
+                            return job_data.result
 
-                time.sleep(polling_interval)
+                        elif status == AnalysisJobStatus.FAILED.value:
+                            error_msg = job_data.error or "Unknown error"
+                            live.update(
+                                Spinner(
+                                    "dots",
+                                    text=f"[red]Analysis failed: {error_msg}[/red]",
+                                )
+                            )
+                            raise RuntimeError(f"DeepFix analysis failed: {error_msg}")
+
+                # If the loop finishes without returning, it means it timed out
+                raise RuntimeError("Analysis timed out")
+
+            except Exception as e:
+                if isinstance(e, (RuntimeError, RetryError)):
+                    if isinstance(e, RetryError):
+                        raise RuntimeError("Analysis timed out") from e
+                    raise e
+                raise RuntimeError(f"Analysis polling failed: {str(e)}")
 
     def _get_data_type(
         self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None

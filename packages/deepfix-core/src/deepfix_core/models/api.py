@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from io import StringIO
 from typing import Any, Dict, Optional, Union
 
@@ -18,6 +19,13 @@ from .artifacts import (
     ModelCheckpointArtifacts,
     TrainingArtifacts,
 )
+
+
+class AnalysisJobStatus(StrEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 # API Models
@@ -358,11 +366,18 @@ class APIJobResponse(BaseModel):
     """
 
     job_id: str
-    status: str
+    status: AnalysisJobStatus
     result: Optional[APIResponse] = None
     error: Optional[str] = None
     created_at: Optional[Union[datetime, str]] = None
     updated_at: Optional[Union[datetime, str]] = None
+
+    @property
+    def is_finished(self) -> bool:
+        return self.status in [
+            AnalysisJobStatus.COMPLETED,
+            AnalysisJobStatus.FAILED,
+        ]
 
 
 class APIRequest(BaseModel):

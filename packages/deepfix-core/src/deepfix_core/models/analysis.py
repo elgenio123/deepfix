@@ -7,13 +7,6 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 
-class AnalysisJobStatus(StrEnum):
-    PENDING = "PENDING"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-
-
 # ============================================================================
 # Analysis data Models
 # ============================================================================
