@@ -4,9 +4,8 @@ from .analysis import (
     Finding,
     Recommendation,
     Severity,
-    AnalysisJobStatus,
 )
-from .api import APIRequest, APIResponse, APIJobResponse
+from .api import APIRequest, APIResponse, APIJobResponse, AnalysisJobStatus
 from .artifacts import (
     ArtifactPath,
     Artifacts,

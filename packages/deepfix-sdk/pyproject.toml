@@ -40,6 +40,7 @@ dependencies = [
     "deepfix-core",
     "plotly>=6.3.1",
     "feature-engine>=1.9.3",
+    "tenacity>=9.1.2",
 ]
 
 [tool.ruff]
