@@ -54,11 +54,24 @@ services:
     image: deepfix-server:latest
     env_file:
       - .env
+    environment:
+      - DEEPFIX_SERVER_DATABASE_URL=sqlite:////app/.deepfix/deepfix_server.db
     restart: unless-stopped
+
+    command: ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "--reload"]
     ports:
       - "8844:8844"
     volumes:
       - ./server_data/.deepfix:/app/.deepfix
+      - ./server_data/.cache:/app/.cache
+    develop:
+      watch:
+        - action: sync
+          path: ./packages/deepfix-server/src
+          target: /app/packages/deepfix-server/src
+        - action: rebuild
+          path: ./packages/deepfix-server/pyproject.toml
+
 
   deepfix-db:
     image: postgres:16-alpine
