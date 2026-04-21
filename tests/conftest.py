@@ -17,13 +17,13 @@ except Exception:
 
 # Import DeepchecksConfig without loading the full deepchecks.py module
 try:
-    from deepfix_core.models import DeepchecksConfig
+    from deepfix_core.models import DeepchecksConfig, APIResponse
 except ImportError:
     # Try alternate import path
     import os
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-    from deepfix_core.models import DeepchecksConfig
+    from deepfix_core.models import DeepchecksConfig, APIResponse
 
 
 @pytest.fixture
@@ -84,3 +84,23 @@ def coco_detection_paths() -> dict[str, str]:
         )
 
     return paths
+
+
+@pytest.fixture
+def check_response():
+
+    def check(response):
+        assert isinstance(response, APIResponse), (
+            "Response should be an APIResponse instance"
+        )
+        assert response.summary is not None, "Response should have a summary"
+        assert len(response.agent_results) > 0, (
+            "Response should contain results from agents"
+        )
+
+        print("\nDeepFix Analysis Summary:")
+        print(response.summary)
+
+        return True
+
+    return check

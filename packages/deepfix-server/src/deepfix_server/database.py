@@ -8,21 +8,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from .config import DatabaseConfig
 
 # Global engine and session factory
 _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker] = None
 
 
-def init_database(config: DatabaseConfig) -> None:
+def init_database(database_url: str, database_echo: bool = False) -> None:
     """Initialize the database engine and session factory.
 
     Args:
-        config: DatabaseConfig with connection URL and settings.
+        database_url: Database connection URL (SQLAlchemy format).
+        database_echo: Whether to echo SQL statements for debugging.
     """
     global _engine, _SessionLocal
-    _engine = create_engine(config.database_url, echo=config.echo)
+    _engine = create_engine(database_url, echo=database_echo)
     _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 

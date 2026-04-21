@@ -21,7 +21,7 @@ def setup_env():
 class TestTabularWorkflowE2E:
     """End-to-end tests for the tabular workflow, reproducing the tutorial."""
 
-    def test_tabular_diagnosis_workflow(self, api_url: str):
+    def test_tabular_diagnosis_workflow(self, api_url: str, check_response: callable):
         """
         Test the full diagnosis workflow for a tabular dataset.
         Reproduces logic from tutorials/tabular.ipynb.
@@ -84,20 +84,11 @@ class TestTabularWorkflowE2E:
 
         # 5. Verify Response
         print("8. Verifying response...")
-        assert isinstance(response, APIResponse), (
-            "Response should be an APIResponse instance"
-        )
-        assert response.dataset_name == client.get_dataset_name(train_data, val_data)
-        assert response.summary is not None, "Response should have a summary"
-        assert len(response.agent_results) > 0, (
-            "Response should contain results from agents"
-        )
+        assert check_response(response)
 
-        # Optional: Print summary to see it in test output (if run with -s)
-        print("\nDeepFix Analysis Summary:")
-        print(response.summary)
-
-    def test_tabular_diagnosis_without_model(self, api_url: str):
+    def test_tabular_diagnosis_without_model(
+        self, api_url: str, check_response: callable
+    ):
         """
         Test the diagnosis workflow without providing a fitted model.
         The SDK should handle model fitting internally.
@@ -150,19 +141,4 @@ class TestTabularWorkflowE2E:
 
         # 4. Verify Response
         print("6. Verifying response...")
-        assert isinstance(response, APIResponse), (
-            "Response should be an APIResponse instance"
-        )
-        assert response.summary is not None, "Response should have a summary"
-        assert len(response.agent_results) > 0, (
-            "Response should contain results from agents"
-        )
-
-        # Optional: Print summary
-        print("\nDeepFix Analysis Summary (without model):")
-        print(response.summary)
-
-        # Verify that the service still returned results
-        assert response.status == "Success", (
-            "Diagnosis should complete successfully even without an initial model"
-        )
+        assert check_response(response)

@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class PromptConfig(BaseModel):
@@ -56,114 +57,45 @@ class LLMConfig(BaseModel):
     cache: bool = Field(default=True, description="Cache request")
     track_usage: bool = Field(default=True, description="Track usage")
 
-    @classmethod
-    def load_from_env(cls, env_file: Optional[str] = None) -> "LLMConfig":
-        """Load LLM configuration from environment variables.
 
-        Reads the following environment variables:
-        - DEEPFIX_LLM_API_KEY
-        - DEEPFIX_LLM_BASE_URL
-        - DEEPFIX_LLM_MODEL_NAME
-        - DEEPFIX_LLM_TEMPERATURE
-        - DEEPFIX_LLM_MAX_TOKENS
-        - DEEPFIX_LLM_CACHE
-        - DEEPFIX_LLM_TRACK_USAGE
+class Settings(BaseSettings):
+    """Global application settings loaded from environment variables."""
 
-        Args:
-            env_file: Optional path to .env file to load.
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
-        Returns:
-            LLMConfig instance populated from environment variables.
-        """
-        if env_file is not None:
-            load_dotenv(env_file)
-        api_key = os.getenv("DEEPFIX_LLM_API_KEY")
-        base_url = os.getenv("DEEPFIX_LLM_BASE_URL")
-        model_name = os.getenv("DEEPFIX_LLM_MODEL_NAME")
-        temperature = float(os.getenv("DEEPFIX_LLM_TEMPERATURE"))
-        max_tokens = int(os.getenv("DEEPFIX_LLM_MAX_TOKENS"))
-        cache = bool(os.getenv("DEEPFIX_LLM_CACHE"))
-        track_usage = bool(os.getenv("DEEPFIX_LLM_TRACK_USAGE"))
-        return cls(
-            api_key=api_key,
-            base_url=base_url,
-            model_name=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            cache=cache,
-            track_usage=track_usage,
+    # LLM Settings
+    llm_api_key: Optional[str] = Field(default=None, alias="DEEPFIX_LLM_API_KEY")
+    llm_base_url: Optional[str] = Field(default=None, alias="DEEPFIX_LLM_BASE_URL")
+    llm_model_name: str = Field(default="gpt-4o", alias="DEEPFIX_LLM_MODEL_NAME")
+    llm_temperature: float = Field(default=0.7, alias="DEEPFIX_LLM_TEMPERATURE")
+    llm_max_tokens: int = Field(default=8000, alias="DEEPFIX_LLM_MAX_TOKENS")
+    llm_cache: bool = Field(default=True, alias="DEEPFIX_LLM_CACHE")
+    llm_track_usage: bool = Field(default=True, alias="DEEPFIX_LLM_TRACK_USAGE")
+
+    # Database Settings
+    database_url: str = Field(
+        default="sqlite:///./deepfix_server.db", alias="DEEPFIX_SERVER_DATABASE_URL"
+    )
+    database_echo: bool = Field(default=False, alias="DEEPFIX_SERVER_DATABASE_ECHO")
+    job_ttl_hours: int = Field(default=3, alias="DEEPFIX_JOB_TTL_HOURS")
+
+    def get_llm_config(self) -> LLMConfig:
+        """Create an LLMConfig instance from current settings."""
+        return LLMConfig(
+            api_key=self.llm_api_key,
+            base_url=self.llm_base_url,
+            model_name=self.llm_model_name,
+            temperature=self.llm_temperature,
+            max_tokens=self.llm_max_tokens,
+            cache=self.llm_cache,
+            track_usage=self.llm_track_usage,
         )
 
 
-class OutputConfig(BaseModel):
-    """Configuration for output management.
-
-    Attributes:
-        save_prompt: Whether to save generated prompts to disk. Defaults to False.
-        save_response: Whether to save AI responses to disk. Defaults to True.
-        output_dir: Directory to save outputs. Defaults to "deepfix_output".
-        format: Output format. Must be one of: txt, json, yaml. Defaults to "txt".
-    """
-
-    save_prompt: bool = Field(
-        default=False, description="Whether to save generated prompts"
-    )
-    save_response: bool = Field(
-        default=True, description="Whether to save AI responses"
-    )
-    output_dir: str = Field(
-        default="deepfix_output",
-        description="Directory to save outputs",
-    )
-    format: str = Field(default="txt", description="Output format (txt, json, yaml)")
-
-    @field_validator("format")
-    @classmethod
-    def validate_format(cls, v):
-        """Validate output format.
-
-        Args:
-            v: Format string to validate.
-
-        Returns:
-            Lowercased format string if valid.
-
-        Raises:
-            ValueError: If format is not one of: txt, json, yaml.
-        """
-        allowed_formats = ["txt", "json", "yaml"]
-        if v.lower() not in allowed_formats:
-            raise ValueError(f"format must be one of {allowed_formats}")
-        return v.lower()
-
-
-class DatabaseConfig(BaseModel):
-    """Configuration for database connection.
-
-    Attributes:
-        database_url: Database connection URL (SQLAlchemy format).
-        echo: Whether to echo SQL statements for debugging. Defaults to False.
-    """
-
-    database_url: str = Field(
-        default="sqlite:///./deepfix_server.db",
-        description="Database connection URL",
-    )
-    echo: bool = Field(default=False, description="Echo SQL statements for debugging")
-
-    @classmethod
-    def load_from_env(cls, env_file: Optional[str] = None) -> "DatabaseConfig":
-        """Load database configuration from environment variables.
-
-        Reads:
-        - DATABASE_URL
-        - DATABASE_ECHO
-        """
-        if env_file is not None:
-            load_dotenv(env_file)
-        database_url = os.getenv("DATABASE_URL", "sqlite:///./deepfix_server.db")
-        echo = os.getenv("DATABASE_ECHO", "false").lower() == "true"
-        return cls(database_url=database_url, echo=echo)
+# Global settings instance
+settings = Settings()
 
 
 class TrainingDynamicsConfig(BaseModel):

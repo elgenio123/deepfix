@@ -25,19 +25,19 @@ COPY packages/deepfix-kb ./packages/deepfix-kb
 
 # Install Python deps into a project-local venv
 RUN uv venv .venv
-RUN uv pip install /app/packages/deepfix-core
-RUN uv pip install /app/packages/deepfix-kb
-RUN uv pip install /app/packages/deepfix-server
+RUN uv pip install -e /app/packages/deepfix-core
+RUN uv pip install -e /app/packages/deepfix-kb
+RUN uv pip install -e /app/packages/deepfix-server
 RUN uv pip install opentelemetry-distro opentelemetry-exporter-otlp
 RUN . .venv/bin/activate && opentelemetry-bootstrap -a requirements > /tmp/otel-reqs.txt && uv pip install -r /tmp/otel-reqs.txt
 
 # Create .deepfix and .cache directories with proper permissions for the deepfix user
-RUN mkdir -p /app/.deepfix /app/.cache && chown -R deepfix:deepfix /app/.deepfix /app/.cache
+RUN mkdir -p /app/.deepfix && chown -R deepfix:deepfix /app/.deepfix
 
 USER deepfix
 ENV PATH="/app/.venv/bin:${PATH}"
 ENV DEEPFIX_HOME=/app/.deepfix
-ENV DSPY_CACHEDIR=/app/.cache
+ENV DSPY_CACHEDIR=/app/.deepfix/.dspy_cache
 ENV MPLCONFIGDIR=/tmp/matplotlib
 
 # Expose ports
@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Launch the server
-CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "-fast-queue"]
+CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1"]
