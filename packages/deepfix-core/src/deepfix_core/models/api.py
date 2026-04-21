@@ -344,6 +344,26 @@ class APIResponse(BaseModel):
         return agent_table
 
 
+class APIJobResponse(BaseModel):
+    """Response model for the DeepFix analysis API.
+
+    Attributes:
+        job_id: The ID of the analysis job.
+        status: The status of the analysis job.
+        result: Optional overall summary of the analysis.
+        error: Optional error messages if the job failed.
+        created_at: Timestamp of when the job was created.
+        updated_at: Timestamp of when the job was last updated.
+    """
+
+    job_id: str
+    status: str
+    result: Optional[APIResponse] = None
+    error: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
 class APIRequest(BaseModel):
     """Request model for the DeepFix analysis API.
 

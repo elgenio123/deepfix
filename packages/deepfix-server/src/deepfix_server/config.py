@@ -76,9 +76,10 @@ class Settings(BaseSettings):
 
     # Database Settings
     database_url: str = Field(
-        default="sqlite:///./deepfix_server.db", alias="DATABASE_URL"
+        default="sqlite:///./deepfix_server.db", alias="DEEPFIX_SERVER_DATABASE_URL"
     )
-    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
+    database_echo: bool = Field(default=False, alias="DEEPFIX_SERVER_DATABASE_ECHO")
+    job_ttl_hours: int = Field(default=3, alias="DEEPFIX_JOB_TTL_HOURS")
 
     def get_llm_config(self) -> LLMConfig:
         """Create an LLMConfig instance from current settings."""

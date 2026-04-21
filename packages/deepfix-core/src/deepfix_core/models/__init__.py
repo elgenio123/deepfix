@@ -6,7 +6,7 @@ from .analysis import (
     Severity,
     AnalysisJobStatus,
 )
-from .api import APIRequest, APIResponse
+from .api import APIRequest, APIResponse, APIJobResponse
 from .artifacts import (
     ArtifactPath,
     Artifacts,
@@ -43,6 +43,7 @@ __all__ = [
     "Recommendation",
     "APIRequest",
     "APIResponse",
+    "APIJobResponse",
     "DefaultPaths",
     "DataType",
     "DeepchecksConfig",

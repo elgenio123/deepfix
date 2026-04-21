@@ -7,6 +7,7 @@ import requests
 from deepfix_core.models import (
     APIRequest,
     APIResponse,
+    APIJobResponse,
     ArtifactPath,
     DataType,
     AnalysisJobStatus,
@@ -210,37 +211,29 @@ class DeepFixClient:
     ) -> APIResponse:
         """Analyze a run and return diagnostic results with recommendations.
 
-        This method performs a comprehensive analysis of the specified run to identify
-        potential issues, quality problems, and provides AI-powered recommendations for
-        improvement.
+        Args:
+            dataset_name (str): Name of the dataset to analyze.
+            language (str): Language for analysis output.
+            model_name (str, optional): Name of the model.
+        Returns:
+            APIResponse: Response object containing findings and recommendations.
+        """
+        request = self._create_request(dataset_name, model_name or "", language)
+        return self._send_request(request)
+
+    def get_result(self, job_id: str, polling_interval: float = 5.0) -> APIResponse:
+        """Fetch the results of an existing analysis job by its ID.
+
+        This method will block and poll the server if the job is still in progress.
 
         Args:
-            dataset_name (str): Name of the dataset to analyze. Must match a dataset
-                that has been previously ingested.
-            language (str, optional): Language for analysis output. Defaults to "english".
-            model_name (str, optional): Name of the model. Defaults to None.
+            job_id (str): The ID of the analysis job.
+            polling_interval (float): Seconds between polling attempts.
+
         Returns:
-            APIResponse: Response object containing:
-                - Analysis results and findings
-                - Quality metrics
-                - Actionable recommendations
-                - Dataset statistics
-
-        Raises:
-            ValueError: If dataset artifacts cannot be found for the specified dataset.
-            Exception: If the analysis request fails (non-200 status code).
-
-        Example:
-            >>> response = client.diagnose(dataset_name="my-dataset")
-            >>> print(response.to_text())
+            APIResponse: The analysis results once completed.
         """
-        request = self._create_request(
-            dataset_name=dataset_name,
-            model_name=model_name,
-            language=language,
-        )
-        response = self._send_request(request)
-        return response
+        return self._poll_for_results(job_id, polling_interval=polling_interval)
 
     def _load_artifacts(self, dataset_name: str, model_name: str) -> dict:
         from .pipelines import ArtifactLoadingPipeline
@@ -371,8 +364,7 @@ class DeepFixClient:
     def _send_request(self, request: APIRequest) -> APIResponse:
         """Send an analysis request to the DeepFix server using async polling.
 
-        Internal method that submits a background job to the server and polls for the
-        results. Displays a progress spinner with real-time status updates.
+        Internal method that orchestrates job submission and status polling.
 
         Args:
             request (APIRequest): The API request object to send to the server.
@@ -383,7 +375,28 @@ class DeepFixClient:
         Raises:
             RuntimeError: If the job submission or polling fails, or if the analysis fails.
         """
+        # 1. Submit the job
+        job_id = self._submit_job(request)
 
+        # 2. Poll for results
+        out = self._poll_for_results(job_id, polling_interval=5.0)
+
+        if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
+            console.print("[red]✗[/red] Errors during analysis", style="bold red")
+            console.print(f"Error details: {out.error_messages}")
+
+        console.print("[green]✓[/green] Analysis complete!", style="bold green")
+        return out
+
+    def _submit_job(self, request: APIRequest) -> str:
+        """Submit a background analysis job to the server.
+
+        Args:
+            request (APIRequest): The analysis request.
+
+        Returns:
+            str: The unique job ID returned by the server.
+        """
         headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
 
         console.print(
@@ -391,12 +404,11 @@ class DeepFixClient:
             style="dim",
         )
 
-        # 1. Submit the job
         try:
             response = requests.post(
                 self.api_url,
                 json=request.model_dump(),
-                timeout=5,
+                timeout=0.5,
                 headers=headers,
             )
         except Exception as e:
@@ -408,33 +420,60 @@ class DeepFixClient:
                 f"Error submitting analysis job: {response.status_code} - {response.text}"
             )
 
-        job_id = response.json().get("job_id")
+        job_data = APIJobResponse.model_validate(response.json())
+        job_id = job_data.job_id
         if not job_id:
             raise RuntimeError("Server did not return a job_id")
 
-        # 2. Poll for results
+        console.print(
+            f"[dim]Analysis job submitted with ID: {job_id}[/dim]", style="dim"
+        )
+
+        return job_id
+
+    def _poll_for_results(
+        self, job_id: str, polling_interval: float = 5.0
+    ) -> APIResponse:
+        """Poll the server for the results of a background job.
+
+        Args:
+            job_id (str): The ID of the job to poll.
+
+        Returns:
+            APIResponse: The final analysis results.
+        """
+        headers = {"Authorization": f"Bearer {os.getenv('DEEPFIX_API_KEY')}"}
+
+        # Determine base URL for polling (e.g., from .../api/v2/analyse to .../api)
+        base_url = self.api_url.rstrip("/")
+        if "/v2/analyse" in base_url:
+            base_url = base_url.replace("/v2/analyse", "")
+        elif "/v1/analyse" in base_url:
+            base_url = base_url.replace("/v1/analyse", "")
+
         start_time = time.time()
         with Live(
             Spinner("dots", text="[cyan]Analysis pending...[/cyan]", style="cyan"),
             console=console,
-            refresh_per_second=10,
+            refresh_per_second=1,
         ) as live:
             while True:
                 if (time.time() - start_time) > self.timeout:
                     raise RuntimeError("Analysis timed out")
                 try:
+                    polling_url = f"{base_url}/v2/jobs/{job_id}"
                     job_response = requests.get(
-                        f"{base_url}/v2/jobs/{job_id}",
+                        polling_url,
                         headers=headers,
-                        timeout=5,
+                        timeout=0.5,
                     )
                     if job_response.status_code != 200:
                         raise RuntimeError(
                             f"Polling failed: {job_response.status_code}"
                         )
 
-                    data = job_response.json()
-                    status = data.get("status")
+                    job_data = APIJobResponse.model_validate(job_response.json())
+                    status = job_data.status
 
                     # Update spinner with current status
                     live.update(
@@ -449,14 +488,12 @@ class DeepFixClient:
                         live.update(
                             Spinner("dots", text="[green]Processing results...[/green]")
                         )
-                        result_data = data.get("result")
-                        if result_data is None:
+                        if job_data.result is None:
                             raise RuntimeError("Job completed but no result data found")
-                        out = APIResponse(**result_data)
-                        break
+                        return job_data.result
 
                     elif status == AnalysisJobStatus.FAILED.value:
-                        error_msg = data.get("error", "Unknown error")
+                        error_msg = job_data.error or "Unknown error"
                         live.update(
                             Spinner(
                                 "dots", text=f"[red]Analysis failed: {error_msg}[/red]"
@@ -474,14 +511,7 @@ class DeepFixClient:
                         )
                     )
 
-                time.sleep(2)  # Poll every 2 seconds
-
-        if isinstance(out.error_messages, dict) and any(out.error_messages.values()):
-            console.print("[red]✗[/red] Errors during analysis", style="bold red")
-            console.print(f"Error details: {out.error_messages}")
-
-        console.print("[green]✓[/green] Analysis complete!", style="bold green")
-        return out
+                time.sleep(polling_interval)
 
     def _get_data_type(
         self, train_data: BaseDataset, test_data: Optional[BaseDataset] = None

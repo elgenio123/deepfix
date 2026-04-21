@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Launch the server
-CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "-fast-queue"]
+CMD ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1"]
