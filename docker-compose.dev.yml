@@ -61,9 +61,8 @@ services:
     command: ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "--reload"]
     ports:
       - "8844:8844"
-    volumes:
-      - ./server_data/.deepfix:/app/.deepfix
-      - ./server_data/.cache:/app/.cache
+    #volumes:
+    #  - ./server_data/.deepfix:/app/.deepfix
     develop:
       watch:
         - action: sync
