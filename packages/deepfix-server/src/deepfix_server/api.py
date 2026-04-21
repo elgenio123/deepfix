@@ -77,6 +77,16 @@ app = FastAPI(
 )
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint to verify service status."""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "0.1.0",
+    }
+
+
 def get_coordinator() -> ArtifactAnalysisCoordinator:
     """Dependency that provides an ArtifactAnalysisCoordinator instance."""
     llm_config = settings.get_llm_config()
@@ -243,8 +253,8 @@ async def analyse_artifacts_async(
     return APIJobResponse(
         job_id=job.id,
         status=job.status,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
+        created_at=job.created_at.isoformat() if job.created_at else None,
+        updated_at=job.updated_at.isoformat() if job.updated_at else None,
         result=None,
         error=None,
     )
@@ -260,8 +270,8 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)):
     response = APIJobResponse(
         job_id=job.id,
         status=job.status,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
+        created_at=job.created_at.isoformat() if job.created_at else None,
+        updated_at=job.updated_at.isoformat() if job.updated_at else None,
         result=None,
         error=None,
     )

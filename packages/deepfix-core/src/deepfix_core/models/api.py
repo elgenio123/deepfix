@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from io import StringIO
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -360,8 +361,8 @@ class APIJobResponse(BaseModel):
     status: str
     result: Optional[APIResponse] = None
     error: Optional[str] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: Optional[Union[datetime, str]] = None
+    updated_at: Optional[Union[datetime, str]] = None
 
 
 class APIRequest(BaseModel):
