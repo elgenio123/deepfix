@@ -16,7 +16,7 @@ def setup_env():
 class TestNLPWorkflowE2E:
     """End-to-end tests for the NLP workflow, reproducing the tutorial."""
 
-    def test_nlp_diagnosis_workflow(self, api_url: str):
+    def test_nlp_diagnosis_workflow(self, api_url: str, check_response: callable):
         """
         Test the full diagnosis workflow for an NLP dataset.
         Reproduces logic from tutorials/nlp.ipynb.
@@ -48,13 +48,4 @@ class TestNLPWorkflowE2E:
 
         # 4. Verify Response
         print("6. Verifying response...")
-        assert isinstance(response, APIResponse), (
-            "Response should be an APIResponse instance"
-        )
-        assert response.summary is not None, "Response should have a summary"
-        assert len(response.agent_results) > 0, (
-            "Response should contain results from agents"
-        )
-
-        print("\nDeepFix Analysis Summary:")
-        print(response.summary)
+        assert check_response(response)

@@ -55,7 +55,9 @@ class TransposeMNIST(Dataset):
 class TestVisionWorkflowE2E:
     """End-to-end tests for the Computer Vision workflow, reproducing the tutorial."""
 
-    def test_vision_classification_workflow(self, api_url: str):
+    def test_vision_classification_workflow(
+        self, api_url: str, check_response: callable
+    ):
         """
         Test the full diagnosis workflow for a Vision dataset.
         Reproduces logic from tutorials/computer-vision.ipynb.
@@ -92,18 +94,11 @@ class TestVisionWorkflowE2E:
 
         # 4. Verify Response
         print("6. Verifying response...")
-        assert isinstance(response, APIResponse), (
-            "Response should be an APIResponse instance"
-        )
-        assert response.summary is not None, "Response should have a summary"
-        assert len(response.agent_results) > 0, (
-            "Response should contain results from agents"
-        )
+        assert check_response(response)
 
-        print("\nDeepFix Analysis Summary:")
-        print(response.summary)
-
-    def test_foodwaste_classification_workflow(self, api_url: str):
+    def test_foodwaste_classification_workflow(
+        self, api_url: str, check_response: callable
+    ):
         """
         Test the full diagnosis workflow for the foodwaste dataset.
         Reproduces logic from tutorials/computer-vision.ipynb.
@@ -141,18 +136,11 @@ class TestVisionWorkflowE2E:
 
         # 4. Verify Response
         print("6. Verifying response...")
-        assert isinstance(response, APIResponse), (
-            "Response should be an APIResponse instance"
-        )
-        assert response.summary is not None, "Response should have a summary"
-        assert len(response.agent_results) > 0, (
-            "Response should contain results from agents"
-        )
+        assert check_response(response)
 
-        print("\nDeepFix Analysis Summary:")
-        print(response.summary)
-
-    def test_semantic_segmentation_workflow(self, api_url: str):
+    def test_semantic_segmentation_workflow(
+        self, api_url: str, check_response: callable
+    ):
         """Test the semantic segmentation workflow using COCO segmentation dataset."""
         print("\nRunning Semantic Segmentation workflow...")
         client = DeepFixClient(api_url=api_url, timeout=300)
@@ -176,12 +164,11 @@ class TestVisionWorkflowE2E:
             language="english",
         )
 
-        assert isinstance(result, APIResponse)
-        assert result.summary is not None
-        print("Semantic Segmentation workflow completed successfully.")
-        print(f"Summary: {result.summary}")
+        assert check_response(result)
 
-    def test_object_detection_workflow(self, api_url: str, coco_detection_paths: dict):
+    def test_object_detection_workflow(
+        self, api_url: str, coco_detection_paths: dict, check_response: callable
+    ):
         """Test the object detection workflow using COCO detection dataset."""
         print("\nRunning Object Detection workflow...")
         client = DeepFixClient(api_url=api_url, timeout=300)
@@ -206,7 +193,4 @@ class TestVisionWorkflowE2E:
             language="english",
         )
 
-        assert isinstance(result, APIResponse)
-        assert result.summary is not None
-        print("\nDeepFix Analysis Summary:")
-        print(result.summary)
+        assert check_response(result)
