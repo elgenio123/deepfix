@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from .config import settings
 from .database import Base, engine
 from .routes import analysis, api_keys, auth, request_logs, users
 
@@ -53,7 +54,7 @@ async def health_check():
 
 
 # Serve frontend static files
-static_dir = os.getenv("STATIC_DIR")
+static_dir = settings.STATIC_DIR
 if static_dir and os.path.exists(static_dir):
     # Mount the static files directory
     # Note: We don't mount at "/" directly to avoid conflicting with the routers
