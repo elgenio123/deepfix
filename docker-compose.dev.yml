@@ -3,24 +3,42 @@ services:
   # ===================
   # Reverse Proxy
   # ===================
-  traefik:
+  proxy-deepfix:
     image: traefik:v3.6
-    container_name: traefik-deepfix
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "80:80"
-      - "443:443"
+    #ports:
+    #  - "80:80"
+    #  - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./traefik/certs:/etc/traefik/certs:ro
+    networks:
+      - deepfix-network
     labels:
       - "traefik.enable=true"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
 
-
+  tunnel:
+    image: cloudflare/cloudflared:1811-8aebc38b2fc4
+    container_name: tunnel-deepfix
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - proxy-deepfix
+    restart: unless-stopped
+    networks:
+      - deepfix-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+  
   deepfix-portal:
     build:
       context: .
@@ -32,7 +50,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-fadel841@deepfix-db:5432/deepfix_portal
+      - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-admin@deepfix-db:5432/deepfix_portal
       - FRONTEND_URL=http://localhost:3000
       - DEEPFIX_SERVER_URL=http://deepfix-server:8844
       - ENVIRONMENT=development
@@ -81,13 +99,12 @@ services:
         - action: rebuild
           path: ./packages/deepfix-kb/pyproject.toml
 
-
   deepfix-db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: deepfix-admin
-      POSTGRES_PASSWORD: deepfix-fadel841
+      POSTGRES_PASSWORD: deepfix-admin
       POSTGRES_DB: deepfix_portal
     ports:
       - "5444:5432"
