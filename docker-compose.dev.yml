@@ -1,39 +1,11 @@
 services:
 
-  # ===================
-  # Reverse Proxy
-  # ===================
-  proxy-deepfix:
-    image: traefik:v3.6
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    #ports:
-    #  - "80:80"
-    #  - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      - ./traefik/certs:/etc/traefik/certs:ro
-    networks:
-      - deepfix-network
-    labels:
-      - "traefik.enable=true"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
 
   tunnel:
     image: cloudflare/cloudflared:1811-8aebc38b2fc4
     container_name: tunnel-deepfix
     command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      - proxy-deepfix
     restart: unless-stopped
-    networks:
-      - deepfix-network
     deploy:
       resources:
         limits:
@@ -51,19 +23,11 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-admin@deepfix-db:5432/deepfix_portal
-      - FRONTEND_URL=http://localhost:3000
       - DEEPFIX_SERVER_URL=http://deepfix-server:8844
       - ENVIRONMENT=development
     depends_on:
-      - traefik
       - deepfix-server
       - deepfix-db
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.deepfix-portal.rule=Host(`localhost`)"
-      - "traefik.http.routers.deepfix-portal.entrypoints=web,websecure"
-      - "traefik.http.routers.deepfix-portal.tls=true"
-      - "traefik.http.services.deepfix-portal.loadbalancer.server.port=5041"
 
   deepfix-server:
     build:
@@ -75,12 +39,9 @@ services:
     environment:
       - DEEPFIX_SERVER_DATABASE_URL=sqlite:////app/.deepfix/deepfix_server.db
     restart: unless-stopped
-
     command: ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "--reload"]
     ports:
       - "8844:8844"
-    #volumes:
-    #  - ./server_data/.deepfix:/app/.deepfix
     develop:
       watch:
         - action: sync
@@ -115,6 +76,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-volumes:
-  postgres_data:
