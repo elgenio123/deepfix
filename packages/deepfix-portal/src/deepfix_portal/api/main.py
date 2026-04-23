@@ -4,7 +4,6 @@ FastAPI main application entry point
 
 import os
 
-from deepfix_core.models import DatabaseBase  # Base for RequestLog table
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,8 +15,6 @@ from .routes import analysis, api_keys, auth, request_logs, users
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
-# Also create tables from deepfix_core (request_logs table)
-DatabaseBase.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="DeepFix Portal Backend",

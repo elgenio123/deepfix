@@ -16,7 +16,7 @@ from urllib.parse import urljoin
 
 import httpx
 from deepfix_core.models import APIRequest, APIResponse, APIJobResponse, AnalysisJobStatus
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from langfuse import get_client, observe
 from sqlalchemy.orm import Session
 from functools import lru_cache
@@ -50,7 +50,7 @@ async def _log_request(
     current_user: APIKeyValidationResponse,
     endpoint: str,
     request: APIRequest,
-    response: APIResponse,
+    response: APIJobResponse,
     status_code: int,
     duration_ms: float,
 ) -> None:
@@ -67,7 +67,12 @@ async def _log_request(
     """
     try:
         request_json = request.model_dump_json()
-        response_json = response.model_dump_json()
+        if response.result:
+            response_json = response.result.model_dump_json()
+            response_summary=response.result.summary
+        else:
+            response_json = None
+            response_summary=None
 
         log_entry = RequestLog(
             user_id=current_user.user_id,
@@ -75,8 +80,11 @@ async def _log_request(
             endpoint=endpoint,
             request_json=request_json,
             response_json=response_json,
+            response_summary=response_summary,
             status_code=status_code,
             duration_ms=duration_ms,
+            remote_job_id=response.job_id,
+            job_status=response.status,
         )
         db.add(log_entry)
         db.commit()
@@ -85,9 +93,47 @@ async def _log_request(
             f"Logged request for user {current_user.user_email} "
             f"to {endpoint} ({duration_ms:.2f}ms)"
         )
+        LOGGER.exception(f"Failed to log request/response: {exc}")
+        db.rollback()
+
+
+async def _update_job_log(
+    db: Session,
+    job_data: APIJobResponse,
+) -> None:
+    """Update an existing RequestLog entry with job results."""
+    try:
+        status = AnalysisJobStatus(job_data.status)
+        log_entry = (
+            db.query(RequestLog).filter(RequestLog.remote_job_id == job_data.job_id).first()
+        )
+
+        if log_entry:
+            if (
+                status == AnalysisJobStatus.COMPLETED
+                and log_entry.job_status != AnalysisJobStatus.COMPLETED
+            ):
+                log_entry.job_status = AnalysisJobStatus.COMPLETED
+                if job_data.result:
+                    log_entry.response_json = job_data.result.model_dump_json()
+                    log_entry.response_summary = job_data.result.summary
+                else:
+                    LOGGER.warning(f"Job {job_data.job_id} completed but no result found")
+
+                db.commit()
+                LOGGER.info(f"Captured results for job {job_data.job_id}")
+
+            elif (
+                status == AnalysisJobStatus.FAILED
+                and log_entry.job_status != AnalysisJobStatus.FAILED
+            ):
+                log_entry.job_status = AnalysisJobStatus.FAILED
+                log_entry.error_message = job_data.error
+                db.commit()
+                LOGGER.info(f"Logged failure for job {job_data.job_id}")
     except Exception as exc:
         db.rollback()
-        LOGGER.exception(f"Failed to log request/response: {exc}")
+        LOGGER.exception(f"Failed to update job log for {job_data.job_id}: {exc}")
 
 
 @retry(
@@ -145,6 +191,7 @@ async def proxy_to_deepfix_server(
 @observe()
 async def analyse_artifacts(
     request: APIRequest,
+    background_tasks: BackgroundTasks,
     current_user: APIKeyValidationResponse = Depends(get_api_key_user),
     db: Session = Depends(get_db),
 ) -> APIJobResponse:
@@ -176,12 +223,13 @@ async def analyse_artifacts(
         
         # 3. Log successful request
         duration_ms = (time.perf_counter() - start_time) * 1000
-        await _log_request(
+        background_tasks.add_task(
+            _log_request,
             db=db,
             current_user=current_user,
             endpoint=endpoint,
             request=request,
-            response=job_data.result,
+            response=job_data,
             status_code=200,
             duration_ms=duration_ms,
         )
@@ -203,6 +251,7 @@ async def analyse_artifacts(
 @observe()
 async def analyse_artifacts_v2(
     request: APIRequest,
+    background_tasks: BackgroundTasks,
     current_user: APIKeyValidationResponse = Depends(get_api_key_user),
     db: Session = Depends(get_db),
 ) -> APIJobResponse:
@@ -219,12 +268,13 @@ async def analyse_artifacts_v2(
         # 2. Log submission
         duration_ms = (time.perf_counter() - start_time) * 1000
         # We use a placeholder for response_json since it's just the job handle
-        await _log_request(
+        background_tasks.add_task(
+            _log_request,
             db=db,
             current_user=current_user,
             endpoint=endpoint,
             request=request,
-            response=APIResponse(summary=f"Job submitted: {job_data.job_id}"),
+            response=job_data,
             status_code=202,
             duration_ms=duration_ms,
         )
@@ -233,9 +283,10 @@ async def analyse_artifacts_v2(
     
     except HTTPException as exc:
         # Re-raise HTTP exceptions (auth failures, bad requests)
+        LOGGER.error(f"Analysis submission failed: {exc}")
         raise exc
     except Exception as exc:
-        LOGGER.exception(f"Analysis submission failed: {exc}")
+        LOGGER.error(f"Analysis submission failed: {exc}")
         raise HTTPException(
             status_code=500,
             detail=traceback.format_exc(),
@@ -246,6 +297,7 @@ async def analyse_artifacts_v2(
 @observe()
 async def get_job_status(
     job_id: str,
+    background_tasks: BackgroundTasks,
     current_user: APIKeyValidationResponse = Depends(get_api_key_user),
     db: Session = Depends(get_db),
 ) -> APIJobResponse:
@@ -257,9 +309,9 @@ async def get_job_status(
             None, urljoin(settings.DEEPFIX_SERVER_URL, endpoint)
         )
 
-        # Optionally log the completion if status is finished
+        # Capture results if job is finished
         if job_data.is_finished:
-            LOGGER.info(f"Job {job_id} finished with status {job_data.status}")
+            background_tasks.add_task(_update_job_log, db, job_data)
 
         return job_data
     except HTTPException as exc:
