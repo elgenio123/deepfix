@@ -1,6 +1,6 @@
 """DSPy signatures for agent reasoning"""
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import dspy
 from deepfix_core.models import Analysis
