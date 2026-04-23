@@ -33,7 +33,6 @@ services:
       - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-admin@deepfix-db:5432/deepfix_portal
       - FRONTEND_URL=https://${HOST}
       - DEEPFIX_SERVER_URL=http://deepfix-server:8844
-      - ENVIRONMENT=production
     depends_on:
       - tunnel
       - deepfix-server

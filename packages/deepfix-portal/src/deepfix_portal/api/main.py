@@ -23,6 +23,7 @@ app = FastAPI(
     title="DeepFix Portal Backend",
     description="Backend for DeepFix Portal",
     version="1.0.0",
+    prefix="/api",
 )
 
 # CORS middleware - configure for your frontend
@@ -38,16 +39,16 @@ app.add_middleware(
 
 
 # Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
-app.include_router(api_keys.router, prefix="/api/api-keys", tags=["api-keys"])
-app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
+app.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
+app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(
-    request_logs.router, prefix="/api/request-logs", tags=["request-logs"]
+    request_logs.router, prefix="/request-logs", tags=["request-logs"]
 )
-app.include_router(analysis.router, prefix="/api/v1", tags=["analysis"])
+app.include_router(analysis.router, prefix="", tags=["analysis"])
 
 
-@app.get("/api/health")
+@app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {"status": "ok", "message": "DeepFix Portal Backend is running"}

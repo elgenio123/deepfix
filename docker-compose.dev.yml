@@ -24,7 +24,10 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg2://deepfix-admin:deepfix-admin@deepfix-db:5432/deepfix_portal
       - DEEPFIX_SERVER_URL=http://deepfix-server:8844
-      - ENVIRONMENT=development
+      - FRONTEND_URL=http://localhost:3000
+    command: ["uvicorn", "deepfix_portal.api.main:app", "--host", "0.0.0.0", "--port", "5041", "--reload"]
+    volumes:
+      - ./packages/deepfix-portal/src:/app/packages/deepfix-portal/src
     depends_on:
       - deepfix-server
       - deepfix-db

@@ -9,8 +9,7 @@ class Settings(BaseSettings):
     """
 
     # General & Infrastructure
-    ENVIRONMENT: str = "development"
-    STATIC_DIR: Optional[str] = None
+    STATIC_DIR: Optional[str] = None # directory where the built frontend is served from. Set in Dockerfile for production
     FRONTEND_URL: str = "http://localhost:5173"
 
     # Database
