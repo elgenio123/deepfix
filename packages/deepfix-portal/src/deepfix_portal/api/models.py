@@ -4,8 +4,8 @@ SQLAlchemy database models
 
 import uuid
 
-from deepfix_core.models import RequestLog
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from datetime import datetime
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, text
 from sqlalchemy.sql import func
 
 from .database import Base

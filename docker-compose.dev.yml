@@ -39,8 +39,8 @@ services:
     image: deepfix-server:latest
     env_file:
       - .env
-    environment:
-      - DEEPFIX_SERVER_DATABASE_URL=sqlite:////app/.deepfix/deepfix_server.db
+    #environment:
+    #  - DEEPFIX_SERVER_DATABASE_URL=sqlite:////app/.deepfix/deepfix_server.db
     restart: unless-stopped
     command: ["deepfix-server", "launch", "-port", "8844", "-host", "0.0.0.0", "-workers", "1", "--reload"]
     ports:

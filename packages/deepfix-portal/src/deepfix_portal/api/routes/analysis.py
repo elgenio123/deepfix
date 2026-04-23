@@ -93,8 +93,9 @@ async def _log_request(
             f"Logged request for user {current_user.user_email} "
             f"to {endpoint} ({duration_ms:.2f}ms)"
         )
-        LOGGER.exception(f"Failed to log request/response: {exc}")
+    except Exception as exc:
         db.rollback()
+        LOGGER.exception(f"Failed to log request/response: {exc}")
 
 
 async def _update_job_log(
