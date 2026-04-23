@@ -164,18 +164,19 @@ async def proxy_to_deepfix_server(
             else:
                 response = await client.get(endpoint)
 
-            if response.status_code != 200:
-                error_detail = response.text
-                try:
-                    error_detail = response.json().get("detail", error_detail)
-                except Exception:
-                    pass
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"DeepFix Server error: {error_detail}",
-                )
-
+            response.raise_for_status()
             return APIJobResponse.model_validate(response.json())
+
+        except httpx.HTTPStatusError as exc:
+            error_detail = exc.response.text
+            try:
+                error_detail = exc.response.json().get("detail", error_detail)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=f"DeepFix Server error: {error_detail}",
+            ) from exc
 
         except httpx.RequestError as exc:
             LOGGER.error(f"Failed to connect to DeepFix Server: {exc}")
@@ -248,7 +249,7 @@ async def analyse_artifacts(
         ) from exc
 
 
-@router.post("/v2/analyse", response_model=APIJobResponse)
+@router.post("/v2/analyse", status_code=202, response_model=APIJobResponse)
 @observe()
 async def analyse_artifacts_v2(
     request: APIRequest,

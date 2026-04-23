@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from .api import run_analyse_artifacts_api
 from .coding_agents.openai_api import run_openai_api
+from .config import settings
 
 app = typer.Typer(
     name="deepfix-server",
@@ -31,7 +32,7 @@ def launch(
     workers: int = typer.Option(1, "-workers", help="Number of worker processes"),
     reload: bool = typer.Option(False, "--reload", help="Enable auto-reload"),
 ) -> None:
-    """Launch DeepFix server."""
+    """Launch DeepFix server."""    
 
     if env_file is not None:
         if not os.path.exists(env_file):
@@ -40,6 +41,7 @@ def launch(
         load_dotenv(env_file)
 
     typer.echo(f"🚀 Starting DeepFix server on {host}:{port}")
+    print(settings)
 
     run_analyse_artifacts_api(
         port=port,
