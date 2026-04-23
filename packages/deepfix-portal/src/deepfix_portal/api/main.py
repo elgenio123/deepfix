@@ -5,7 +5,7 @@ FastAPI main application entry point
 import os
 
 from deepfix_core.models import DatabaseBase  # Base for RequestLog table
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -23,7 +23,6 @@ app = FastAPI(
     title="DeepFix Portal Backend",
     description="Backend for DeepFix Portal",
     version="1.0.0",
-    prefix="/api",
 )
 
 # CORS middleware - configure for your frontend
@@ -38,14 +37,18 @@ app.add_middleware(
 )
 
 
-# Include routers
-app.include_router(auth.router, prefix="/auth", tags=["authentication"])
-app.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
-app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(
+# Include routers with global /api prefix
+api_router = APIRouter(prefix="/api")
+
+api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
+api_router.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
+api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(
     request_logs.router, prefix="/request-logs", tags=["request-logs"]
 )
-app.include_router(analysis.router, prefix="", tags=["analysis"])
+api_router.include_router(analysis.router, prefix="", tags=["analysis"])
+
+app.include_router(api_router)
 
 
 @app.get("/health")

@@ -92,10 +92,10 @@ async def _log_request(
 
 @retry(
     stop=stop_after_attempt(3),
-    retry=retry_if_exception_type((httpx.TimeoutError))
+    retry=retry_if_exception_type((httpx.TimeoutException))
 )
 async def proxy_to_deepfix_server(
-    request_body: Optional[dict], endpoint: str, timeout: float = 0.5
+    request_body: Optional[dict], endpoint: str, timeout: float = 5.0
 ) -> APIJobResponse:
     """Proxy a request to the DeepFix server and return a job response.
 
@@ -135,9 +135,13 @@ async def proxy_to_deepfix_server(
             raise HTTPException(
                 status_code=503, detail=f"DeepFix Server is unavailable: {exc}"
             )
+        
+        except Exception as exc:
+            LOGGER.exception(f"Analysis failed: {exc}")
+            raise exc
 
 
-@router.post("/analyse", response_model=APIJobResponse)
+@router.post("/v1/analyse", response_model=APIJobResponse)
 @observe()
 async def analyse_artifacts(
     request: APIRequest,
@@ -165,9 +169,9 @@ async def analyse_artifacts(
     endpoint = "/v1/analyse"
 
     try:
-        # 1. Forward request to deepfix-server v2
+        # 1. Forward request to deepfix-server v1
         job_data = await proxy_to_deepfix_server(
-            request.model_dump(mode="json"), urljoin(settings.DEEPFIX_SERVER_URL, endpoint)
+            request.model_dump(mode="json"), urljoin(settings.DEEPFIX_SERVER_URL, endpoint), timeout=360.0
         )
         
         # 3. Log successful request
@@ -193,7 +197,6 @@ async def analyse_artifacts(
             status_code=500,
             detail=traceback.format_exc(),
         ) from exc
-
 
 
 @router.post("/v2/analyse", response_model=APIJobResponse)
