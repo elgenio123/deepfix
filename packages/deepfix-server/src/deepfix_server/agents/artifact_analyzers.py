@@ -280,46 +280,58 @@ class TrainingArtifactsAnalyzer(ArtifactAnalyzer):
     def supported_artifact_types(self):
         return TrainingArtifacts
 
-    def _run(self, context: AgentContext) -> AgentResult:
-        """Main analysis method following the specification"""
+    async def aforward(self, context: AgentContext) -> AgentResult:
+        """Analyze training artifacts using heuristics and calibrate with LLM."""
+        LOGGER.info(f"Running {self.agent_name} agent...")
 
-        raise NotImplementedError("TrainingArtifactsAnalyzer is not implemented yet")
-
-        # Find training artifacts
         training_artifacts = self._get_training_artifacts(context.artifacts)
         if not training_artifacts:
             return self._no_training_data_result()
 
         findings = []
-        recommendations = []
-
         try:
-            # Analyze training metrics if available
             if training_artifacts.metrics_values is not None:
                 findings.extend(self._analyze_training_curves(training_artifacts))
                 findings.extend(self._detect_overfitting_patterns(training_artifacts))
-                findings.extend(self._analyze_training_stability(training_artifacts))
-                findings.extend(self._detect_gradient_anomalies(training_artifacts))
-
-                # Add parameter-metric correlation analysis if params available
-                if training_artifacts.params:
-                    findings.extend(
-                        self._analyze_parameter_impact(
-                            training_artifacts.metrics_values, training_artifacts.params
-                        )
-                    )
-
-            # Generate recommendations based on findings
-
-            return AgentResult(
-                agent_name=self.agent_name,
-                analysis=self._format_analysis_output(findings, recommendations),
-                analyzed_artifacts=["TrainingArtifacts"],
-            )
-
-        except (ValueError, KeyError, AttributeError) as e:
-            self.logger.error("Training dynamics analysis failed: %s", str(e))
+                # Add more analytical findings as needed
+        except Exception as e:
+            LOGGER.error(f"Heuristic analysis failed: {traceback.format_exc()}")
             return self._error_result(str(e))
+
+        # Convert findings to Analysis objects with placeholder recommendations
+        # In a real scenario, we might use LLM to generate recommendations for these findings
+        analyses = [
+            Analysis(
+                findings=f, 
+                recommendations=Recommendation(
+                    action="Review training metrics and adjust hyperparameters.",
+                    rationale="Heuristic detection suggested an issue.",
+                    confidence=f.confidence
+                )
+            ) for f in findings
+        ]
+
+        if context.knowledge_cache.get("calibrate_confidence", True):
+            from .calibrator import calibrate_analyses
+            num_samples = context.knowledge_cache.get("calibration_samples", 5)
+            
+            prompt = self.prompt_builder.build_prompt(
+                artifacts=context.artifacts, context=None
+            )
+            
+            with self._llm_context():
+                LOGGER.info(f"Calibrating {len(analyses)} heuristic findings...")
+                analyses = await calibrate_analyses(
+                    analyses,
+                    evidence_context=prompt,
+                    num_samples=num_samples
+                )
+
+        return AgentResult(
+            agent_name=self.agent_name,
+            analysis=analyses,
+            analyzed_artifacts=["TrainingArtifacts"],
+        )
 
     def _get_training_artifacts(self, artifacts: List) -> Optional[TrainingArtifacts]:
         """Extract training artifacts from context"""

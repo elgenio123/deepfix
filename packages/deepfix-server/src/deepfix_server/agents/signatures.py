@@ -42,6 +42,18 @@ class ArtifactAnalysisSignature(dspy.Signature):
     )
 
 
+class CalibrateFindingSignature(dspy.Signature):
+    """Critically evaluate if a specific ML finding is supported by the provided evidence.
+    Be extremely rigorous and skeptical. Only support findings that are clearly evidenced."""
+
+    evidence: str = dspy.InputField(desc="The raw data/metrics or previous agent findings")
+    finding_description: str = dspy.InputField(desc="Description of the finding to evaluate")
+    finding_evidence: str = dspy.InputField(desc="The evidence cited for this finding")
+    
+    is_supported: bool = dspy.OutputField(desc="Is this finding clearly supported by the evidence?")
+    rationale: str = dspy.OutputField(desc="Brief explanation of why the finding is or isn't supported")
+
+
 class CrossArtifactReasoningSignature(dspy.Signature):
     """Integrate findings from multiple artifact analyzers"""
 

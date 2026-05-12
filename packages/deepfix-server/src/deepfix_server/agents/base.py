@@ -208,9 +208,23 @@ class ArtifactAnalyzer(Agent):
             response = await self.llm.acall(
                 artifacts=prompt, output_language=context.language
             )
+            
+            analysis = response.analysis
+            
+            # Confidence Calibration Step
+            if context.knowledge_cache.get("calibrate_confidence", False):
+                from .calibrator import calibrate_analyses
+                num_samples = context.knowledge_cache.get("calibration_samples", 10)
+                LOGGER.info(f"Calibrating {len(analysis)} findings with {num_samples} samples...")
+                analysis = await calibrate_analyses(
+                    analysis, 
+                    evidence_context=prompt, 
+                    num_samples=num_samples
+                )
+                
         return AgentResult(
             agent_name=self.agent_name,
-            analysis=response.analysis,
+            analysis=analysis,
             analyzed_artifacts=[type(a).__name__ for a in context.artifacts],
         )
 
