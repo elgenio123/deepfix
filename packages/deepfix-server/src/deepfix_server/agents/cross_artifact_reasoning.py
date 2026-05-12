@@ -10,7 +10,6 @@ from deepfix_kb.tools import create_knowledge_tools
 from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent, AgentResult
-from .signatures import CrossArtifactReasoningSignature
 from .signatures_tot import (
     ProposeHypothesesSignature,
     EvaluateHypothesisSignature,

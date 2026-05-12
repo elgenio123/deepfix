@@ -10,6 +10,7 @@ from .agents.artifact_analyzers import (
     DatasetArtifactsAnalyzer,
     DeepchecksArtifactsAnalyzer,
     ModelCheckpointArtifactsAnalyzer,
+    TrainingArtifactsAnalyzer,
 )
 from .agents.base import Agent, ArtifactAnalyzer
 from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
@@ -145,5 +146,6 @@ class ArtifactAnalysisCoordinator(Agent):
             DeepchecksArtifactsAnalyzer(config=self._llm_config),
             DatasetArtifactsAnalyzer(config=self._llm_config),
             ModelCheckpointArtifactsAnalyzer(config=self._llm_config),
+            TrainingArtifactsAnalyzer(llm_config=self._llm_config),
         ]
         return agents

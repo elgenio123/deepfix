@@ -52,19 +52,3 @@ class CalibrateFindingSignature(dspy.Signature):
     
     is_supported: bool = dspy.OutputField(desc="Is this finding clearly supported by the evidence?")
     rationale: str = dspy.OutputField(desc="Brief explanation of why the finding is or isn't supported")
-
-
-class CrossArtifactReasoningSignature(dspy.Signature):
-    """Integrate findings from multiple artifact analyzers"""
-
-    previous_analyses: Dict[str, AgentResult] = dspy.InputField(
-        desc="Results from multiple artifact analyzers"
-    )
-    output_language: str = dspy.InputField(desc="Language of the output analysis")
-
-    analysis: List[Analysis] = dspy.OutputField(
-        desc="Consolidated analysis with cross-artifact insights. Findings and recommendations based on the agents results"
-    )
-    summary: str = dspy.OutputField(
-        desc="Summary of the cross-artifact reasoning & analysis"
-    )
