@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import dspy
 from deepfix_kb import KnowledgeBridge
@@ -11,6 +11,11 @@ from ..config import LLMConfig
 from ..logging import get_logger
 from .base import Agent, AgentResult
 from .signatures import CrossArtifactReasoningSignature
+from .signatures_tot import (
+    ProposeHypothesesSignature,
+    EvaluateHypothesisSignature,
+    FinalizeToTAnalysisSignature,
+)
 
 LOGGER = get_logger(__name__)
 
@@ -20,19 +25,39 @@ class CrossArtifactReasoningAgent(Agent):
         self,
         llm_config: Optional[LLMConfig] = None,
         knowledge_bridge: Optional[KnowledgeBridge] = None,
+        beam_size: int = 3,
     ):
         super().__init__(config=llm_config)
         self.knowledge_bridge = knowledge_bridge
-        signature = type(
-            f"{self.agent_name}Signature",
-            (CrossArtifactReasoningSignature,),
-            {"__doc__": self.system_prompt},
-        )
+        self.beam_size = beam_size
+        
+        # ToT Components
+        self.proposer = dspy.ChainOfThought(ProposeHypothesesSignature)
+        self.evaluator = dspy.ChainOfThought(EvaluateHypothesisSignature)
+        self.finalizer = dspy.ChainOfThought(FinalizeToTAnalysisSignature)
+        
         if self.knowledge_bridge:
-            tools = create_knowledge_tools(self.knowledge_bridge)
-            self.llm = dspy.ReAct(signature, tools=tools)
+            self.tools = create_knowledge_tools(self.knowledge_bridge)
         else:
-            self.llm = dspy.ChainOfThought(signature)
+            self.tools = None
+
+    def _format_analyses(self, analyses: Dict[str, AgentResult]) -> str:
+        """Format individual agent results into a clean structured string for the LLM."""
+        formatted = []
+        for agent_name, result in analyses.items():
+            formatted.append(f"### Artifact Analyzer: {agent_name}")
+            if result.error_message:
+                formatted.append(f"Error: {result.error_message}")
+                continue
+            
+            for i, analysis in enumerate(result.analysis):
+                formatted.append(f"#### Finding {i+1}: {analysis.findings.description}")
+                formatted.append(f"- Evidence: {analysis.findings.evidence}")
+                formatted.append(f"- Severity: {analysis.findings.severity}")
+                formatted.append(f"- Proposed Action: {analysis.recommendations.action}")
+                formatted.append(f"- Rationale: {analysis.recommendations.rationale}")
+            formatted.append("\n" + "="*30 + "\n")
+        return "\n".join(formatted)
 
     def run(
         self,
@@ -74,13 +99,55 @@ class CrossArtifactReasoningAgent(Agent):
         previous_analyses: Dict[str, AgentResult],
         output_language: str = "english",
     ) -> AgentResult:
-        LOGGER.info("Running cross-artifact reasoning agent...")
+        LOGGER.info(f"Running {self.agent_name} with Tree of Thoughts strategy (beam_size={self.beam_size})...")
 
         assert len(previous_analyses) > 0, "At least one analysis must be provided"
+        
+        formatted_evidence = self._format_analyses(previous_analyses)
+
         with self._llm_context():
-            out = await self.llm.acall(
-                previous_analyses=previous_analyses, output_language=output_language
+            # Step 1: Propose Hypotheses (Breadth-First Search start)
+            LOGGER.info("Step 1: Proposing diagnostic hypotheses...")
+            proposal = await self.proposer.acall(
+                previous_analyses=previous_analyses,
+                num_hypotheses=self.beam_size * 2
             )
+            hypotheses = proposal.hypotheses
+            
+            # Step 2: Evaluate Hypotheses (Search and Pruning)
+            LOGGER.info(f"Step 2: Evaluating {len(hypotheses)} hypotheses...")
+            scored_hypotheses = []
+            evaluation_tasks = [
+                self.evaluator.acall(previous_analyses=previous_analyses, hypothesis=h)
+                for h in hypotheses
+            ]
+            evaluations = await asyncio.gather(*evaluation_tasks)
+            
+            for h, eval_res in zip(hypotheses, evaluations):
+                scored_hypotheses.append({
+                    "hypothesis": h,
+                    "score": eval_res.confidence_score,
+                    "judgment": eval_res.judgment,
+                    "rationale": eval_res.rationale
+                })
+            
+            # Beam search: Keep top hypotheses
+            scored_hypotheses.sort(key=lambda x: x["score"], reverse=True)
+            top_hypotheses_metadata = scored_hypotheses[:self.beam_size]
+            top_hypotheses = [m["hypothesis"] for m in top_hypotheses_metadata]
+            top_rationales = [f"Judgment: {m['judgment']}. Rationale: {m['rationale']}" for m in top_hypotheses_metadata]
+            
+            LOGGER.info(f"Top hypothesis: {top_hypotheses[0]} (Score: {top_hypotheses_metadata[0]['score']})")
+
+            # Step 3: Finalize and Synthesize (Synthesis of best thoughts)
+            LOGGER.info("Step 3: Synthesizing final diagnostic report...")
+            out = await self.finalizer.acall(
+                previous_analyses=formatted_evidence,
+                top_hypotheses=top_hypotheses,
+                rationales=top_rationales,
+                output_language=output_language
+            )
+
         analyzed_artifacts = []
         retrieved_knowledge = []
         for result in previous_analyses.values():
@@ -94,7 +161,13 @@ class CrossArtifactReasoningAgent(Agent):
             analysis=out.analysis,
             analyzed_artifacts=analyzed_artifacts,
             retrieved_knowledge=retrieved_knowledge,
-            additional_outputs={"summary": out.summary},
+            additional_outputs={
+                "summary": out.summary,
+                "tot_metadata": {
+                    "all_hypotheses": scored_hypotheses,
+                    "top_hypotheses": top_hypotheses_metadata
+                }
+            },
         )
 
     @property
@@ -117,7 +190,7 @@ class CrossArtifactReasoningAgent(Agent):
         - Inconsistent performance + data drift = deployment risk
 
         2. **Training-Configuration Consistency**:
-        - Aggressive hyperparameters + stable training = config uration mismatch
+        - Aggressive hyperparameters + stable training = configuration mismatch
         - Conservative settings + unstable training = underlying data issues
         - Parameter changes + performance shifts = causal relationships
 
