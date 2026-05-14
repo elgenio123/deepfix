@@ -141,6 +141,8 @@ class DeepFixClient:
         model_name: Optional[str] = None,
         batch_size: int = 8,
         language: str = "english",
+        verify_repairs: bool = True,
+        original_code: Optional[str] = None,
     ) -> APIResponse:
         """Ingest and diagnose a model in a single operation.
 
@@ -160,32 +162,36 @@ class DeepFixClient:
             batch_size (int, optional): Batch size for processing the dataset.
                 Defaults to 8.
             language (str, optional): Language for analysis output. Defaults to "english".
+            verify_repairs (bool, optional): If True, attempt automated repair and 
+                verification. Defaults to True.
+            original_code (str, optional): The original source code of the ML experiment.
+                If None, the SDK will attempt to auto-capture the caller's source code.
 
         Returns:
-            APIResponse: Response object containing:
-                - Analysis results and findings
-                - Actionable recommendations
+            APIResponse: Response object containing findings and recommendations.
 
         Raises:
             ValueError: If dataset with the same name exists and overwrite=False, or
                 if dataset artifacts cannot be found after ingestion.
             Exception: If ingestion fails, or if the analysis request fails (non-200 status code).
-
-        Example:
-            >>> from deepfix_sdk.data import TabularDataset
-            >>> import pandas as pd
-            >>> df = pd.read_csv("train.csv")
-            >>> label = "target"
-            >>> cat_features = ["cat_feature1", "cat_feature2"]
-            >>> dataset_name = "my-dataset"
-            >>> train_dataset = TabularDataset(dataset=df, dataset_name=dataset_name, label=label, cat_features=cat_features)
-            >>> response = client.get_diagnosis(
-            ...     model_name="my-model",
-            ...     train_data=train_dataset,
-            ...     batch_size=16
-            ... )
-            >>> print(response.to_text())
         """
+        import inspect
+
+        # Auto-capture source code if not provided
+        if original_code is None and verify_repairs:
+            try:
+                # Get the frame of the caller (skipping this method)
+                frame = inspect.stack()[1]
+                module = inspect.getmodule(frame[0])
+                if module and hasattr(module, "__file__"):
+                    with open(module.__file__, "r") as f:
+                        original_code = f.read()
+                elif module:
+                    original_code = inspect.getsource(module)
+            except Exception:
+                # Fail gracefully if source cannot be captured
+                pass
+
         assert isinstance(train_data, BaseDataset), (
             "train_data must be an instance of BaseDataset"
         )
@@ -209,6 +215,8 @@ class DeepFixClient:
             dataset_name=dataset_name,
             model_name=model_name,
             language=language,
+            verify_repairs=verify_repairs,
+            original_code=original_code,
         )
 
     def diagnose(
@@ -216,6 +224,8 @@ class DeepFixClient:
         dataset_name: str,
         language: str = "english",
         model_name: Optional[str] = None,
+        verify_repairs: bool = True,
+        original_code: Optional[str] = None,
     ) -> APIResponse:
         """Analyze a run and return diagnostic results with recommendations.
 
@@ -223,10 +233,18 @@ class DeepFixClient:
             dataset_name (str): Name of the dataset to analyze.
             language (str): Language for analysis output.
             model_name (str, optional): Name of the model.
+            verify_repairs (bool): Whether to attempt automated repair.
+            original_code (str, optional): Original source code for patching.
         Returns:
             APIResponse: Response object containing findings and recommendations.
         """
-        request = self._create_request(dataset_name, model_name or "", language)
+        request = self._create_request(
+            dataset_name, 
+            model_name or "", 
+            language, 
+            verify_repairs=verify_repairs, 
+            original_code=original_code
+        )
         return self._send_request(request)
 
     def get_result(self, job_id: str, polling_interval: float = 5.0) -> APIResponse:
@@ -330,6 +348,8 @@ class DeepFixClient:
         dataset_name: str,
         model_name: str,
         language: str = "english",
+        verify_repairs: bool = False,
+        original_code: Optional[str] = None,
     ):
         """Create an API request for analysis.
 
@@ -340,7 +360,8 @@ class DeepFixClient:
             dataset_name (str): Name of the dataset.
             model_name (str): Name of the model.
             language (str, optional): Language for analysis. Defaults to "english".
-            loaded_artifacts (dict): Loaded artifacts from the server.
+            verify_repairs (bool): Whether to attempt automated repair.
+            original_code (str, optional): Original source code for patching.
         Returns:
             APIRequest: Request object configured with dataset artifacts and language.
 
@@ -355,6 +376,8 @@ class DeepFixClient:
             "dataset_name": dataset_name,
             "language": language,
             "model_name": model_name,
+            "verify_repairs": verify_repairs,
+            "original_code": original_code,
         }
         request = APIRequest(**cfg)
         dataset_artifacts = loaded_artifacts.get(ArtifactPath.DATASET.value, None)

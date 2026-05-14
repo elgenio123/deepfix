@@ -294,23 +294,50 @@ class APIResponse(BaseModel):
         )
         issues_table.add_column("#", style="dim", width=3)
         if verbose:
-            issues_table.add_column("Agent", style="blue bold", width=30)
+            issues_table.add_column("Agent", style="blue bold", width=20)
         issues_table.add_column("Finding", style="black", width=40)
-        issues_table.add_column("Action", style="black", width=40)
+        issues_table.add_column("Action & Verification", style="black", width=50)
 
         for i, (_, row) in enumerate(df_severity.iterrows(), 1):
+            finding_text = Text()
+            finding_text.append(f"{row['finding_description']}\n", style="bold")
+            if "finding_bug_type" in row and row["finding_bug_type"]:
+                finding_text.append(f"[{row['finding_bug_type'].upper()}] ", style="italic cyan")
+            finding_text.append(f"Evidence: {row['finding_evidence']}", style="dim")
+
+            action_text = Text()
+            action_text.append(f"{row['recommendation_action']}\n", style="bold green")
+            action_text.append(f"{row['recommendation_rationale']}\n", style="dim italic")
+
+            # Add Verification Results if present
+            # Note: We need to check if verification data exists in the row.
+            # Since to_dataframe might not have flattened the verification object yet,
+            # we may need to adjust how the dataframe is built or accessed.
+            # For now, we'll assume it's available or we'll handle the absence gracefully.
+            
+            # Since row is from the dataframe produced by AgentResult.to_dataframe,
+            # we should update to_dataframe to include these fields.
+            
+            if "verification_improvement" in row and pd.notnull(row["verification_improvement"]):
+                action_text.append("\n✅ VERIFIED REPAIR:", style="bold green")
+                action_text.append(f"\n   Baseline: {row['verification_baseline']:.3f}")
+                action_text.append(f" → Post-Fix: {row['verification_post_fix']:.3f}")
+                action_text.append(f" (Δ {row['verification_improvement']:.3f} {row['verification_metric']})", style="bold")
+                if row.get("verification_side_effects"):
+                    action_text.append("\n   [Regression tests passed]", style="dim green")
+
             if verbose:
                 issues_table.add_row(
                     str(i),
                     row["agent_name"],
-                    f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
-                    f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
+                    finding_text,
+                    action_text,
                 )
             else:
                 issues_table.add_row(
                     str(i),
-                    f"{row['finding_description']}\n[dim]Evidence: {row['finding_evidence']}[/dim]",
-                    f"{row['recommendation_action']}\n[dim italic]{row['recommendation_rationale']}[/dim italic]",
+                    finding_text,
+                    action_text,
                 )
         return issues_table
 
@@ -408,3 +435,38 @@ class APIRequest(BaseModel):
     dataset_name: Optional[str] = Field(default=None, description="Name of the dataset")
     model_name: Optional[str] = Field(default=None, description="Name of the model")
     language: str = Field(default="english", description="Language of the analysis")
+    original_code: Optional[str] = Field(
+        default="""
+    from deepfix_sdk.data.datasets import TabularDataset
+        from sklearn.ensemble import HistGradientBoostingClassifier
+        from sklearn.datasets import load_iris
+        from sklearn.model_selection import train_test_split
+
+        X,y = load_iris(as_frame=True,return_X_y=True)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        dataset_name = "iris_classification"
+
+        label = "target"
+        train = X_train.copy()
+        train[label] = y_train
+        cat_features = X_train.select_dtypes(include=['object','string','category']).columns.tolist()
+        if len(cat_features) > 0:
+            cat_features = None
+
+        test = X_test.copy()
+        test[label] = y_test
+
+        train_data = TabularDataset(dataset=train, dataset_name=dataset_name, label=label, cat_features=cat_features)
+        val_data = TabularDataset(dataset=test, dataset_name=dataset_name, label=label, cat_features=cat_features)
+
+        train_data.data.head()
+
+        # Fit model
+        model_name = "HistGradientBoostingClassifier"
+        clf = HistGradientBoostingClassifier(max_depth=3)
+        clf = clf.fit(train_data.X, train_data.y)
+    """ , description="The original source code of the ML experiment"
+    )
+    verify_repairs: bool = Field(
+        default=True, description="Whether to attempt automated repair and verification"
+    )

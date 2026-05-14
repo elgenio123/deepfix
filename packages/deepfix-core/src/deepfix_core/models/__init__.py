@@ -1,9 +1,11 @@
 from .analysis import (
     AgentResult,
     Analysis,
+    BugType,
     Finding,
     Recommendation,
     Severity,
+    VerificationResult,
 )
 from .api import APIRequest, APIResponse, APIJobResponse, AnalysisJobStatus
 from .artifacts import (

@@ -13,6 +13,9 @@ class OptimizationRecommendationSignature(dspy.Signature):
 
     Uses analysis from previous agents and retrieved knowledge from KnowledgeBridge
     to provide evidence-based optimization recommendations with citations.
+    
+    Categorize each finding as a PERFORMANCE bug (efficiency) or a SEARCH bug (effectiveness) 
+    per DREAM 2023.
     """
 
     artifacts_analysis: List[Analysis] = dspy.InputField(
@@ -26,7 +29,7 @@ class OptimizationRecommendationSignature(dspy.Signature):
     )
 
     analysis: List[Analysis] = dspy.OutputField(
-        desc="Detailed recommendations with citations to retrieved sources"
+        desc="Detailed recommendations with citations. Each finding MUST be categorized as 'performance' or 'search'."
     )
 
 

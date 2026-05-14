@@ -14,6 +14,7 @@ from .agents.artifact_analyzers import (
 )
 from .agents.base import Agent, ArtifactAnalyzer
 from .agents.cross_artifact_reasoning import CrossArtifactReasoningAgent
+from .agents.optimizationadvisor import OptimizationAdvisorAgent
 from .config import LLMConfig
 from .logging import get_logger
 from .models import AgentContext, AgentResult, ArtifactAnalysisResult
@@ -30,12 +31,16 @@ class ArtifactAnalysisCoordinator(Agent):
     ):
         super().__init__(config=config)
 
-        # Initialize KnowledgeBridge for cross-artifact reasoning
+        # Initialize KnowledgeBridge for agents
         self.knowledge_bridge = KnowledgeBridge()
 
         # initialize agents and loaders
         self.analyzer_agents = self._initialize_analyzer_agents()
         self.cross_artifact_reasoning_agent = CrossArtifactReasoningAgent(
+            llm_config=self._llm_config,
+            knowledge_bridge=self.knowledge_bridge,
+        )
+        self.optimization_advisor_agent = OptimizationAdvisorAgent(
             llm_config=self._llm_config,
             knowledge_bridge=self.knowledge_bridge,
         )
@@ -78,6 +83,15 @@ class ArtifactAnalysisCoordinator(Agent):
             previous_analyses=context.agent_results, output_language=context.language
         )
         context.agent_results[cross_artifact_result.agent_name] = cross_artifact_result
+
+        # 3. Optimization Advisor & Verified Repair
+        LOGGER.info("Optimization advice and verified repair...")
+        optimization_result = await self.optimization_advisor_agent.aforward(
+            artifacts_analysis=cross_artifact_result.analysis,
+            verify_repairs=context.verify_repairs,
+            original_code=context.original_code
+        )
+        context.agent_results[optimization_result.agent_name] = optimization_result
 
         # 4. Output results
         output = ArtifactAnalysisResult(

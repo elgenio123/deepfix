@@ -35,6 +35,12 @@ class AgentContext(BaseModel):
     model_checkpoint_artifacts: Optional[ModelCheckpointArtifacts] = None
     dataset_name: Optional[str] = None
     language: str = Field(default="english", description="Language of the analysis")
+    original_code: Optional[str] = Field(
+        default=None, description="The original source code of the ML experiment"
+    )
+    verify_repairs: bool = Field(
+        default=False, description="Whether to attempt automated repair and verification"
+    )
     agent_results: Dict[str, AgentResult] = Field(
         default={}, description="Results of the agents"
     )

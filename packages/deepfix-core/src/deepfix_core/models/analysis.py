@@ -21,6 +21,17 @@ class Severity(StrEnum):
     HIGH = "high"
 
 
+class BugType(StrEnum):
+    """Bug types based on DREAM 2023 classification.
+
+    PERFORMANCE: Efficiency issues (e.g., training time, resource usage).
+    SEARCH: Effectiveness issues (e.g., suboptimal accuracy, F1, RMSE).
+    """
+
+    PERFORMANCE = "performance"
+    SEARCH = "search"
+
+
 class AnalyzerTypes(StrEnum):
     """Types of artifact analyzers available in the system."""
 
@@ -38,6 +49,7 @@ class Finding(BaseModel):
         evidence: Evidence supporting the finding.
         severity: Severity level of the finding (low, medium, high).
         confidence: Confidence score between 0.0 and 1.0 in the finding and severity.
+        bug_type: Optional bug classification (performance or search).
     """
 
     description: str = Field(
@@ -47,6 +59,9 @@ class Finding(BaseModel):
     severity: Severity = Field(default=..., description="Severity of the finding")
     confidence: float = Field(
         ge=0.0, le=1.0, description="Confidence in the finding and severity"
+    )
+    bug_type: Optional[BugType] = Field(
+        default=None, description="Classification of the bug (performance or search)"
     )
 
 
@@ -69,17 +84,41 @@ class Recommendation(BaseModel):
     )
 
 
+class VerificationResult(BaseModel):
+    """Result of an executed and verified repair.
+
+    Attributes:
+        baseline: Baseline metric value before the fix.
+        post_fix: Metric value after the fix.
+        improvement: Difference between post_fix and baseline.
+        metric_name: Name of the metric (e.g., F1, RMSE).
+        side_effect_check: Whether regression tests passed.
+    """
+
+    baseline: float = Field(..., description="Baseline metric value")
+    post_fix: float = Field(..., description="Metric value after the fix")
+    improvement: float = Field(..., description="Calculated improvement (Delta)")
+    metric_name: str = Field(..., description="Name of the metric (e.g., F1, RMSE)")
+    side_effect_check: bool = Field(
+        default=True, description="Confirmation that regression tests passed"
+    )
+
+
 class Analysis(BaseModel):
     """A complete analysis combining a finding with its recommendation.
 
     Attributes:
         findings: The finding discovered during analysis.
         recommendations: The recommendation to address the finding.
+        verification: Optional verification result if a repair was executed.
     """
 
     findings: Finding = Field(default=..., description="Finding of the analysis")
     recommendations: Recommendation = Field(
         default=..., description="Recommendation based on the findings"
+    )
+    verification: Optional[VerificationResult] = Field(
+        default=None, description="Result of the verified repair"
     )
 
 
@@ -146,10 +185,16 @@ class AgentResult(BaseModel):
                 "error_message": self.error_message,
                 "finding_severity": findings.severity.value,
                 "finding_confidence": findings.confidence,
+                "finding_bug_type": findings.bug_type.value if findings.bug_type else None,
                 "recommendation_action": recommendations.action,
                 "recommendation_rationale": recommendations.rationale,
                 #'recommendation_priority': recommendations.priority.value,
                 "recommendation_confidence": recommendations.confidence,
+                "verification_baseline": analysis.verification.baseline if analysis.verification else None,
+                "verification_post_fix": analysis.verification.post_fix if analysis.verification else None,
+                "verification_improvement": analysis.verification.improvement if analysis.verification else None,
+                "verification_metric": analysis.verification.metric_name if analysis.verification else None,
+                "verification_side_effects": analysis.verification.side_effect_check if analysis.verification else None,
             }
             rows.append(row)
 

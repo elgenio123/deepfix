@@ -110,6 +110,8 @@ async def decode_agent_context(request: APIRequest) -> AgentContext:
             model_checkpoint_artifacts=request.model_checkpoint_artifacts,
             dataset_name=request.dataset_name,
             language=request.language,
+            original_code=request.original_code,
+            verify_repairs=request.verify_repairs,
         )
     except Exception as exc:
         LOGGER.error(f"Error decoding request: {exc}")

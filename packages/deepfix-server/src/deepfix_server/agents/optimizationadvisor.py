@@ -9,6 +9,8 @@ from deepfix_kb import KnowledgeBridge, KnowledgeResponse
 
 from ..config import LLMConfig
 from ..logging import get_logger
+from ..repair.executor import Executor
+from ..repair.patch_generator import PatchGenerator
 from .base import Agent
 from .signatures import OptimizationRecommendationSignature
 
@@ -18,10 +20,8 @@ LOGGER = get_logger(__name__)
 class OptimizationAdvisorAgent(Agent):
     """Optimization advisor that uses KnowledgeBridge for grounded recommendations.
 
-    This agent receives analysis from previous agents (training dynamics, data quality)
-    and uses KnowledgeBridge to retrieve relevant external knowledge (web search,
-    scientific papers, best practices) to provide evidence-based optimization
-    recommendations.
+    Now upgraded to a "Verified-Repair" Advisor. It can generate code patches,
+    execute them in a sandbox, and verify performance improvements.
     """
 
     def __init__(
@@ -37,21 +37,26 @@ class OptimizationAdvisorAgent(Agent):
         )
         self.llm = dspy.ChainOfThought(signature)
         self.knowledge_bridge = knowledge_bridge
+        self.patch_generator = PatchGenerator()
+        self.executor = Executor()
 
     async def aforward(
         self,
         artifacts_analysis: List[Analysis],
         constraints: Optional[str] = None,
+        verify_repairs: bool = False,
+        original_code: Optional[str] = None,
     ) -> AgentResult:
-        """Generate optimization recommendations based on previous agent analyses.
+        """Generate optimization recommendations and optionally verify them.
 
         Args:
-            artifacts_analysis: Analysis from previous agents (training dynamics,
-                data quality signals, cross-artifact insights).
-            constraints: Optional user constraints or requirements.
+            artifacts_analysis: Analysis from previous agents.
+            constraints: Optional user constraints.
+            verify_repairs: If True, attempt to generate and verify code patches.
+            original_code: The source code to be patched if verify_repairs is True.
 
         Returns:
-            AgentResult with grounded recommendations and citations.
+            AgentResult with grounded recommendations and optional verification results.
         """
         # Retrieve knowledge from KnowledgeBridge
         knowledge_context = await self._retrieve_knowledge(artifacts_analysis)
@@ -64,18 +69,69 @@ class OptimizationAdvisorAgent(Agent):
                 retrieved_knowledge=knowledge_context,
             )
 
+        analysis_list = response.analysis
+
+        # Verified-Repair Loop
+        if verify_repairs and original_code:
+            LOGGER.info(f"Starting Verified-Repair loop for {len(analysis_list)} potential findings...")
+            loop = asyncio.get_event_loop()
+            for analysis in analysis_list:
+                # Only attempt repair for high-confidence search/performance bugs
+                if analysis.recommendations.confidence > 0.7:
+                    try:
+                        LOGGER.info(f"Attempting repair for: {analysis.findings.description} (Confidence: {analysis.recommendations.confidence})")
+                        
+                        # 1. Generate Patch
+                        with self._llm_context():
+                            # PatchGenerator.aforward is async, ensuring LM context is preserved
+                            patch = await self.patch_generator.aforward(
+                                findings=analysis.findings.description,
+                                recommendations=analysis.recommendations.action,
+                                code_context=original_code
+                            )
+                        
+                        # 2. Execute and Verify (Long-running subprocess, must be in executor)
+                        # and we determine metric based on bug type (F1 for Search, Time/Resource for Performance)
+                        metric_name = "F1" if analysis.findings.bug_type == "search" else "ExecutionTime"
+                        
+                        verification = await loop.run_in_executor(
+                            None,
+                            self.executor.execute_and_verify,
+                            original_code,
+                            patch,
+                            metric_name
+                        )
+                        
+                        analysis.verification = verification
+                        LOGGER.info(f"Verification complete: {verification.improvement} {metric_name} improvement.")
+                        
+                    except Exception as e:
+                        LOGGER.error(f"Repair verification failed: {str(e)}")
+                        LOGGER.error(traceback.format_exc())
+                else:
+                    LOGGER.info(f"Skipping repair for finding '{analysis.findings.description}' due to low confidence ({analysis.recommendations.confidence})")
+        else:
+            LOGGER.info(f"Verified-Repair loop skipped. verify_repairs={verify_repairs}, original_code_present={original_code is not None}")
+
         return AgentResult(
             agent_name=self.agent_name,
-            analysis=response.analysis,
+            analysis=analysis_list,
         )
 
     async def arun(
         self,
         artifacts_analysis: List[Analysis],
         constraints: Optional[str] = None,
+        verify_repairs: bool = False,
+        original_code: Optional[str] = None,
     ) -> AgentResult:
         try:
-            return await self.acall(artifacts_analysis, constraints)
+            return await self.acall(
+                artifacts_analysis=artifacts_analysis, 
+                constraints=constraints,
+                verify_repairs=verify_repairs,
+                original_code=original_code
+            )
         except Exception as e:
             LOGGER.error(
                 f"Error with agent {self.agent_name}:\n {traceback.format_exc()}"
@@ -163,25 +219,24 @@ class OptimizationAdvisorAgent(Agent):
             ## Optimization Framework:
             When analyzing ML experiments, follow this systematic approach:
 
-            1. **Root Cause Analysis**:
-            - Identify underlying causes of poor performance
-            - Distinguish between data issues, model issues, and training issues
-            - Prioritize issues by impact and solvability
+            1. **Bug Categorization (DREAM 2023)**:
+            - **SEARCH Bug**: The system fails to find an accurate enough model (e.g., poor F1, high RMSE, sub-optimal hyperparameters). Focus on effectiveness.
+            - **PERFORMANCE Bug**: The system takes unreasonably long or uses excessive resources (e.g., slow training, GPU bottlenecks). Focus on efficiency.
+            - **MANDATORY**: Categorize every finding as either 'performance' or 'search'.
 
-            2. **Solution Mapping**:
-            - Map each identified issue to specific optimization strategies
-            - Consider multiple approaches for each problem
-            - Evaluate trade-offs between different solutions
+            2. **Root Cause Analysis**:
+            - Identify underlying causes of poor performance or search failure.
+            - Distinguish between data issues, model issues, and training issues.
 
-            3. **Implementation Prioritization**:
-            - Prioritize quick wins vs. long-term improvements
-            - Consider resource constraints and implementation complexity
-            - Suggest phased rollout for complex optimizations
+            3. **Verified Repair Recommendation**:
+            - Provide specific, implementable code modifications.
+            - Your recommendations will be used to generate automated patches. Ensure they are precise.
+            - For SEARCH bugs, prioritize fixes that improve accuracy/F1.
+            - For PERFORMANCE bugs, prioritize fixes that reduce execution time or memory.
 
             4. **Impact Assessment**:
-            - Estimate expected improvement for each recommendation
-            - Identify potential risks or side effects
-            - Provide confidence intervals for expected outcomes
+            - Estimate expected improvement for each recommendation.
+            - Provide confidence intervals.
 
             ## Recommendation Categories:
 

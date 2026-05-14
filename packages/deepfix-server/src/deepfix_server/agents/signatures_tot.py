@@ -38,7 +38,7 @@ class FinalizeToTAnalysisSignature(dspy.Signature):
     output_language: str = dspy.InputField(desc="Language of the output")
     
     analysis: List[Analysis] = dspy.OutputField(
-        desc="Consolidated analysis with cross-artifact insights"
+        desc="Consolidated analysis with cross-artifact insights. Categorize findings as 'performance' or 'search'."
     )
     summary: str = dspy.OutputField(
         desc="Summary of the holistic reasoning and diagnostic conclusions"
